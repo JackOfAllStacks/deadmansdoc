@@ -1,6 +1,12 @@
 const questionBank = require("./data/questionBank.json");
 const framingTechniques = require("./data/framingTechniques.js");
 
+// Only a handful of examples per category go into the prompt -- the full
+// ~167-question bank verbatim, on every turn, burns tokens for no benefit
+// (it's reference material to spark good questions, not a script to read
+// aloud) and blows through small-provider rate limits fast.
+const EXAMPLES_PER_CATEGORY = 4;
+
 function formatQuestionBank() {
   const byCategory = {};
   for (const q of questionBank.questions) {
@@ -10,7 +16,12 @@ function formatQuestionBank() {
     }
   }
   return Object.entries(byCategory)
-    .map(([cat, qs]) => `### ${cat}\n${qs.map((q) => `- ${q}`).join("\n")}`)
+    .map(([cat, qs]) => {
+      const sample = qs.slice(0, EXAMPLES_PER_CATEGORY);
+      return `### ${cat} (${qs.length} questions in the bank, e.g.)\n${sample
+        .map((q) => `- ${q}`)
+        .join("\n")}`;
+    })
     .join("\n\n");
 }
 
@@ -48,7 +59,7 @@ ${framingTechniques}
 If people present / roles haven't been captured yet, start there: who would they call first, who holds keys/knowledge/authority, and each person's contact details (this is the "inner circle"). Then move through categories at your own judgement, adapting order and depth to what comes up naturally, rather than reading down a script. Prioritise anything time-sensitive or irreversible (the kind of thing this team calls "what would break first if you were suddenly gone").
 
 ## Reference question bank
-This is raw material to draw on and adapt -- not a script to read verbatim, and not a form to fill in field by field. Skip what's irrelevant to this subject; go deeper where something clearly matters; ask your own follow-ups.
+A sample from each category, not the full bank and not a script -- use these to understand what "good" looks like per category, then write your own questions in the same spirit. Skip what's irrelevant to this subject; go deeper where something clearly matters; ask your own follow-ups.
 
 ${QUESTION_BANK_TEXT}
 `;
