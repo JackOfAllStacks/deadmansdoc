@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dead Man's Doc",
+  title: "The Handover",
   description:
     "A guided conversation that records what the people you leave behind will need to know.",
 };

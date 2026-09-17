@@ -1,6 +1,8 @@
-# Dead Man's Doc
+# The Handover
 
-_Working title in the client brief: **The Handover**._
+Live prototype: https://handingover.netlify.app
+
+_Renamed on 2026-09-17 from an internal codename that was too blunt for a product about death. "The Handover" was already taken on Netlify, so the project there is `handingover`. The GitHub repo and local folder still use the old name, `deadmansdoc`, for now._
 
 An AI-led interview that helps someone record what the people they leave behind will actually need to know — who to call, what exists, where it is, and what must not be missed. The output is a single printable document.
 
@@ -15,7 +17,7 @@ A Vibrance product exploration, led by Jack with Santi, under oversight from Pet
 
 ### Not a will
 
-| | Will | Dead Man's Doc |
+| | Will | The Handover |
 |---|---|---|
 | Nature | Legal document | Practical handover & instruction record |
 | Covers | Distribution of assets, estate, guardianship | Knowledge, processes, contacts, locations, instructions |

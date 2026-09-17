@@ -1,4 +1,4 @@
--- Dead Man's Doc — initial schema
+-- The Handover — initial schema
 --
 -- field_id and question_id are text references into data/artifact-fields.yaml
 -- and data/question-bank.yaml. Those files are the source of truth and are not
