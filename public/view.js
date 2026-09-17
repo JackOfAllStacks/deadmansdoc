@@ -21,6 +21,8 @@
   }
 
   let lastMessages = [];
+  let lastViewData = null;
+  const downloadBtn = document.getElementById("download-btn");
 
   // A short, human-readable line for a tool-call message instead of dumping
   // its raw {args, result} JSON -- e.g. "save_person -> Elena Chen (wife)"
@@ -179,6 +181,7 @@
         errorEl.hidden = false;
         return;
       }
+      lastViewData = body;
       renderRecord(body.record);
       renderMessages(body.messages);
       renderPeople(body.people);
@@ -203,6 +206,23 @@
     e.preventDefault();
     const code = new FormData(form).get("resumeCode");
     if (code) load(code.trim());
+  });
+
+  downloadBtn.addEventListener("click", () => {
+    if (!lastViewData) return;
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      ...lastViewData,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `handover-${lastViewData.record.resumeCode}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   });
 
   const params = new URLSearchParams(window.location.search);
