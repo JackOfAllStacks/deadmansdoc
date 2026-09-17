@@ -4,10 +4,18 @@
   functions = "netlify/functions"
 
 [dev]
-  command = "npm run build"
+  # No `command` here: [dev].command is for a long-running framework dev
+  # server (e.g. "next dev") that Netlify Dev supervises -- our build is a
+  # one-shot script, and setting it as the dev command made Netlify Dev
+  # treat its (successful) exit as the dev server dying and shut down.
+  # `npm run dev` already runs the build once before starting `netlify dev`.
   publish = "public"
   functions = "netlify/functions"
   autoLaunch = false
+  # We're a plain static site with no framework dev server to proxy to.
+  # Skips Netlify Dev's framework auto-detection, which was crashing
+  # ("Cannot read properties of undefined (reading 'name')") on this setup.
+  framework = "#static"
 
 [[redirects]]
   from = "/api/*"

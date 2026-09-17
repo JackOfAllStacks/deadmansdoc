@@ -10,8 +10,38 @@ const { TOOLS, executeToolCall } = require("./tools");
 
 const MAX_TOOL_ROUNDS = 6;
 
+// Node's built-in global fetch (backed by its own internal, bundled undici)
+// aborts with a HeadersTimeoutError after ~300s by default. Fine for a
+// hosted provider, but a local model on a slow/CPU-only machine can take
+// longer than that just to load into memory on its first request -- seen in
+// practice: an opening turn against a 7B Ollama model timed out at 308s,
+// while the very next turn (model already warm) took 124s.
+//
+// Raising that ceiling means passing a custom Agent as `dispatcher` -- but
+// that Agent has to come from the SAME undici instance as the fetch call
+// actually using it, or the two versions' internal request-handler
+// protocols don't line up (a real error hit here: "invalid onRequestStart
+// method"). Node's global fetch is its own internal undici, not the
+// standalone `undici` package, so mixing an Agent from the npm package into
+// a call to global fetch breaks. Fix: use the npm package's own fetch
+// together with its own Agent, so they're always version-matched. Falls
+// back to Node's global fetch (default timeout) if `undici` can't be
+// resolved at all.
+let fetchImpl = fetch;
+let dispatcher;
+try {
+  const undici = require("undici");
+  dispatcher = new undici.Agent({ headersTimeout: 900000, bodyTimeout: 900000 });
+  fetchImpl = undici.fetch;
+} catch {
+  dispatcher = undefined;
+}
+
 function getConfig() {
-  const baseUrl = process.env.LLM_BASE_URL || "https://api.groq.com/openai/v1";
+  // Strip any trailing slash -- some providers (Gemini's OpenAI-compat
+  // endpoint among them) publish their base URL with one, which would
+  // otherwise double up against the leading slash below and 404.
+  const baseUrl = (process.env.LLM_BASE_URL || "https://api.groq.com/openai/v1").replace(/\/+$/, "");
   const apiKey = process.env.LLM_API_KEY || null;
   const model = process.env.LLM_MODEL || "openai/gpt-oss-120b";
   return { baseUrl, apiKey, model };
@@ -28,7 +58,7 @@ async function callChatCompletions(messages, attempt = 0) {
   const { baseUrl, apiKey, model } = getConfig();
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
-  const res = await fetch(`${baseUrl}/chat/completions`, {
+  const res = await fetchImpl(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers,
     body: JSON.stringify({
@@ -38,6 +68,7 @@ async function callChatCompletions(messages, attempt = 0) {
       tool_choice: "auto",
       temperature: 0.4,
     }),
+    ...(dispatcher ? { dispatcher } : {}),
   });
 
   if (!res.ok) {

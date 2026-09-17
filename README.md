@@ -70,8 +70,10 @@ safe about the current build.
 - **Backend:** Netlify Functions in [`netlify/functions/`](netlify/functions)
   (`record.js` to start/resume a session, `chat.js` to run one interview turn).
 - **LLM:** any OpenAI-compatible chat-completions API with tool calling —
-  see [`src/llm.js`](src/llm.js). Defaults to an open-weight model via Groq
-  for prototyping; swap providers by changing env vars only.
+  see [`src/llm.js`](src/llm.js). Currently Gemini (`gemini-3.1-flash-lite`
+  via its OpenAI-compatible endpoint); swap providers by changing env vars
+  only. Also tested against Groq (hit its free-tier rate limit fast) and a
+  local Ollama install (see below).
 - **Storage:** Neon Postgres, schema in [`db/schema.sql`](db/schema.sql).
 - **Question bank:** [`scripts/build-question-bank.js`](scripts/build-question-bank.js)
   compiles `Discovery/Questions/*.md` and the framing-techniques note into
@@ -96,27 +98,45 @@ npm run dev            # builds the question bank and runs `netlify dev`
 Requires the [Netlify CLI](https://docs.netlify.com/cli/get-started/) (installed
 via `npm install` as a dev dependency) and a [Neon](https://neon.tech) project.
 
-### Using a local Ollama install instead of a hosted provider
+If `netlify dev` crashes immediately with `Cannot read properties of
+undefined (reading 'name')`, that's Netlify Dev's framework
+auto-detection failing on this setup, not this app -- `netlify.toml`
+already sets `[dev].framework = "#static"` to skip it (we're a plain
+static site with no framework dev server to detect), but if you ever
+see that error again, that's where to look.
 
-Useful when testing hits a hosted provider's rate limits. In `.env`:
-```
-LLM_BASE_URL=http://localhost:11434/v1
-LLM_API_KEY=
-LLM_MODEL=<a model you've pulled that supports tools, e.g. llama3.2>
-```
-No API key needed -- Ollama's OpenAI-compatible endpoint doesn't require one, and
-`src/llm.js` only sends an `Authorization` header when a key is actually set. This
-only works for **local dev** (`npm run dev` / `netlify dev`), not the deployed
-site -- Netlify's servers can't reach `localhost` on your machine. `.env` is
-gitignored and never read by the deployed site, so this can't accidentally
-affect production; that keeps reading its provider config from Netlify's own
-site env vars regardless of what's in your local `.env`.
+### Switching LLM providers
 
-Small local models are usually CPU-only and noticeably slower at processing a
-long prompt than a hosted GPU -- e.g. ~24s for a 32-token prompt was typical on
-one test machine with a 1B model. Since the interview's system prompt is
-normally ~2,500 tokens (guardrails, framing techniques, question bank
-samples), set `QUESTION_BANK_EXAMPLES=0` to drop the question-bank section
-from the prompt entirely and cut that down substantially -- the interviewer
-still works, it just improvises within each category without the sampled
-examples to draw on.
+Nothing but three env vars (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`) is
+provider-specific -- `src/llm.js` speaks plain OpenAI-compatible
+chat-completions with tool calling, nothing more. What's been tried:
+
+- **Gemini** (current default) -- `https://generativelanguage.googleapis.com/v1beta/openai`,
+  `gemini-3.1-flash-lite`. Fast (~5s/turn), reliable tool calling, and a much
+  larger free-tier token budget than Groq. Get a key at
+  [aistudio.google.com/apikey](https://aistudio.google.com/apikey). Gemini's
+  model names/tiers shift over time -- if a model 404s as deprecated, GET
+  `{LLM_BASE_URL}/models` (with your key as a bearer token) for current ones.
+- **Groq** -- `https://api.groq.com/openai/v1`, e.g. `openai/gpt-oss-120b`.
+  Free tier is small (8,000 tokens/minute), enough for occasional use but not
+  sustained testing -- that's the rate limit that motivated trying the above.
+- **Local Ollama** -- `http://localhost:11434/v1`, no API key (Ollama's
+  endpoint doesn't need one, and `src/llm.js` only sends `Authorization` when
+  a key is actually set). Only works for **local dev** (`npm run dev`), not
+  the deployed site -- Netlify's servers can't reach `localhost` on your
+  machine. `.env` is gitignored and never read by the deployed site, so
+  switching it locally can't accidentally affect production, which keeps
+  reading its own env vars regardless.
+
+  Two things that bit us testing this: **model choice matters a lot** for
+  tool-calling reliability -- `llama3.2:1b` frequently failed to call tools
+  at all (once literally printed the raw tool-definition JSON back as chat
+  text instead of calling one), while `qwen2.5:7b-instruct` worked
+  correctly. And **CPU-only inference is slow** for a long prompt -- ~24s for
+  a 32-token prompt was typical on one test machine with the 1B model, and a
+  7B model's first (cold-load) response timed out entirely against Node's
+  default ~300s fetch timeout, which `src/llm.js` now raises for exactly this
+  case. Set `QUESTION_BANK_EXAMPLES=0` to drop the question-bank section
+  from the ~2,500-token system prompt entirely if things are still too slow
+  to iterate with -- the interviewer still works, it just improvises within
+  each category without the sampled examples to draw on.
