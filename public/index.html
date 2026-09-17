@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Handover</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <span class="wordmark">The Handover</span>
+    <span id="resume-badge" class="resume-badge" hidden></span>
+  </header>
+
+  <main id="screen-start" class="screen">
+    <div class="card">
+      <h1>Before anything happens, someone should know.</h1>
+      <p class="lede">
+        This is a conversation, not a form. It collects the practical things your family would
+        need to know if something happened to you &mdash; contacts, accounts, processes, where
+        things are &mdash; so nothing is lost to the person who could have explained it.
+      </p>
+      <p class="lede-note">
+        This isn't a will, and it won't give you legal, financial, tax, or medical advice. It
+        only helps you record what you know, and flags what you don't. Nothing is turned into a
+        finished document here &mdash; that happens later, from what you record.
+      </p>
+
+      <form id="start-form">
+        <fieldset>
+          <legend>Who is this for?</legend>
+          <label class="choice">
+            <input type="radio" name="mode" value="self" checked />
+            <span>Myself &mdash; I'm preparing this for my own family.</span>
+          </label>
+          <label class="choice">
+            <input type="radio" name="mode" value="parent" />
+            <span>A parent or relative &mdash; I'm helping someone else get this out of their head.</span>
+          </label>
+        </fieldset>
+
+        <div id="parent-fields" hidden>
+          <label>
+            Their name
+            <input type="text" name="subjectName" placeholder="e.g. Margaret" />
+          </label>
+          <label>
+            Your relationship to them
+            <input type="text" name="initiatorRelationship" placeholder="e.g. daughter" />
+          </label>
+        </div>
+
+        <label>
+          Who's in the room for this session?
+          <input type="text" name="whoIsPresent" placeholder="e.g. just me, or me and my sister" />
+        </label>
+
+        <label class="choice consent">
+          <input type="checkbox" name="consent" required />
+          <span>
+            I understand this session records what's said so it can be used later, and that
+            nothing here is legal, financial, tax, or medical advice.
+          </span>
+        </label>
+
+        <button type="submit">Start</button>
+      </form>
+
+      <button id="show-resume" class="link-button" type="button">
+        Already started a session? Resume with your code.
+      </button>
+
+      <form id="resume-form" hidden>
+        <label>
+          Your resume code
+          <input type="text" name="resumeCode" placeholder="e.g. harbor-willow-482" />
+        </label>
+        <label>
+          Who's in the room this time?
+          <input type="text" name="whoIsPresent" />
+        </label>
+        <button type="submit">Resume</button>
+      </form>
+
+      <p id="start-error" class="error" hidden></p>
+    </div>
+  </main>
+
+  <main id="screen-chat" class="screen" hidden>
+    <div class="chat-shell">
+      <div id="messages" class="messages" aria-live="polite"></div>
+      <form id="chat-form" class="composer">
+        <textarea id="chat-input" rows="1" placeholder="Type here..." required></textarea>
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

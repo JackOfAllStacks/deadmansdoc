@@ -51,4 +51,47 @@ All current project material lives under [`Discovery/`](Discovery):
 
 ## Status
 
-Early discovery phase — problem framing, competitor scan, and the interview question bank are in progress. No working prototype yet.
+Discovery is done; a first prototype now exists (see below). It only does
+**collection**: an AI-led interview that talks to the user and saves
+structured information (people, facts, gaps) to a database. It does not
+generate a finished handover document — that's left for a later agent to
+build from this stored data.
+
+## Prototype: the collection app
+
+An AI interview, deployed on Netlify, that fills in `people` / `facts` /
+`gaps` tables in a Postgres (Neon) database as the conversation happens,
+using the question bank and framing techniques under `Discovery/` as its
+guide. See [`SECURITY_NOTES.md`](SECURITY_NOTES.md) for what is and isn't
+safe about the current build.
+
+### Stack
+- **Frontend:** static HTML/CSS/JS in [`public/`](public) — no build tooling.
+- **Backend:** Netlify Functions in [`netlify/functions/`](netlify/functions)
+  (`record.js` to start/resume a session, `chat.js` to run one interview turn).
+- **LLM:** any OpenAI-compatible chat-completions API with tool calling —
+  see [`src/llm.js`](src/llm.js). Defaults to an open-weight model via Groq
+  for prototyping; swap providers by changing env vars only.
+- **Storage:** Neon Postgres, schema in [`db/schema.sql`](db/schema.sql).
+- **Question bank:** [`scripts/build-question-bank.js`](scripts/build-question-bank.js)
+  compiles `Discovery/Questions/*.md` and the framing-techniques note into
+  `src/data/` at build time, so the discovery docs stay the single source of
+  truth — re-run it after editing anything under `Discovery/`.
+
+### Data model
+- `records` — one per subject (self or parent), with a resume code.
+- `sessions` — one per sitting (who was present, consent).
+- `messages` — full transcript, including tool calls, for continuity across sessions.
+- `people` — contacts, roles, what they hold/oversee, contact details.
+- `facts` — one row per discrete piece of information, tagged by category.
+- `gaps` — things the subject doesn't know, plus who might.
+
+### Running locally
+```
+npm install
+cp .env.example .env   # fill in DATABASE_URL and LLM_API_KEY
+npm run db:migrate     # applies db/schema.sql to your Neon database
+npm run dev            # builds the question bank and runs `netlify dev`
+```
+Requires the [Netlify CLI](https://docs.netlify.com/cli/get-started/) (installed
+via `npm install` as a dev dependency) and a [Neon](https://neon.tech) project.
