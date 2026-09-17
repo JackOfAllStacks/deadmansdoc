@@ -1,0 +1,748 @@
+# Question bank — v1
+#
+# Derived from the 167-question brainstorm in docs/Questions, narrowed to the
+# v1 artifact scope (Sections 1, 2, 3, 5) and put through the three criteria in
+# docs/Question Brainstorming/Question Slimming Down.md.
+#
+# `ask` is a starting phrasing, not a script. The agent runs a free-form
+# conversation and adapts wording; this is what it is trying to find out.
+#
+# type:
+#   generator — produces a list of entities that later questions attach to.
+#               Front-load these; they light up the most of the map.
+#   attribute — captured per entity produced by a generator.
+#   probe     — single answer, often negatively framed, used to surface
+#               what the structured questions miss.
+#
+# rank (from the slimming-down criteria):
+#   irreplaceability — can someone else answer this after death? low = yes
+#   decay            — does it get harder or impossible once dead or notified?
+#   generativity     — how much of the map does it open?
+#
+# routing: true — low irreplaceability. Don't chase detail; capture who would
+#                 know and move on. A gap with a name against it beats a blank.
+#
+# priority: 1 openers and essentials · 2 core · 3 if time allows
+#
+# source: bank — from the original brainstorm
+#         new  — added here, mostly from the framing techniques doc, which
+#                held strong questions that never made it into the files
+#
+# Cross-cutting agent behaviours (every "I don't know" becomes "who would
+# know?", asking for the exception after any answer, reflecting contradictions
+# back rather than resolving them) live in the agent prompt, not here.
+
+version: 0.1
+scope: [1, 2, 3, 5]
+
+questions:
+
+  # ─────────────────────────────────────────────────────────────
+  # Openers — highest generativity, asked first regardless of plan
+  # ─────────────────────────────────────────────────────────────
+
+  - id: open.incapacity_counterfactual
+    ask: If you were in hospital for three months starting tomorrow, what would break first?
+    type: probe
+    domain: urgency
+    fills: [s1.immediate_actions, s2.first_week_losses, s5.uninterruptible_payments, s5.burn_on_death]
+    rank: { irreplaceability: high, decay: medium, generativity: high }
+    priority: 1
+    technique: incapacity-counterfactual
+    source: new
+    notes: >
+      Called the strongest question available in the framing notes, but it was
+      never written into the question files. Emotionally safe because it is not
+      about dying, and it surfaces maintenance and obligation that no inventory
+      question reaches. Repeat at three days, three months, three years.
+
+  - id: open.last_death
+    ask: When someone close to you died, what was hardest to deal with?
+    type: probe
+    domain: urgency
+    fills: [s2.first_72h, s2.impossible_after_notice, s1.do_not_yet]
+    rank: { irreplaceability: high, decay: low, generativity: high }
+    priority: 1
+    technique: last-death-handled
+    source: new
+    notes: >
+      The richest source of tripwires available, and permissible because it is
+      about someone else. Good early question — it warms the subject up on
+      someone else's death before asking about their own.
+
+  - id: open.household_responsibilities
+    ask: What do you look after for the household that nobody else touches?
+    type: probe
+    domain: finances
+    fills: [s5.uninterruptible_payments, s1.immediate_actions]
+    rank: { irreplaceability: high, decay: medium, generativity: high }
+    priority: 1
+    source: bank
+
+  # ─────────────────────────────────────────────────────────────
+  # Section 3 — The people
+  # ─────────────────────────────────────────────────────────────
+
+  - id: kp.first_calls
+    ask: If you died tomorrow, who are the first three people your family should call, and why each one?
+    type: generator
+    entity: person
+    domain: key-people
+    fills: [s1.first_calls, s3.key_people]
+    rank: { irreplaceability: high, decay: low, generativity: high }
+    priority: 1
+    source: bank
+
+  - id: kp.immediate_family
+    ask: Who makes up your immediate family?
+    type: generator
+    entity: person
+    domain: key-people
+    fills: [s3.household, s3.key_people]
+    rank: { irreplaceability: medium, decay: low, generativity: high }
+    priority: 1
+    source: bank
+
+  - id: kp.household_members
+    ask: Who currently lives in your home?
+    type: generator
+    entity: person
+    domain: key-people
+    fills: [s3.household]
+    rank: { irreplaceability: medium, decay: low, generativity: medium }
+    priority: 2
+    source: bank
+    notes: Deliberately separate from immediate family — the two lists differ more often than people expect.
+
+  - id: kp.advisers
+    ask: Who are the professionals in your life — accountant, lawyer, financial adviser, doctor?
+    type: generator
+    entity: person
+    domain: key-people
+    fills: [s3.advisers, s3.key_people]
+    rank: { irreplaceability: high, decay: low, generativity: high }
+    priority: 1
+    source: new
+    notes: >
+      No generator for advisers existed in the bank, only an accountant
+      question. Section 3 needs the list, and advisers are the highest-value
+      routing entries in the document.
+
+  - id: kp.relationship
+    ask: What is this person to you?
+    type: attribute
+    entity: person
+    domain: key-people
+    fills: [s3.key_people]
+    rank: { irreplaceability: medium, decay: low, generativity: low }
+    priority: 1
+    source: bank
+
+  - id: kp.role
+    ask: What part would they play if you died?
+    type: attribute
+    entity: person
+    domain: key-people
+    fills: [s3.key_people, s3.responsibilities]
+    rank: { irreplaceability: high, decay: low, generativity: medium }
+    priority: 1
+    source: bank
+
+  - id: kp.contact
+    ask: How would your family reach them?
+    type: attribute
+    entity: person
+    domain: key-people
+    fills: [s3.key_people]
+    rank: { irreplaceability: low, decay: low, generativity: low }
+    routing: true
+    priority: 1
+    source: bank
+
+  - id: kp.responsibilities
+    ask: What are they responsible for — now, and after you die?
+    type: attribute
+    entity: person
+    domain: key-people
+    fills: [s3.responsibilities]
+    rank: { irreplaceability: high, decay: medium, generativity: medium }
+    priority: 2
+    source: bank
+
+  - id: kp.told_them
+    ask: Have you actually told them that's what you expect of them?
+    type: attribute
+    entity: person
+    domain: key-people
+    fills: [s3.expectations_communicated]
+    rank: { irreplaceability: high, decay: high, generativity: low }
+    priority: 2
+    source: bank
+    notes: >
+      Produces gaps rather than facts, and the gaps are the point. An executor
+      who has never been asked is a problem discovered at the worst moment.
+
+  - id: kp.interrelationships
+    ask: Which of these people know each other, and which have never met?
+    type: probe
+    domain: key-people
+    fills: [s3.interrelationships]
+    rank: { irreplaceability: high, decay: low, generativity: medium }
+    priority: 2
+    source: bank
+    notes: Merged with the near-duplicate "what are their relationships to one another".
+
+  - id: kp.financial_knower
+    ask: Who knows the most about your financial affairs apart from you?
+    type: probe
+    domain: key-people
+    fills: [s3.financial_knower, s5.accountant]
+    rank: { irreplaceability: high, decay: low, generativity: high }
+    priority: 1
+    source: bank
+    notes: Bridges into Section 5. If the answer is "nobody", that is itself a finding.
+
+  - id: kp.coordinator
+    ask: Is there someone you would trust to hold all of this together?
+    type: probe
+    domain: key-people
+    fills: [s1.fallback_contact, s3.key_people]
+    rank: { irreplaceability: high, decay: low, generativity: medium }
+    priority: 1
+    source: bank
+
+  - id: kp.can_take_over
+    ask: Who could take over the things you normally manage?
+    type: probe
+    domain: key-people
+    fills: [s1.routing_map, s3.responsibilities]
+    rank: { irreplaceability: high, decay: medium, generativity: medium }
+    priority: 2
+    source: bank
+
+  - id: kp.business_contact
+    ask: Who should be contacted about your work or business?
+    type: probe
+    domain: key-people
+    fills: [s1.routing_map, s3.key_people]
+    rank: { irreplaceability: high, decay: medium, generativity: medium }
+    priority: 2
+    source: bank
+
+  - id: kp.do_not_contact
+    ask: Is there anyone who should not be contacted, or not given access to anything?
+    type: probe
+    domain: key-people
+    fills: [s3.do_not_contact]
+    rank: { irreplaceability: high, decay: high, generativity: low }
+    priority: 1
+    technique: negative-framing
+    source: bank
+    notes: Unrecoverable if unasked. Nobody else can supply this.
+
+  - id: kp.wrong_call
+    ask: Who would your family instinctively call who would actually be the wrong person?
+    type: probe
+    domain: key-people
+    fills: [s3.wrong_call]
+    rank: { irreplaceability: high, decay: high, generativity: low }
+    priority: 2
+    technique: negative-framing
+    source: bank
+
+  - id: kp.knows_what_you_dont
+    ask: Who knows something important about your affairs that even you don't know the detail of?
+    type: probe
+    domain: key-people
+    fills: [s3.key_people, s3.financial_knower]
+    rank: { irreplaceability: high, decay: high, generativity: high }
+    priority: 2
+    source: bank
+    notes: One of the few questions that reaches genuine unknown unknowns.
+
+  - id: kp.who_disagrees
+    ask: Who would tell me something different about what you've just described?
+    type: probe
+    domain: key-people
+    fills: [s3.anticipated_disagreement]
+    rank: { irreplaceability: high, decay: high, generativity: medium }
+    priority: 2
+    technique: who-disagrees
+    source: bank
+    notes: Offer sealed by default. Surfaces disputes before they become expensive.
+
+  # ─────────────────────────────────────────────────────────────
+  # Section 2 — What to do, in order
+  # ─────────────────────────────────────────────────────────────
+
+  - id: urg.immediate
+    ask: In the first day or two after you die, what has to happen?
+    type: probe
+    domain: urgency
+    fills: [s1.immediate_actions, s2.first_72h]
+    rank: { irreplaceability: high, decay: medium, generativity: high }
+    priority: 1
+    source: bank
+
+  - id: urg.impossible_after_notice
+    ask: Is there anything that becomes impossible — not just harder — once a bank or insurer is told you've died?
+    type: probe
+    domain: urgency
+    fills: [s2.impossible_after_notice, s1.do_not_yet]
+    rank: { irreplaceability: high, decay: high, generativity: medium }
+    priority: 1
+    source: bank
+    notes: >
+      The highest-decay question in the bank. The safe deposit box case in the
+      project brief is exactly this, and it is the clearest demonstration of
+      why the product has to exist before the death rather than after it.
+
+  - id: urg.first_week_losses
+    ask: What would spoil, die, lapse or be stolen in the first week if nobody attended to it?
+    type: probe
+    domain: urgency
+    fills: [s2.first_week_losses, s1.immediate_actions]
+    rank: { irreplaceability: high, decay: high, generativity: medium }
+    priority: 1
+    source: bank
+
+  - id: urg.permanent_loss
+    ask: Is there anything that would be lost for good if it isn't dealt with in time?
+    type: probe
+    domain: urgency
+    fills: [s2.deadlines, s2.first_week_losses]
+    rank: { irreplaceability: high, decay: high, generativity: medium }
+    priority: 2
+    source: bank
+    notes: Broader restatement of urg.first_week_losses. Ask only if the concrete version came back thin.
+
+  - id: urg.deadlines
+    ask: Is there anything with a deadline that starts counting from the date of death?
+    type: probe
+    domain: urgency
+    fills: [s2.deadlines]
+    rank: { irreplaceability: medium, decay: high, generativity: medium }
+    routing: true
+    priority: 2
+    source: bank
+
+  - id: urg.urgent_decisions
+    ask: Is there a decision someone would have to make within days, and who is actually qualified to make it?
+    type: probe
+    domain: urgency
+    fills: [s2.urgent_decisions, s1.routing_map]
+    rank: { irreplaceability: high, decay: high, generativity: medium }
+    priority: 2
+    source: bank
+
+  - id: urg.order_of_operations
+    ask: Is there an order these things need to happen in?
+    type: probe
+    domain: urgency
+    fills: [s2.first_72h, s2.first_30d, s2.first_6m]
+    rank: { irreplaceability: high, decay: low, generativity: medium }
+    priority: 2
+    source: bank
+
+  - id: urg.do_not_yet
+    ask: What should they be careful not to do too early — anything they shouldn't cancel, close, sign or move?
+    type: probe
+    domain: urgency
+    fills: [s1.do_not_yet, s5.do_not_close_accounts]
+    rank: { irreplaceability: high, decay: high, generativity: medium }
+    priority: 1
+    technique: negative-framing
+    source: new
+    notes: >
+      The Family Guide leans on this repeatedly — "do not make any financial
+      decisions until you have spoken to Marc" — but no question in the bank
+      asked for it directly.
+
+  - id: urg.time_constrained_rites
+    ask: Are there religious or cultural requirements with a time limit — burial within a set period, particular rites, particular people who must be there?
+    type: probe
+    domain: health
+    fills: [s2.time_constrained_rites, s1.immediate_actions]
+    rank: { irreplaceability: high, decay: high, generativity: medium }
+    priority: 1
+    source: bank
+    notes: >
+      Section 11 material, pulled forward into v1. It is the one category where
+      appearing late in the document is a failure, and the brief's example of
+      cultural specificity that a generic checklist misses entirely.
+
+  # ─────────────────────────────────────────────────────────────
+  # Section 5 — Money in and out
+  # ─────────────────────────────────────────────────────────────
+
+  - id: fin.month_walkthrough
+    ask: Walk me through the first of the month. What goes out, and what do you have to do by hand?
+    type: generator
+    entity: bill
+    domain: finances
+    fills: [s5.regular_bills, s5.auto_vs_manual]
+    rank: { irreplaceability: medium, decay: medium, generativity: high }
+    priority: 1
+    technique: ask-about-a-day
+    source: new
+    notes: >
+      Replaces the flat "what regular bills do you pay". Walking through a day
+      recalls far more than naming a category, and it produces the payment
+      method as a by-product rather than a separate question.
+
+  - id: fin.accounts
+    ask: What bank accounts exist, and which are in joint names?
+    type: generator
+    entity: account
+    domain: finances
+    fills: [s5.accounts]
+    rank: { irreplaceability: medium, decay: medium, generativity: high }
+    priority: 1
+    source: bank
+    notes: >
+      Joint versus sole is the single highest-value fact in this section. Joint
+      usually survives, sole usually freezes, and most families find out the
+      hard way.
+
+  - id: fin.bill_account
+    ask: Which account do the household bills actually come out of?
+    type: probe
+    domain: finances
+    fills: [s5.bill_account]
+    rank: { irreplaceability: medium, decay: medium, generativity: medium }
+    priority: 1
+    source: bank
+
+  - id: fin.bill_account_freeze
+    ask: If that account were frozen tomorrow, what would stop?
+    type: probe
+    domain: finances
+    fills: [s5.bill_account_freeze, s5.burn_on_death]
+    rank: { irreplaceability: high, decay: high, generativity: medium }
+    priority: 1
+    source: bank
+
+  - id: fin.uninterruptible
+    ask: Which payments must not be interrupted, and what happens if they are?
+    type: probe
+    domain: finances
+    fills: [s5.uninterruptible_payments]
+    rank: { irreplaceability: high, decay: high, generativity: medium }
+    priority: 1
+    source: bank
+
+  - id: fin.silent_failures
+    ask: Is there a direct debit that would fail quietly rather than loudly?
+    type: probe
+    domain: finances
+    fills: [s5.silent_failures]
+    rank: { irreplaceability: high, decay: high, generativity: low }
+    priority: 2
+    source: bank
+    notes: Excellent question. A loud failure gets fixed; a quiet one is found months later.
+
+  - id: fin.annual_surprises
+    ask: Is anything paid once a year that wouldn't surface for another eleven months?
+    type: probe
+    domain: finances
+    fills: [s5.annual_surprises]
+    rank: { irreplaceability: high, decay: high, generativity: low }
+    priority: 2
+    source: bank
+
+  - id: fin.do_not_close
+    ask: Are there accounts that shouldn't be closed straight away because other things run through them?
+    type: probe
+    domain: accounts
+    fills: [s5.do_not_close_accounts, s1.do_not_yet]
+    rank: { irreplaceability: high, decay: high, generativity: medium }
+    priority: 1
+    source: bank
+
+  - id: fin.burn_on_death
+    ask: Where would money be draining away in the weeks after you died?
+    type: probe
+    domain: finances
+    fills: [s5.burn_on_death]
+    rank: { irreplaceability: high, decay: medium, generativity: medium }
+    priority: 2
+    source: bank
+
+  - id: fin.investments
+    ask: What investments or assets do you hold?
+    type: generator
+    entity: account
+    domain: finances
+    fills: [s5.investments]
+    rank: { irreplaceability: low, decay: low, generativity: high }
+    routing: true
+    priority: 2
+    source: bank
+    notes: >
+      An adviser or a statement search can reconstruct this. Capture the shape
+      and who manages it rather than chasing an exhaustive list.
+
+  - id: fin.entities
+    ask: Is anything registered to a business or a trust rather than to you personally?
+    type: probe
+    domain: accounts
+    fills: [s5.entities]
+    rank: { irreplaceability: high, decay: medium, generativity: high }
+    priority: 2
+    source: bank
+    notes: Highly generative — entities open structures, trustees, and separate tax affairs.
+
+  - id: fin.accountant
+    ask: Do you have an accountant or bookkeeper, and what do they handle that you don't?
+    type: probe
+    domain: finances
+    fills: [s5.accountant, s3.advisers]
+    rank: { irreplaceability: medium, decay: low, generativity: high }
+    priority: 1
+    source: bank
+
+  - id: fin.contact_before_change
+    ask: Who should your family speak to before making any big financial decision?
+    type: probe
+    domain: finances
+    fills: [s5.contact_before_change, s1.routing_map]
+    rank: { irreplaceability: high, decay: low, generativity: low }
+    priority: 1
+    source: bank
+
+  - id: fin.docs_location
+    ask: Where do the financial documents physically live?
+    type: probe
+    domain: finances
+    fills: [s5.financial_docs_location]
+    rank: { irreplaceability: high, decay: high, generativity: medium }
+    priority: 2
+    technique: objects-and-places
+    source: bank
+
+  - id: fin.balances
+    ask: Roughly what is in each of those accounts?
+    type: attribute
+    entity: account
+    domain: finances
+    fills: [s5.balances]
+    rank: { irreplaceability: low, decay: low, generativity: low }
+    routing: true
+    priority: 3
+    disclosure_default: sealed
+    source: bank
+    notes: >
+      Recoverable from the institution, so low value as information — but high
+      value as the demonstration of sealing, since it is the field people most
+      want withheld. Always offer sealed.
+
+  - id: fin.cash
+    ask: Is there cash in the house or anywhere else?
+    type: probe
+    domain: finances
+    fills: [s5.cash]
+    rank: { irreplaceability: high, decay: high, generativity: low }
+    priority: 2
+    disclosure_default: sealed
+    source: bank
+    notes: Genuinely unrecoverable, and routinely lost or taken. High decay despite being simple.
+
+  - id: fin.undisclosed
+    ask: Are there financial arrangements your family doesn't know about?
+    type: probe
+    domain: finances
+    fills: [s5.undisclosed_arrangements]
+    rank: { irreplaceability: high, decay: high, generativity: high }
+    priority: 2
+    disclosure_default: sealed
+    source: bank
+
+  - id: fin.surprise
+    ask: What would surprise your children about your affairs?
+    type: probe
+    domain: finances
+    fills: [s5.undisclosed_arrangements, s5.hidden_debts]
+    rank: { irreplaceability: high, decay: high, generativity: high }
+    priority: 2
+    technique: ask-about-surprise
+    source: new
+    notes: >
+      From the framing notes. Reaches exactly the things the family cannot ask
+      about because they don't know they exist. Offer sealed.
+
+  # Owed
+
+  - id: debt.what_owed
+    ask: What do you owe, and to whom?
+    type: generator
+    entity: debt
+    domain: debts
+    fills: [s5.mortgage_loans_cards]
+    rank: { irreplaceability: medium, decay: low, generativity: high }
+    priority: 1
+    source: bank
+
+  - id: debt.passing
+    ask: Is there a debt that would land on someone else, or that someone assumes is theirs when it isn't?
+    type: probe
+    domain: debts
+    fills: [s5.debts_passing]
+    rank: { irreplaceability: high, decay: medium, generativity: medium }
+    priority: 2
+    source: bank
+
+  - id: debt.cosigned
+    ask: Are you a co-signer or joint holder on anything?
+    type: probe
+    domain: debts
+    fills: [s5.cosigned]
+    rank: { irreplaceability: high, decay: medium, generativity: medium }
+    priority: 2
+    source: bank
+
+  - id: debt.guarantees
+    ask: Have you personally guaranteed anything — a business loan, a lease, someone else's mortgage?
+    type: probe
+    domain: debts
+    fills: [s5.guarantees]
+    rank: { irreplaceability: high, decay: high, generativity: medium }
+    priority: 2
+    source: bank
+    notes: Often invisible until called on, and there may be no paperwork in the house at all.
+
+  - id: debt.tax
+    ask: Is there tax outstanding or in dispute?
+    type: probe
+    domain: debts
+    fills: [s5.tax_outstanding]
+    rank: { irreplaceability: low, decay: low, generativity: medium }
+    routing: true
+    priority: 3
+    source: bank
+    notes: The accountant can answer this. Capture who, not the detail.
+
+  - id: debt.hidden
+    ask: Is there a debt nobody in the family knows about?
+    type: probe
+    domain: debts
+    fills: [s5.hidden_debts]
+    rank: { irreplaceability: high, decay: high, generativity: medium }
+    priority: 2
+    disclosure_default: sealed
+    source: bank
+
+  - id: debt.private_loans
+    ask: Has money moved privately between you and anyone else — lent or borrowed? Is there a record?
+    type: probe
+    domain: debts
+    fills: [s5.private_loans]
+    rank: { irreplaceability: high, decay: high, generativity: medium }
+    priority: 2
+    disclosure_default: sealed
+    source: bank
+    notes: >
+      Merges the two near-identical questions about private loans in either
+      direction. Named in the slimming notes as top-tier decay — undocumented
+      informal loans are effectively unrecoverable.
+
+  # Still arriving
+
+  - id: inc.after_death
+    ask: Is there money owed to you that would still arrive after you died?
+    type: generator
+    entity: income
+    domain: incoming-money
+    fills: [s5.money_after_death]
+    rank: { irreplaceability: high, decay: high, generativity: high }
+    priority: 1
+    source: bank
+    notes: >
+      The Vibrance income pipeline in the Family Guide is this question. It is
+      the clearest case in the source material of something the family would
+      never have known to expect.
+
+  - id: inc.claim_required
+    ask: Is there anything you'd have to claim personally for it to be paid?
+    type: probe
+    domain: incoming-money
+    fills: [s5.claim_required]
+    rank: { irreplaceability: high, decay: high, generativity: low }
+    priority: 2
+    source: bank
+
+  - id: inc.delayed
+    ask: Does anything pay out annually, seasonally, or on a delay — a distribution, a bonus, a royalty, a refund?
+    type: probe
+    domain: incoming-money
+    fills: [s5.delayed_payouts]
+    rank: { irreplaceability: high, decay: medium, generativity: medium }
+    priority: 2
+    source: bank
+
+  - id: inc.unchased
+    ask: Is there income that would arrive but which nobody else knows to expect or chase?
+    type: probe
+    domain: incoming-money
+    fills: [s5.unchased_income]
+    rank: { irreplaceability: high, decay: high, generativity: medium }
+    priority: 1
+    source: bank
+
+  - id: inc.prior_period
+    ask: Does any payment relate to an earlier period than the one it arrives in? What might someone misread about it?
+    type: probe
+    domain: incoming-money
+    fills: [s5.prior_period_payments]
+    rank: { irreplaceability: high, decay: medium, generativity: low }
+    priority: 3
+    source: bank
+    notes: The July payment in the Family Guide — money for last year arriving this year, easily misread as ongoing income.
+
+  - id: inc.non_employment
+    ask: Do you receive any regular income other than wages?
+    type: generator
+    entity: income
+    domain: incoming-money
+    fills: [s5.money_after_death, s5.delayed_payouts]
+    rank: { irreplaceability: medium, decay: medium, generativity: high }
+    priority: 2
+    source: bank
+
+  - id: inc.owed_to_you
+    ask: Has anyone borrowed money from you? Would they admit it?
+    type: probe
+    domain: incoming-money
+    fills: [s5.private_loans]
+    rank: { irreplaceability: high, decay: high, generativity: low }
+    priority: 2
+    disclosure_default: sealed
+    source: bank
+
+  - id: inc.expected_amounts
+    ask: Roughly how much would that be?
+    type: attribute
+    entity: income
+    domain: incoming-money
+    fills: [s5.expected_amounts]
+    rank: { irreplaceability: medium, decay: medium, generativity: low }
+    priority: 3
+    disclosure_default: sealed
+    source: bank
+
+# Deferred — in the bank, mapped to sections outside v1 scope. Kept here so the
+# decision is visible rather than looking like an omission.
+deferred:
+  - reason: Section 4 — legal documents
+    domains: [legal]
+  - reason: Section 6 — superannuation and insurance
+    domains: [super-and-insurance]
+  - reason: Sections 7 and 8 — property, belongings, physical access
+    domains: [home-and-pets, physical-access]
+  - reason: Section 9 — digital life and credentials
+    domains: [credentials, accounts]
+    note: Some accounts questions are pulled into v1 where they bear on money.
+  - reason: Section 10 — dependents and animals
+    domains: [dependents]
+  - reason: Section 11 — health and end of life
+    domains: [health]
+    note: Time-constrained rites pulled forward into v1 as urg.time_constrained_rites.

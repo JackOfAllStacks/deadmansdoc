@@ -1,0 +1,331 @@
+# Artifact fields — v1
+#
+# The fields the interview fills and the renderer prints, derived from
+# docs/Artifact Template.md. Scope is Sections 1, 2, 3 and 5.
+#
+# Field ids are stable and referenced by data/question-bank.yaml. Renaming one
+# breaks that mapping, so add rather than rename.
+#
+# disclosure: open    — prints in the Guide
+#             sealed  — prints only in the Sealed Envelope
+#             pointer — records where a secret lives, never the secret
+#
+# type: text     — prose
+#       list     — repeated lines
+#       ordered  — a sequence where order carries meaning
+#       people   — references entries in s3.key_people
+#       entities — a repeated record; see `entity`
+
+version: 0.1
+scope: [1, 2, 3, 5]
+
+sections:
+  - id: s1
+    number: 1
+    title: Start here
+    intent: >
+      The first hour. Written for someone who cannot read anything longer than
+      a list. Everything here is repeated from elsewhere — this section exists
+      because nobody reads a long document the night someone dies.
+    fields:
+      - id: s1.first_calls
+        label: The first three calls — who, why, and how to reach them
+        disclosure: open
+        type: people
+      - id: s1.immediate_actions
+        label: What must happen immediately, and what happens if it doesn't
+        disclosure: open
+        type: list
+      - id: s1.routing_map
+        label: Who to call for what — financial, legal, medical, house, business
+        disclosure: open
+        type: entities
+        entity: routing_rule
+      - id: s1.fallback_contact
+        label: Who to call when you don't know who to call
+        disclosure: open
+        type: people
+      - id: s1.do_not_yet
+        label: What not to do yet — don't cancel, close, sign, or move money
+        disclosure: open
+        type: list
+
+  - id: s2
+    number: 2
+    title: What to do, in order
+    intent: >
+      Time-ordered, because the fear is doing the wrong thing in the wrong
+      order. Anything time-constrained is lifted into Section 1 as well.
+    fields:
+      - id: s2.first_72h
+        label: First 72 hours
+        disclosure: open
+        type: ordered
+      - id: s2.first_30d
+        label: First 30 days
+        disclosure: open
+        type: ordered
+      - id: s2.first_6m
+        label: First six months
+        disclosure: open
+        type: ordered
+      - id: s2.deadlines
+        label: Deadlines that run from the date of death
+        disclosure: open
+        type: list
+      - id: s2.impossible_after_notice
+        label: What becomes impossible once an institution is notified
+        disclosure: open
+        type: list
+      - id: s2.first_week_losses
+        label: What would spoil, die, lapse or be lost in the first week
+        disclosure: open
+        type: list
+      - id: s2.urgent_decisions
+        label: Decisions needed within days, and who is qualified to make them
+        disclosure: open
+        type: list
+      - id: s2.time_constrained_rites
+        label: Religious or cultural requirements with a time constraint
+        disclosure: open
+        type: text
+        note: Must also surface in s1.immediate_actions.
+
+  - id: s3
+    number: 3
+    title: The people
+    intent: >
+      The entity list the rest of the document refers back to. Most other
+      sections point at a person recorded here.
+    fields:
+      - id: s3.household
+        label: Immediate family, and who currently lives in the home
+        disclosure: open
+        type: entities
+        entity: person
+      - id: s3.key_people
+        label: Key people — name, relationship, role, contact
+        disclosure: open
+        type: entities
+        entity: person
+        note: The spine of the document. Other sections reference these entries.
+      - id: s3.responsibilities
+        label: What each person is responsible for, before and after death
+        disclosure: open
+        type: people
+      - id: s3.interrelationships
+        label: How the key people relate to each other, and who has never met whom
+        disclosure: open
+        type: text
+      - id: s3.advisers
+        label: Professional advisers — accountant, lawyer, adviser, doctor
+        disclosure: open
+        type: entities
+        entity: person
+      - id: s3.financial_knower
+        label: Who knows the most about the financial affairs
+        disclosure: open
+        type: people
+      - id: s3.expectations_communicated
+        label: Who has been told what is expected of them, and who hasn't
+        disclosure: open
+        type: people
+      - id: s3.do_not_contact
+        label: Who should not be contacted, or not given access
+        disclosure: open
+        type: people
+      - id: s3.wrong_call
+        label: Who the family would instinctively call who would be the wrong call
+        disclosure: open
+        type: people
+      - id: s3.anticipated_disagreement
+        label: Who is expected to disagree, and about what
+        disclosure: sealed
+        type: text
+
+  - id: s5
+    number: 5
+    title: Money in and out
+    intent: >
+      The section where the open/sealed split does the most work. Structure and
+      routing stay open; amounts go sealed. The Guide must remain fully
+      actionable even for someone who sealed every figure.
+    groups:
+      - id: s5.exists
+        title: What exists
+        fields:
+          - id: s5.accounts
+            label: Accounts held, and which are joint versus sole
+            disclosure: open
+            type: entities
+            entity: account
+          - id: s5.balances
+            label: Balances and values
+            disclosure: sealed
+            type: entities
+            entity: account
+          - id: s5.bill_account
+            label: Which account household bills actually come out of
+            disclosure: open
+            type: text
+          - id: s5.bill_account_freeze
+            label: What happens if that account is frozen
+            disclosure: open
+            type: text
+          - id: s5.cash
+            label: Cash, and where it is
+            disclosure: sealed
+            type: list
+          - id: s5.investments
+            label: Investments and assets held
+            disclosure: open
+            type: list
+          - id: s5.entities
+            label: Business or entity registrations
+            disclosure: open
+            type: list
+          - id: s5.accountant
+            label: Accountant or bookkeeper, and what they do that the user doesn't
+            disclosure: open
+            type: people
+          - id: s5.contact_before_change
+            label: Who to contact before any major financial change
+            disclosure: open
+            type: people
+          - id: s5.financial_docs_location
+            label: Where the financial documents are
+            disclosure: open
+            type: text
+          - id: s5.undisclosed_arrangements
+            label: Financial arrangements the family doesn't know about
+            disclosure: sealed
+            type: text
+
+      - id: s5.outgoing
+        title: Going out
+        fields:
+          - id: s5.regular_bills
+            label: Regular bills, and who provides what
+            disclosure: open
+            type: entities
+            entity: bill
+          - id: s5.auto_vs_manual
+            label: Which are automatic and which are paid by hand
+            disclosure: open
+            type: entities
+            entity: bill
+          - id: s5.uninterruptible_payments
+            label: Payments that must not be interrupted, and why
+            disclosure: open
+            type: list
+          - id: s5.silent_failures
+            label: Direct debits that would fail silently rather than loudly
+            disclosure: open
+            type: list
+          - id: s5.annual_surprises
+            label: Anything paid annually that would only surface months later
+            disclosure: open
+            type: list
+          - id: s5.do_not_close_accounts
+            label: Accounts that must not be closed because other things depend on them
+            disclosure: open
+            type: list
+          - id: s5.burn_on_death
+            label: Where money would be burning immediately after death
+            disclosure: open
+            type: list
+
+      - id: s5.owed
+        title: Owed
+        fields:
+          - id: s5.mortgage_loans_cards
+            label: Mortgage, rent, loans, credit cards
+            disclosure: open
+            type: entities
+            entity: debt
+          - id: s5.debts_passing
+            label: Debts that would pass to someone else, or that someone assumes are theirs
+            disclosure: open
+            type: list
+          - id: s5.cosigned
+            label: Co-signed or jointly held obligations
+            disclosure: open
+            type: list
+          - id: s5.guarantees
+            label: Personal guarantees — a business loan, a lease, a family member's mortgage
+            disclosure: open
+            type: list
+          - id: s5.tax_outstanding
+            label: Outstanding or disputed tax
+            disclosure: open
+            type: text
+          - id: s5.hidden_debts
+            label: Debts nobody in the family knows about
+            disclosure: sealed
+            type: list
+          - id: s5.private_loans
+            label: Money privately lent or borrowed, and whether there is a record
+            disclosure: sealed
+            type: list
+
+      - id: s5.incoming
+        title: Still arriving
+        fields:
+          - id: s5.money_after_death
+            label: Money owed that would still arrive after death
+            disclosure: open
+            type: list
+          - id: s5.claim_required
+            label: Anything requiring the person to claim it personally
+            disclosure: open
+            type: list
+          - id: s5.delayed_payouts
+            label: Annual, seasonal or delayed payouts — distributions, bonuses, royalties, refunds
+            disclosure: open
+            type: list
+          - id: s5.unchased_income
+            label: Income nobody else knows to expect or chase
+            disclosure: open
+            type: list
+          - id: s5.prior_period_payments
+            label: Payments relating to an earlier period than the one they arrive in
+            disclosure: open
+            type: text
+          - id: s5.expected_amounts
+            label: Amounts expected
+            disclosure: sealed
+            type: entities
+            entity: income
+
+# Repeated record shapes referenced by `entity` above.
+entities:
+  person:
+    - name
+    - relationship
+    - role
+    - phone
+    - email
+    - notes
+  routing_rule:
+    - situation
+    - who_to_call
+  account:
+    - institution
+    - kind
+    - ownership   # joint | sole
+    - notes
+  bill:
+    - provider
+    - what_for
+    - payment_method   # automatic | manual
+    - frequency
+    - paid_from
+  debt:
+    - lender
+    - kind
+    - secured_against
+    - notes
+  income:
+    - source
+    - timing
+    - notes

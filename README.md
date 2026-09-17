@@ -75,6 +75,8 @@ The interview exists to fill the fields of that template. Locking the template d
 
 ## Repo structure
 
+[`data/`](data) holds the product's core data assets — the artifact field definitions and the question bank that fills them. Everything else reads from these.
+
 Project material lives under [`docs/`](docs) — this repo is the official record, superseding the original Obsidian vault.
 
 - **`01. Initial Docs/`** — the client's original project brief. The client's draft Family Guide sits here as the reference for what the finished artifact should feel like, but it contains real personal and financial detail and is **excluded from version control**.
@@ -90,7 +92,7 @@ Project material lives under [`docs/`](docs) — this repo is the official recor
 **Next**
 
 - [Artifact template](docs/Artifact%20Template.md) — all 14 sections mapped; **Sections 1, 2, 3 and 5 are the v1 build scope**.
-- Convert the question bank into structured data, with irreplaceability / decay / generativity as frontmatter, mapped to artifact fields.
+- [Artifact fields](data/artifact-fields.yaml) and [question bank](data/question-bank.yaml) — v1 fields given stable ids, and the bank narrowed and mapped onto them.
 - Connect Neon; schema for records, sessions, answers, and artifact fields.
 - The opening questionnaire and generated session plan.
 - The interview loop.
