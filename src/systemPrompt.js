@@ -1,11 +1,5 @@
-const fs = require("fs");
-const path = require("path");
 const questionBank = require("./data/questionBank.json");
-
-const framingTechniques = fs.readFileSync(
-  path.join(__dirname, "data", "framingTechniques.md"),
-  "utf8"
-);
+const framingTechniques = require("./data/framingTechniques.js");
 
 function formatQuestionBank() {
   const byCategory = {};

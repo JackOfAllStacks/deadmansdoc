@@ -9,7 +9,7 @@ const MAX_TOOL_ROUNDS = 6;
 function getConfig() {
   const baseUrl = process.env.LLM_BASE_URL || "https://api.groq.com/openai/v1";
   const apiKey = process.env.LLM_API_KEY;
-  const model = process.env.LLM_MODEL || "llama-3.3-70b-versatile";
+  const model = process.env.LLM_MODEL || "openai/gpt-oss-120b";
   if (!apiKey) throw new Error("LLM_API_KEY is not set");
   return { baseUrl, apiKey, model };
 }

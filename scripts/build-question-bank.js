@@ -82,7 +82,14 @@ function main() {
   );
 
   const framing = buildFramingTechniques();
-  fs.writeFileSync(path.join(OUT_DIR, "framingTechniques.md"), framing + "\n");
+  // Written as a JS module (not a .md read at runtime via fs) so bundlers
+  // that package Netlify Functions (which only follow require() graphs, not
+  // fs.readFileSync calls) actually include this content in the deployed
+  // function.
+  fs.writeFileSync(
+    path.join(OUT_DIR, "framingTechniques.js"),
+    `module.exports = ${JSON.stringify(framing)};\n`
+  );
 
   console.log(
     `Wrote ${bank.questions.length} questions across ${bank.categories.length} categories to ${OUT_DIR}`
