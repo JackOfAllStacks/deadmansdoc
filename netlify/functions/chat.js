@@ -75,6 +75,12 @@ exports.handler = async (event) => {
     return json(200, { reply, saved: toolLog.map((t) => ({ tool: t.name, ok: t.result.ok })) });
   } catch (err) {
     console.error(err);
+    const message = String((err && err.message) || err);
+    if (message.includes("429") || message.includes("rate_limit")) {
+      return json(429, {
+        error: "The AI is getting a lot of requests right now -- please wait a few seconds and send that again.",
+      });
+    }
     return json(500, { error: "Something went wrong. Please try again." });
   }
 };

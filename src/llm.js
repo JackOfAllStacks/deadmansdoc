@@ -14,7 +14,14 @@ function getConfig() {
   return { baseUrl, apiKey, model };
 }
 
-async function callChatCompletions(messages) {
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Small providers on free tiers (e.g. Groq's default per-minute token cap)
+// return 429s under completely normal use, not just abuse -- worth one
+// short retry so it doesn't surface to the user as a broken app.
+async function callChatCompletions(messages, attempt = 0) {
   const { baseUrl, apiKey, model } = getConfig();
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
@@ -33,6 +40,18 @@ async function callChatCompletions(messages) {
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    if (res.status === 429 && attempt < 1) {
+      let waitMs = 3000;
+      try {
+        const parsed = JSON.parse(text);
+        const match = /try again in ([\d.]+)s/i.exec(parsed.error && parsed.error.message);
+        if (match) waitMs = Math.min(Math.ceil(parseFloat(match[1]) * 1000) + 250, 15000);
+      } catch {
+        /* fall back to default wait */
+      }
+      await sleep(waitMs);
+      return callChatCompletions(messages, attempt + 1);
+    }
     throw new Error(`LLM request failed (${res.status}): ${text}`);
   }
   return res.json();
