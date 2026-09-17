@@ -73,6 +73,20 @@ The interview exists to fill the fields of that template. Locking the template d
 | Consent | Consent and who was present are captured |
 | Jurisdiction | Victoria only; built to be correct within Victoria |
 
+## Local setup
+
+Requires Node 20.6 or later (the migration script uses the built-in `--env-file`).
+
+```bash
+cp .env.example .env.local   # then fill in from the Neon dashboard
+npm install
+npm run migrate
+```
+
+`DATABASE_URL` is Neon's **pooled** connection, used by the app. `DATABASE_URL_UNPOOLED` is the **direct** one, used only by migrations — DDL over a pooled connection is unreliable.
+
+Migrations are plain SQL in [`db/migrations/`](db/migrations), applied in filename order and recorded in a `_migrations` table, so re-running is safe.
+
 ## Repo structure
 
 [`data/`](data) holds the product's core data assets — the artifact field definitions and the question bank that fills them. Everything else reads from these.
@@ -93,7 +107,7 @@ Project material lives under [`docs/`](docs) — this repo is the official recor
 
 - [Artifact template](docs/Artifact%20Template.md) — all 14 sections mapped; **Sections 1, 2, 3 and 5 are the v1 build scope**.
 - [Artifact fields](data/artifact-fields.yaml) and [question bank](data/question-bank.yaml) — v1 fields given stable ids, and the bank narrowed and mapped onto them.
-- Connect Neon; schema for records, sessions, answers, and artifact fields.
+- [Schema](db/migrations/001_init.sql) — records, sessions, messages, entities and field values. Written; not yet applied to Neon.
 - The opening questionnaire and generated session plan.
 - The interview loop.
 

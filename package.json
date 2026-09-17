@@ -1,0 +1,14 @@
+{
+  "name": "deadmansdoc",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "migrate": "node --env-file=.env.local db/migrate.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}
