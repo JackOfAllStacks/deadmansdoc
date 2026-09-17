@@ -7,7 +7,7 @@ export default function Home() {
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-10 px-6 py-16">
       <header className="flex flex-col gap-4">
         <p className="text-sm uppercase tracking-widest text-foreground/50">In development</p>
-        <h1 className="text-4xl font-semibold tracking-tight">Dead Man&apos;s Doc</h1>
+        <h1 className="text-4xl font-semibold tracking-tight">The Handover</h1>
         <p className="text-lg leading-relaxed text-foreground/80">
           A guided conversation that records what the people you leave behind will need to
           know — who to call, what exists, and where to find it.
