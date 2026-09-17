@@ -1,142 +1,116 @@
-# The Handover
+# Dead Man's Doc
 
-An AI-assisted system that helps someone build a personalised set of instructions for the people they leave behind — covering the knowledge, responsibilities, and processes those people would otherwise have to reconstruct from scratch after a death.
+_Working title in the client brief: **The Handover**._
 
-This is a Vibrance product exploration (6-week prototype), led by Jack with Santi, under oversight from Pete and Sahil.
+An AI-led interview that helps someone record what the people they leave behind will actually need to know — who to call, what exists, where it is, and what must not be missed. The output is a single printable document.
+
+A Vibrance product exploration, led by Jack with Santi, under oversight from Pete and Sahil. **Currently in prototype.**
 
 ## What this is
 
-- Helps a user create a **personalised handover document** for family, built through an AI-driven interview rather than a static checklist.
-- Captures knowledge, responsibilities, processes, contacts, and locations — the everyday things a family needs to know that a will doesn't cover.
-- Helps surface **unknown unknowns**: information the user wouldn't think to record unless prompted.
-- Points to and integrates with existing tools (password managers, document storage) rather than replacing them.
+- An **AI interviewer** that draws the information out, rather than a form the user fills in.
+- It captures knowledge, responsibilities, processes, contacts, and locations — the everyday things a family needs that a will doesn't cover.
+- It surfaces **unknown unknowns**: things the user wouldn't think to record unless asked.
+- It points to existing tools (password managers, document storage) rather than replacing them.
 
 ### Not a will
 
-| | Will | The Handover |
+| | Will | Dead Man's Doc |
 |---|---|---|
-| Nature | Legal document | Practical handover & instruction system |
+| Nature | Legal document | Practical handover & instruction record |
 | Covers | Distribution of assets, estate, guardianship | Knowledge, processes, contacts, locations, instructions |
 | Answers | What happens, who is legally entitled | What needs doing, how things work, where things are, who to call |
 
-> A will determines what happens to your estate. The Handover explains what the people you leave behind need to know and do.
+> A will determines what happens to your estate. This explains what the people you leave behind need to know and do.
 
-The product explicitly does **not** touch distribution of assets, and is not a substitute for legal, financial, tax, or medical advice — it can tell you what to ask and whom to ask, not what the answer is.
+This product has **no testamentary effect** and never gives legal, financial, tax, or medical advice. It can tell you what to ask and who to ask — never what the answer is.
 
-## Two use cases, one product
+## How it works
 
-- **Preparing for your own death** — protecting and educating your own family in your absence.
-- **Preparing for a parent's death** — getting knowledge out of a parent's head, especially where the parent is reluctant, elderly, or not technical.
+### Two people, one session
 
-Both run on the same product; one person should be able to use it for themselves and for a parent.
+The core insight from discovery is that this is too confronting and too large for one person to face alone. The intended use is a **parent and an adult child sitting down together**, with the AI conducting the interview and the child helping to facilitate it. Equally, the child can use it as the thing that finally starts the conversation.
 
-## Guardrails
+Practically: **one account per record, one device, no second login.** Who was present is recorded as part of the session.
 
-- No legal, financial, tax, or medical advice — ever.
-- No real personal data in the prototype; build and test against synthetic personas.
-- Security and privacy architecture must be designed in, even though it isn't fully implemented at prototype stage.
-- Tone matters — this is a product about death, for people who are grieving or frightened.
+### The interview
+
+The AI conducts a largely free-form conversation, using the question bank as a coverage checklist rather than a script. The value is in handling how people actually talk — a rambling, roundabout answer often contains information spanning several domains at once. The agent is expected to ingest that, map it to whatever fields it satisfies, and choose follow-ups that probe deeper where something interesting surfaced.
+
+### The session plan
+
+The process is too long for one sitting, so it's deliberately broken up. A short opening questionnaire captures a high-level picture, and the system returns a plan of sessions with time estimates — intended to make a large, intimidating task feel finite.
+
+The **set of domains is the same for every user**. What varies per user:
+
+- **Estimated time per domain** — someone with one sibling and someone with five get different estimates for the same domain.
+- **Order of domains** — if something came up unprompted in the opening questions, it's already front of mind, and that's a signal to do it first.
+
+### The artifact
+
+The finished output is a **printable document**, structured on the client's draft Family Guide. Discovery found that a physical piece of paper has genuine value here; the product does not need to be technically sophisticated to be worth having.
+
+One record produces **two printed artifacts**: the Guide, which the family can read at any time, and a Sealed Envelope, printed separately and opened only after death. That is how asymmetric disclosure works here — a physical seal, rather than a server deciding when to release something. Every field is Open, Sealed, or a Pointer that records where a secret lives without ever printing the secret itself.
+
+The interview exists to fill the fields of that template. Locking the template down is therefore what makes the interview buildable. See [Artifact Template](docs/Artifact%20Template.md).
+
+## Decisions locked
+
+| Area | Decision |
+|---|---|
+| Runtime | Node.js |
+| Hosting | Netlify (production deploys already wired to this repo) |
+| Database | Neon Postgres (created; not yet connected) |
+| Fidelity | Prototype-first, but **not throwaway** — built to be iterated toward production |
+| Accounts | One account per record; no second participant login |
+| Interview | Free-form AI conversation; question bank as coverage checklist |
+| Session plan | Fixed domain template, filtered per user for time and order |
+| Artifact structure | Lifted from the client's draft Family Guide |
+| Artifact output | Markdown or Word for MVP — no designed PDF yet |
+| Asymmetric disclosure | In scope for the demo; **demonstrated, not genuinely secure**. Two printed documents, split per field |
+| Trigger event | Death only. Incapacity is a known, accepted gap |
+| Death trigger / ADNS | Dropped — the artifact is physical, so no digital release trigger is needed |
+| Consent | Consent and who was present are captured |
+| Jurisdiction | Victoria only; built to be correct within Victoria |
 
 ## Repo structure
 
-All current project material lives under [`Discovery/`](Discovery):
+Project material lives under [`docs/`](docs) — this repo is the official record, superseding the original Obsidian vault.
 
-- **`01. Initial Docs/`** — source reference documents (project brief, an example family handover guide) translated to Markdown.
-- **`Questions/`** — the elicitation question bank: one file per candidate interview question, covering contacts, finances, property, digital access, pets, health, and end-of-life wishes.
-- **`Question Brainstorming/`** — drafts and framing notes for how questions are written and narrowed down.
-- **`Core System Specification Notes.md`** — the working definition of what the system is and how it differs from a will.
-- **`Initial Competitor Research Scan Takeaways.md`** — market scan notes (existing digital estate/legacy tools, gaps, positioning).
-- **`Potential Use Case's for Demonstration.md`** — candidate product features/demo ideas.
-- Story map and logic-branching diagrams for the interview flow.
+- **`01. Initial Docs/`** — the client's original project brief. The client's draft Family Guide sits here as the reference for what the finished artifact should feel like, but it contains real personal and financial detail and is **excluded from version control**.
+- **`Questions/`** — the question bank: 167 files, one question each, tagged by domain. Deliberately over-broad; generated in a wide brainstorm and expected to be whittled down.
+- **`Question Brainstorming/`** — framing techniques and the slimming-down criteria (irreplaceability, decay, generativity), plus the original single-file draft.
+- **`Core System Specification Notes.md`** — what the system is, and how it differs from a will.
+- **`Initial Competitor Research Scan Takeaways.md`** — market scan and positioning notes.
+- **`Potential Use Case's for Demonstration.md`** — early feature and demo ideas.
+- Story map and logic-branching sketches — **working drafts, not specifications**. Useful for direction only.
 
-## Status
+## Roadmap
 
-Discovery is done; a first prototype now exists (see below). It only does
-**collection**: an AI-led interview that talks to the user and saves
-structured information (people, facts, gaps) to a database. It does not
-generate a finished handover document — that's left for a later agent to
-build from this stored data.
+**Next**
 
-## Prototype: the collection app
+- [Artifact template](docs/Artifact%20Template.md) — all 14 sections mapped; **Sections 1, 2, 3 and 5 are the v1 build scope**.
+- Convert the question bank into structured data, with irreplaceability / decay / generativity as frontmatter, mapped to artifact fields.
+- Connect Neon; schema for records, sessions, answers, and artifact fields.
+- The opening questionnaire and generated session plan.
+- The interview loop.
 
-An AI interview, deployed on Netlify, that fills in `people` / `facts` /
-`gaps` tables in a Postgres (Neon) database as the conversation happens,
-using the question bank and framing techniques under `Discovery/` as its
-guide. See [`SECURITY_NOTES.md`](SECURITY_NOTES.md) for what is and isn't
-safe about the current build.
+**Later**
 
-### Stack
-- **Frontend:** static HTML/CSS/JS in [`public/`](public) — no build tooling.
-- **Backend:** Netlify Functions in [`netlify/functions/`](netlify/functions)
-  (`record.js` to start/resume a session, `chat.js` to run one interview turn).
-- **LLM:** any OpenAI-compatible chat-completions API with tool calling —
-  see [`src/llm.js`](src/llm.js). Currently Gemini (`gemini-3.1-flash-lite`
-  via its OpenAI-compatible endpoint); swap providers by changing env vars
-  only. Also tested against Groq (hit its free-tier rate limit fast) and a
-  local Ollama install (see below).
-- **Storage:** Neon Postgres, schema in [`db/schema.sql`](db/schema.sql).
-- **Question bank:** [`scripts/build-question-bank.js`](scripts/build-question-bank.js)
-  compiles `Discovery/Questions/*.md` and the framing-techniques note into
-  `src/data/` at build time, so the discovery docs stay the single source of
-  truth — re-run it after editing anything under `Discovery/`.
+- **Split-screen live artifact view** — chat on one side, the document updating in real time on the other. A core centrepiece of the intended UX, but dependent on the template being fixed first.
+- **Synthetic personas and DB seeding** — we generate our own rather than waiting on the client, and demo against them. No real personal data enters the prototype.
+- Gamification and progress feedback across plan, sessions, and questions.
+- Designed, styled PDF output.
+- Second participant on their own device.
+- Genuinely secure asymmetric disclosure.
+- Jurisdictions beyond Victoria.
 
-### Data model
-- `records` — one per subject (self or parent), with a resume code.
-- `sessions` — one per sitting (who was present, consent).
-- `messages` — full transcript, including tool calls, for continuity across sessions.
-- `people` — contacts, roles, what they hold/oversee, contact details.
-- `facts` — one row per discrete piece of information, tagged by category.
-- `gaps` — things the subject doesn't know, plus who might.
+## Guardrails
 
-### Running locally
-```
-npm install
-cp .env.example .env   # fill in DATABASE_URL and LLM_API_KEY
-npm run db:migrate     # applies db/schema.sql to your Neon database
-npm run dev            # builds the question bank and runs `netlify dev`
-```
-Requires the [Netlify CLI](https://docs.netlify.com/cli/get-started/) (installed
-via `npm install` as a dev dependency) and a [Neon](https://neon.tech) project.
+- No legal, financial, tax, or medical advice — designed in, not bolted on as a disclaimer.
+- No real personal data in the prototype; synthetic personas only.
+- Tone matters more than anything else here. This is a product about death, used by people who are grieving or frightened. Anything glib or clinical fails.
 
-If `netlify dev` crashes immediately with `Cannot read properties of
-undefined (reading 'name')`, that's Netlify Dev's framework
-auto-detection failing on this setup, not this app -- `netlify.toml`
-already sets `[dev].framework = "#static"` to skip it (we're a plain
-static site with no framework dev server to detect), but if you ever
-see that error again, that's where to look.
+## Notes
 
-### Switching LLM providers
-
-Nothing but three env vars (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`) is
-provider-specific -- `src/llm.js` speaks plain OpenAI-compatible
-chat-completions with tool calling, nothing more. What's been tried:
-
-- **Gemini** (current default) -- `https://generativelanguage.googleapis.com/v1beta/openai`,
-  `gemini-3.1-flash-lite`. Fast (~5s/turn), reliable tool calling, and a much
-  larger free-tier token budget than Groq. Get a key at
-  [aistudio.google.com/apikey](https://aistudio.google.com/apikey). Gemini's
-  model names/tiers shift over time -- if a model 404s as deprecated, GET
-  `{LLM_BASE_URL}/models` (with your key as a bearer token) for current ones.
-- **Groq** -- `https://api.groq.com/openai/v1`, e.g. `openai/gpt-oss-120b`.
-  Free tier is small (8,000 tokens/minute), enough for occasional use but not
-  sustained testing -- that's the rate limit that motivated trying the above.
-- **Local Ollama** -- `http://localhost:11434/v1`, no API key (Ollama's
-  endpoint doesn't need one, and `src/llm.js` only sends `Authorization` when
-  a key is actually set). Only works for **local dev** (`npm run dev`), not
-  the deployed site -- Netlify's servers can't reach `localhost` on your
-  machine. `.env` is gitignored and never read by the deployed site, so
-  switching it locally can't accidentally affect production, which keeps
-  reading its own env vars regardless.
-
-  Two things that bit us testing this: **model choice matters a lot** for
-  tool-calling reliability -- `llama3.2:1b` frequently failed to call tools
-  at all (once literally printed the raw tool-definition JSON back as chat
-  text instead of calling one), while `qwen2.5:7b-instruct` worked
-  correctly. And **CPU-only inference is slow** for a long prompt -- ~24s for
-  a 32-token prompt was typical on one test machine with the 1B model, and a
-  7B model's first (cold-load) response timed out entirely against Node's
-  default ~300s fetch timeout, which `src/llm.js` now raises for exactly this
-  case. Set `QUESTION_BANK_EXAMPLES=0` to drop the question-bank section
-  from the ~2,500-token system prompt entirely if things are still too slow
-  to iterate with -- the interviewer still works, it just improvises within
-  each category without the sampled examples to draw on.
+Santi works in parallel on his own fork. Work items are not tracked in this repo.
