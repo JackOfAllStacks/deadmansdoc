@@ -1,0 +1,19 @@
+# Client-provided source material containing real personal/financial detail.
+# Kept locally as a working reference; must never enter git history.
+docs/01. Initial Docs/Family Guide - Markdown Translation.md
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+*.log
+.DS_Store
+
+# Build output
+dist/
+build/
+.next/
+.netlify/

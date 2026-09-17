@@ -1,54 +1,113 @@
-# The Handover
+# Dead Man's Doc
 
-An AI-assisted system that helps someone build a personalised set of instructions for the people they leave behind — covering the knowledge, responsibilities, and processes those people would otherwise have to reconstruct from scratch after a death.
+_Working title in the client brief: **The Handover**._
 
-This is a Vibrance product exploration (6-week prototype), led by Jack with Santi, under oversight from Pete and Sahil.
+An AI-led interview that helps someone record what the people they leave behind will actually need to know — who to call, what exists, where it is, and what must not be missed. The output is a single printable document.
+
+A Vibrance product exploration, led by Jack with Santi, under oversight from Pete and Sahil. **Currently in prototype.**
 
 ## What this is
 
-- Helps a user create a **personalised handover document** for family, built through an AI-driven interview rather than a static checklist.
-- Captures knowledge, responsibilities, processes, contacts, and locations — the everyday things a family needs to know that a will doesn't cover.
-- Helps surface **unknown unknowns**: information the user wouldn't think to record unless prompted.
-- Points to and integrates with existing tools (password managers, document storage) rather than replacing them.
+- An **AI interviewer** that draws the information out, rather than a form the user fills in.
+- It captures knowledge, responsibilities, processes, contacts, and locations — the everyday things a family needs that a will doesn't cover.
+- It surfaces **unknown unknowns**: things the user wouldn't think to record unless asked.
+- It points to existing tools (password managers, document storage) rather than replacing them.
 
 ### Not a will
 
-| | Will | The Handover |
+| | Will | Dead Man's Doc |
 |---|---|---|
-| Nature | Legal document | Practical handover & instruction system |
+| Nature | Legal document | Practical handover & instruction record |
 | Covers | Distribution of assets, estate, guardianship | Knowledge, processes, contacts, locations, instructions |
 | Answers | What happens, who is legally entitled | What needs doing, how things work, where things are, who to call |
 
-> A will determines what happens to your estate. The Handover explains what the people you leave behind need to know and do.
+> A will determines what happens to your estate. This explains what the people you leave behind need to know and do.
 
-The product explicitly does **not** touch distribution of assets, and is not a substitute for legal, financial, tax, or medical advice — it can tell you what to ask and whom to ask, not what the answer is.
+This product has **no testamentary effect** and never gives legal, financial, tax, or medical advice. It can tell you what to ask and who to ask — never what the answer is.
 
-## Two use cases, one product
+## How it works
 
-- **Preparing for your own death** — protecting and educating your own family in your absence.
-- **Preparing for a parent's death** — getting knowledge out of a parent's head, especially where the parent is reluctant, elderly, or not technical.
+### Two people, one session
 
-Both run on the same product; one person should be able to use it for themselves and for a parent.
+The core insight from discovery is that this is too confronting and too large for one person to face alone. The intended use is a **parent and an adult child sitting down together**, with the AI conducting the interview and the child helping to facilitate it. Equally, the child can use it as the thing that finally starts the conversation.
 
-## Guardrails
+Practically: **one account per record, one device, no second login.** Who was present is recorded as part of the session.
 
-- No legal, financial, tax, or medical advice — ever.
-- No real personal data in the prototype; build and test against synthetic personas.
-- Security and privacy architecture must be designed in, even though it isn't fully implemented at prototype stage.
-- Tone matters — this is a product about death, for people who are grieving or frightened.
+### The interview
+
+The AI conducts a largely free-form conversation, using the question bank as a coverage checklist rather than a script. The value is in handling how people actually talk — a rambling, roundabout answer often contains information spanning several domains at once. The agent is expected to ingest that, map it to whatever fields it satisfies, and choose follow-ups that probe deeper where something interesting surfaced.
+
+### The session plan
+
+The process is too long for one sitting, so it's deliberately broken up. A short opening questionnaire captures a high-level picture, and the system returns a plan of sessions with time estimates — intended to make a large, intimidating task feel finite.
+
+The **set of domains is the same for every user**. What varies per user:
+
+- **Estimated time per domain** — someone with one sibling and someone with five get different estimates for the same domain.
+- **Order of domains** — if something came up unprompted in the opening questions, it's already front of mind, and that's a signal to do it first.
+
+### The artifact
+
+The finished output is a **printable document**, structured on the client's draft Family Guide. Discovery found that a physical piece of paper has genuine value here; the product does not need to be technically sophisticated to be worth having.
+
+The interview exists to fill the fields of that template. Locking the template down is therefore what makes the interview buildable.
+
+## Decisions locked
+
+| Area | Decision |
+|---|---|
+| Runtime | Node.js |
+| Hosting | Netlify (production deploys already wired to this repo) |
+| Database | Neon Postgres (created; not yet connected) |
+| Fidelity | Prototype-first, but **not throwaway** — built to be iterated toward production |
+| Accounts | One account per record; no second participant login |
+| Interview | Free-form AI conversation; question bank as coverage checklist |
+| Session plan | Fixed domain template, filtered per user for time and order |
+| Artifact structure | Lifted from the client's draft Family Guide |
+| Artifact output | Markdown or Word for MVP — no designed PDF yet |
+| Asymmetric disclosure | In scope for the demo; **demonstrated, not genuinely secure** |
+| Death trigger / ADNS | Dropped — the artifact is physical, so no digital release trigger is needed |
+| Consent | Consent and who was present are captured |
+| Jurisdiction | Victoria only; built to be correct within Victoria |
 
 ## Repo structure
 
-All current project material lives under [`Discovery/`](Discovery):
+Project material lives under [`docs/`](docs) — this repo is the official record, superseding the original Obsidian vault.
 
-- **`01. Initial Docs/`** — source reference documents (project brief, an example family handover guide) translated to Markdown.
-- **`Questions/`** — the elicitation question bank: one file per candidate interview question, covering contacts, finances, property, digital access, pets, health, and end-of-life wishes.
-- **`Question Brainstorming/`** — drafts and framing notes for how questions are written and narrowed down.
-- **`Core System Specification Notes.md`** — the working definition of what the system is and how it differs from a will.
-- **`Initial Competitor Research Scan Takeaways.md`** — market scan notes (existing digital estate/legacy tools, gaps, positioning).
-- **`Potential Use Case's for Demonstration.md`** — candidate product features/demo ideas.
-- Story map and logic-branching diagrams for the interview flow.
+- **`01. Initial Docs/`** — the client's original project brief. The client's draft Family Guide sits here as the reference for what the finished artifact should feel like, but it contains real personal and financial detail and is **excluded from version control**.
+- **`Questions/`** — the question bank: 167 files, one question each, tagged by domain. Deliberately over-broad; generated in a wide brainstorm and expected to be whittled down.
+- **`Question Brainstorming/`** — framing techniques and the slimming-down criteria (irreplaceability, decay, generativity), plus the original single-file draft.
+- **`Core System Specification Notes.md`** — what the system is, and how it differs from a will.
+- **`Initial Competitor Research Scan Takeaways.md`** — market scan and positioning notes.
+- **`Potential Use Case's for Demonstration.md`** — early feature and demo ideas.
+- Story map and logic-branching sketches — **working drafts, not specifications**. Useful for direction only.
 
-## Status
+## Roadmap
 
-Early discovery phase — problem framing, competitor scan, and the interview question bank are in progress. No working prototype yet.
+**Next**
+
+- Lock the artifact template, derived from the Family Guide structure.
+- Convert the question bank into structured data, with irreplaceability / decay / generativity as frontmatter, mapped to artifact fields.
+- Connect Neon; schema for records, sessions, answers, and artifact fields.
+- The opening questionnaire and generated session plan.
+- The interview loop.
+
+**Later**
+
+- **Split-screen live artifact view** — chat on one side, the document updating in real time on the other. A core centrepiece of the intended UX, but dependent on the template being fixed first.
+- **Synthetic personas and DB seeding** — we generate our own rather than waiting on the client, and demo against them. No real personal data enters the prototype.
+- Gamification and progress feedback across plan, sessions, and questions.
+- Designed, styled PDF output.
+- Second participant on their own device.
+- Genuinely secure asymmetric disclosure.
+- Jurisdictions beyond Victoria.
+
+## Guardrails
+
+- No legal, financial, tax, or medical advice — designed in, not bolted on as a disclaimer.
+- No real personal data in the prototype; synthetic personas only.
+- Tone matters more than anything else here. This is a product about death, used by people who are grieving or frightened. Anything glib or clinical fails.
+
+## Notes
+
+Santi works in parallel on his own fork. Work items are not tracked in this repo.
