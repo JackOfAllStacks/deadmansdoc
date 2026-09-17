@@ -6,14 +6,22 @@ docs/01. Initial Docs/Family Guide - Markdown Translation.md
 .env
 .env.*
 !.env.example
+*.pem
 
 # Node
 node_modules/
 *.log
 .DS_Store
+/coverage
 
 # Build output
 dist/
 build/
 .next/
+/out/
 .netlify/
+.vercel
+
+# TypeScript / Next.js generated
+*.tsbuildinfo
+next-env.d.ts
