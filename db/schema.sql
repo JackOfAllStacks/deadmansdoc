@@ -91,6 +91,11 @@ create table if not exists error_logs (
   record_id uuid references records(id) on delete set null,
   session_id uuid references sessions(id) on delete set null,
   context text not null,
+  error_type text not null default 'unknown', -- e.g. rate_limit, service_unavailable, auth, network_error, tool_schema_error
+  status_code integer, -- HTTP status from the provider, when there was one
+  provider text, -- LLM_BASE_URL at the time of the error
+  model text, -- LLM_MODEL at the time of the error
+  duration_ms integer, -- how long the failed turn took before erroring
   message text not null,
   created_at timestamptz not null default now()
 );
@@ -104,3 +109,14 @@ create index if not exists idx_error_logs_created on error_logs(created_at desc)
 
 -- Additive migration for databases created before family_action existed.
 alter table facts add column if not exists family_action text;
+
+-- Additive migration for databases created before error_logs was detailed.
+-- Must run before idx_error_logs_type below, since that column may not
+-- exist yet on a database that already had error_logs from before.
+alter table error_logs add column if not exists error_type text not null default 'unknown';
+alter table error_logs add column if not exists status_code integer;
+alter table error_logs add column if not exists provider text;
+alter table error_logs add column if not exists model text;
+alter table error_logs add column if not exists duration_ms integer;
+
+create index if not exists idx_error_logs_type on error_logs(error_type);

@@ -282,6 +282,7 @@ button[type="submit"]:hover { opacity: 0.92; }
 
 .badge.role { background: #e4ede1; }
 .badge.warn { background: #f4ddd3; color: #7a3520; }
+.badge.bad { background: #f4d3d3; color: #7a2020; }
 .badge.muted-badge { background: transparent; border: 1px solid var(--line); color: var(--muted); }
 
 .category-block { margin-bottom: 1.1rem; }

@@ -30,6 +30,8 @@ exports.handler = async (event) => {
     return json(400, { error: "recordId, sessionId and message are required" });
   }
 
+  const turnStarted = Date.now();
+
   try {
     const [record, session] = await Promise.all([
       db.getRecordById(recordId),
@@ -82,19 +84,28 @@ exports.handler = async (event) => {
   } catch (err) {
     console.error(err);
     const errMessage = String((err && err.message) || err);
+    // Only errors thrown from src/llm.js carry these -- anything else (a DB
+    // error, a bug in this handler) is a distinct category worth telling
+    // apart from "the LLM provider said no" at a glance in the error log.
+    const errorType = err && err.errorType ? err.errorType : "app_error";
 
     try {
       await db.logError({
         recordId,
         sessionId,
         context: opening ? "chat_turn:opening" : "chat_turn:message",
+        errorType,
+        statusCode: err && err.statusCode,
+        provider: err && err.provider,
+        model: err && err.model,
+        durationMs: Date.now() - turnStarted,
         message: errMessage,
       });
     } catch (logErr) {
       console.error("Failed to write error_logs row:", logErr);
     }
 
-    if (errMessage.includes("429") || errMessage.includes("rate_limit")) {
+    if (errorType === "rate_limit") {
       return json(429, {
         error: "The AI is getting a lot of requests right now -- please wait a few seconds and send that again.",
       });

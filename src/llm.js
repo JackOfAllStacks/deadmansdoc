@@ -51,6 +51,40 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Classifies a failure so error_logs (and anyone reading it) can tell at a
+// glance what kind of problem this was, without re-reading the raw message
+// every time. `status` is null for failures that never got an HTTP response
+// at all (DNS, connection refused, the undici dispatcher mismatch we hit
+// earlier, etc) -- those are real, distinct failure modes from "the server
+// answered and said no".
+function classifyError(status, bodyText) {
+  if (status == null) return "network_error";
+  if (status === 401 || status === 403) return "auth";
+  if (status === 404) return "not_found";
+  if (status === 429) return "rate_limit";
+  if (status === 503) return "service_unavailable";
+  if (status === 400 && /tool.*(schema|validation)/i.test(bodyText || "")) return "tool_schema_error";
+  if (status === 400) return "bad_request";
+  if (status >= 500) return "server_error";
+  if (status >= 400) return "client_error";
+  return "unknown";
+}
+
+// Attaches structured fields (not just a message) to a thrown error, so the
+// caller (chat.js) can log something more useful than a flattened string:
+// what kind of failure this was, the HTTP status if any, and which
+// provider/model was in use when it happened.
+function llmError({ status, bodyText, provider, model, errorType }) {
+  const err = new Error(
+    status != null ? `LLM request failed (${status}): ${bodyText}` : `LLM request failed: ${bodyText}`
+  );
+  err.errorType = errorType || classifyError(status, bodyText);
+  err.statusCode = status ?? null;
+  err.provider = provider;
+  err.model = model;
+  return err;
+}
+
 // Small providers on free tiers (e.g. Groq's default per-minute token cap)
 // return 429s under completely normal use, not just abuse -- worth one
 // short retry so it doesn't surface to the user as a broken app.
@@ -58,18 +92,24 @@ async function callChatCompletions(messages, attempt = 0) {
   const { baseUrl, apiKey, model } = getConfig();
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
-  const res = await fetchImpl(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      model,
-      messages,
-      tools: TOOLS,
-      tool_choice: "auto",
-      temperature: 0.4,
-    }),
-    ...(dispatcher ? { dispatcher } : {}),
-  });
+
+  let res;
+  try {
+    res = await fetchImpl(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        model,
+        messages,
+        tools: TOOLS,
+        tool_choice: "auto",
+        temperature: 0.4,
+      }),
+      ...(dispatcher ? { dispatcher } : {}),
+    });
+  } catch (networkErr) {
+    throw llmError({ status: null, bodyText: String(networkErr.message || networkErr), provider: baseUrl, model });
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -85,7 +125,7 @@ async function callChatCompletions(messages, attempt = 0) {
       await sleep(waitMs);
       return callChatCompletions(messages, attempt + 1);
     }
-    throw new Error(`LLM request failed (${res.status}): ${text}`);
+    throw llmError({ status: res.status, bodyText: text, provider: baseUrl, model });
   }
   return res.json();
 }
@@ -107,7 +147,16 @@ async function runInterviewTurn({ recordId, systemPrompt, history, userMessage }
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const completion = await callChatCompletions(messages);
     const choice = completion.choices && completion.choices[0];
-    if (!choice) throw new Error("LLM returned no choices");
+    if (!choice) {
+      const { baseUrl, model } = getConfig();
+      throw llmError({
+        status: null,
+        bodyText: "LLM returned no choices",
+        provider: baseUrl,
+        model,
+        errorType: "unexpected_response",
+      });
+    }
     const message = choice.message;
 
     const toolCalls = message.tool_calls || [];

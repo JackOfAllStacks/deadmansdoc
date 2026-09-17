@@ -206,11 +206,32 @@ async function deleteRecord(recordId) {
   await sql(`delete from records where id = $1`, [recordId]);
 }
 
-async function logError({ recordId, sessionId, context, message }) {
+async function logError({
+  recordId,
+  sessionId,
+  context,
+  errorType,
+  statusCode,
+  provider,
+  model,
+  durationMs,
+  message,
+}) {
   const sql = getSql();
   await sql(
-    `insert into error_logs (record_id, session_id, context, message) values ($1, $2, $3, $4)`,
-    [recordId || null, sessionId || null, context, String(message).slice(0, 4000)]
+    `insert into error_logs (record_id, session_id, context, error_type, status_code, provider, model, duration_ms, message)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [
+      recordId || null,
+      sessionId || null,
+      context,
+      errorType || "unknown",
+      statusCode ?? null,
+      provider || null,
+      model || null,
+      durationMs ?? null,
+      String(message).slice(0, 4000),
+    ]
   );
 }
 

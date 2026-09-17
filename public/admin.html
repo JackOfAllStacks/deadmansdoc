@@ -54,11 +54,22 @@
       <div class="card data-section">
         <h1>Error log <span class="count" id="error-count"></span></h1>
         <p class="lede-note">Every failed interview turn (LLM errors, rate limits, malformed tool calls), whatever the user was shown instead.</p>
+        <label style="max-width: 16rem;">
+          Filter by type
+          <select id="error-type-filter">
+            <option value="">All</option>
+          </select>
+        </label>
         <div style="overflow-x:auto;">
           <table id="errors-table">
             <thead>
               <tr>
+                <th>ID</th>
                 <th>When</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Provider / model</th>
+                <th>Duration</th>
                 <th>Context</th>
                 <th>Resume code</th>
                 <th>Message</th>
