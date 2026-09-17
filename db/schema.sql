@@ -62,6 +62,7 @@ create table if not exists facts (
   label text not null,
   value text not null,
   notes text,
+  family_action text, -- what the family will actually need to do about this, if anything (this is the point of the whole record: not just what's true, but what someone who's never touched it will have to handle)
   confidence text not null default 'stated' check (confidence in ('stated', 'uncertain', 'inferred')),
   source text not null default 'self' check (source in ('self', 'parent', 'other')),
   visibility text not null default 'family' check (visibility in ('family', 'executor_only', 'after_death_only')),
@@ -87,3 +88,6 @@ create index if not exists idx_messages_session on messages(session_id);
 create index if not exists idx_people_record on people(record_id);
 create index if not exists idx_facts_record on facts(record_id);
 create index if not exists idx_gaps_record on gaps(record_id);
+
+-- Additive migration for databases created before family_action existed.
+alter table facts add column if not exists family_action text;

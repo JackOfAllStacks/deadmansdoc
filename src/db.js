@@ -136,14 +136,15 @@ async function upsertPerson({
   return rows[0];
 }
 
-async function upsertFact({ recordId, category, label, value, notes, confidence, source, visibility }) {
+async function upsertFact({ recordId, category, label, value, notes, familyAction, confidence, source, visibility }) {
   const sql = getSql();
   const rows = await sql(
-    `insert into facts (record_id, category, label, value, notes, confidence, source, visibility)
-     values ($1, $2, $3, $4, $5, $6, $7, $8)
+    `insert into facts (record_id, category, label, value, notes, family_action, confidence, source, visibility)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      on conflict (record_id, category, label)
      do update set value = excluded.value,
                    notes = excluded.notes,
+                   family_action = excluded.family_action,
                    confidence = excluded.confidence,
                    source = excluded.source,
                    visibility = excluded.visibility,
@@ -155,6 +156,7 @@ async function upsertFact({ recordId, category, label, value, notes, confidence,
       label,
       value,
       notes || null,
+      familyAction || null,
       confidence || "stated",
       source || "self",
       visibility || "family",

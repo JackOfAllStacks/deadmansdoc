@@ -78,6 +78,7 @@
                   ${f.confidence && f.confidence !== "stated" ? badge(f.confidence, "warn") : ""}
                   ${badge(f.source, "muted-badge")}
                 </div>
+                ${f.family_action ? `<div class="fact-action"><strong>Family needs to:</strong> ${esc(f.family_action)}</div>` : ""}
                 ${f.notes ? `<div class="fact-notes">${esc(f.notes)}</div>` : ""}
               </div>
             `

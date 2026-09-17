@@ -6,6 +6,18 @@ const questionBank = require("./data/questionBank.json");
 
 const CATEGORIES = questionBank.categories;
 
+// Some providers (Groq's structured tool calling among them) validate tool
+// call arguments against the JSON schema strictly, and the model sometimes
+// emits an explicit `null` for an optional field instead of omitting the key
+// -- which a plain `{type: "string"}` rejects outright and fails the whole
+// turn. Every genuinely optional property below is typed to allow null too.
+function nullable(type) {
+  return { type: [type, "null"] };
+}
+function nullableEnum(values) {
+  return { type: ["string", "null"], enum: [...values, null] };
+}
+
 const TOOLS = [
   {
     type: "function",
@@ -18,31 +30,31 @@ const TOOLS = [
         properties: {
           name: { type: "string", description: "The person's name." },
           relationship: {
-            type: "string",
+            ...nullable("string"),
             description: "Their relationship to the subject, e.g. 'daughter', 'financial advisor', 'neighbour'.",
           },
           roles: {
-            type: "array",
+            type: ["array", "null"],
             items: { type: "string" },
             description:
-              "Any functional roles this person holds, e.g. 'executor', 'backup executor', 'holds spare key', 'financial advisor', 'first call'.",
+              "Any functional roles this person holds, e.g. 'executor', 'backup executor', 'holds spare key', 'financial advisor', 'first call'. Use an empty array if none yet.",
           },
           scope_of_authority: {
-            type: "string",
+            ...nullable("string"),
             description: "What this person is actually authorised or able to do, if relevant (e.g. 'joint signatory on bank account', 'has power of attorney').",
           },
           what_they_hold_or_oversee: {
-            type: "string",
+            ...nullable("string"),
             description: "What knowledge, documents, access or responsibility this person holds or oversees.",
           },
-          contact_phone: { type: "string" },
-          contact_email: { type: "string" },
-          contact_other: { type: "string", description: "Any other way to reach them, or notes on reachability." },
+          contact_phone: nullable("string"),
+          contact_email: nullable("string"),
+          contact_other: { ...nullable("string"), description: "Any other way to reach them, or notes on reachability." },
           is_reachable: {
-            type: "boolean",
+            ...nullable("boolean"),
             description: "Whether the subject is confident this contact info is current and this person is reachable.",
           },
-          notes: { type: "string", description: "Anything else worth keeping about this person." },
+          notes: { ...nullable("string"), description: "Anything else worth keeping about this person." },
         },
         required: ["name"],
       },
@@ -53,7 +65,7 @@ const TOOLS = [
     function: {
       name: "save_fact",
       description:
-        "Record one discrete piece of handover information: a fact, instruction, location, or answer the subject has given. Call this every time a concrete, useful answer is given -- one fact per call. Use a short, stable 'label' so the same fact can be updated later rather than duplicated (e.g. label 'safe deposit box location', not a full sentence).",
+        "Record one discrete piece of handover information: a fact, instruction, location, or answer the subject has given. Call this every time a concrete, useful answer is given -- one fact per call. Use a short, stable 'label' so the same fact can be updated later rather than duplicated (e.g. label 'safe deposit box location', not a full sentence). Remember who this is ultimately for: a spouse, child, or other family member who may not know how to manage this at all -- so alongside the raw fact, capture what they'd actually need to do about it.",
       parameters: {
         type: "object",
         properties: {
@@ -67,15 +79,18 @@ const TOOLS = [
             description: "A short, stable name for this specific fact, e.g. 'mortgage lender', 'gas provider', 'safe combination location'.",
           },
           value: { type: "string", description: "The answer or information itself." },
-          notes: { type: "string", description: "Extra context, caveats, or texture that doesn't fit in value." },
+          family_action: {
+            ...nullable("string"),
+            description:
+              "What the family will need to actually DO about this, in plain terms a non-expert could follow -- e.g. 'call to close the account and provide a death certificate', 'this bill is on autopay from the joint account so it doesn't need immediate action', 'contact the advisor directly, don't try to access this yourself'. Leave null only if there's genuinely nothing to act on (pure background/context).",
+          },
+          notes: { ...nullable("string"), description: "Extra context, caveats, or texture that doesn't fit in value or family_action." },
           confidence: {
-            type: "string",
-            enum: ["stated", "uncertain", "inferred"],
+            ...nullableEnum(["stated", "uncertain", "inferred"]),
             description: "'stated' if the subject said it plainly, 'uncertain' if they hedged, 'inferred' if you deduced it.",
           },
           source: {
-            type: "string",
-            enum: ["self", "parent", "other"],
+            ...nullableEnum(["self", "parent", "other"]),
             description: "Who this information came from in this conversation.",
           },
         },
@@ -95,12 +110,11 @@ const TOOLS = [
           category: { type: "string", enum: CATEGORIES },
           description: { type: "string", description: "What is missing or unknown." },
           who_would_know: {
-            type: "string",
+            ...nullable("string"),
             description: "Who might know this instead, if the subject has any idea (a person, institution, or 'no one knows').",
           },
           priority: {
-            type: "string",
-            enum: ["high", "medium", "low"],
+            ...nullableEnum(["high", "medium", "low"]),
             description: "How much worse this gap gets if it's not resolved before something happens (e.g. a safe deposit box access issue is high).",
           },
         },
@@ -137,6 +151,7 @@ async function executeToolCall(recordId, name, args) {
         label: args.label,
         value: args.value,
         notes: args.notes,
+        familyAction: args.family_action,
         confidence: args.confidence,
         source: args.source,
       });
