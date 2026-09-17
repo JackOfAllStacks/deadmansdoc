@@ -62,7 +62,8 @@ The interview exists to fill the fields of that template. Locking the template d
 |---|---|
 | Runtime | Node.js |
 | Hosting | Netlify (production deploys already wired to this repo) |
-| Database | Neon Postgres (created; not yet connected) |
+| Database | Neon Postgres. Production branch for the live site; a `dev` branch for feature work |
+| Auth | Better Auth in-app, email + password, sign-up gated by a shared access code |
 | Fidelity | Prototype-first, but **not throwaway** — built to be iterated toward production |
 | Accounts | One account per record; no second participant login |
 | Interview | Free-form AI conversation; question bank as coverage checklist |
@@ -89,17 +90,47 @@ npm run migrate
 
 Migrations are plain SQL in [`db/migrations/`](db/migrations), applied in filename order and recorded in a `_migrations` table, so re-running is safe.
 
+For feature work, point `.env.local` at the Neon **dev** branch rather than production; migrations reach production only when a branch is about to merge.
+
 ```bash
 npm run dev      # http://localhost:3000
 npm run build    # also validates data/ — see below
 npm run lint
+npm test         # unit tests (vitest)
+scripts/e2e-auth.sh   # auth end-to-end checks against a running server
 ```
 
 `GET /api/health` reports whether the database is reachable and which content version is loaded.
 
+`scripts/e2e-auth.sh` expects a server on `http://localhost:3000` (`npm run build && npm start`, or `netlify serve --offline --port 3000`) and the dev database. It creates `…@example.test` accounts; delete them afterwards. It pauses between groups of requests to stay under the sign-in rate limit, so it takes about a minute.
+
+## Accounts and access
+
+Auth is [Better Auth](https://www.better-auth.com), configured in [`src/lib/auth.ts`](src/lib/auth.ts), with its tables in our own database ([`db/migrations/002_auth.sql`](db/migrations/002_auth.sql)).
+
+- **Sign-up is invite-only.** The form asks for an access code, sent as the `x-signup-code` header and checked on the server against `SIGNUP_ACCESS_CODE`. If that variable is unset, nobody can sign up. Failed attempts count towards the rate limit, so guessing codes is slow.
+- **Email and password**, minimum 10 characters. There's no password reset yet; that needs an email provider.
+- **Rate limiting** is stored in the database, since in-memory counters reset on every serverless cold start. Sign-in and sign-up allow 3 attempts per 10 seconds per IP.
+- **Public:** `/`, `/sign-in`, `/sign-up`, `/api/health`, `/api/auth/*`. **Everything else requires a session.**
+- [`src/proxy.ts`](src/proxy.ts) only checks that a session cookie *exists* and redirects early if not. The real check is `requireSession()` in [`src/lib/session.ts`](src/lib/session.ts); every protected layout, route handler and server action must call it. Pages under [`src/app/(app)/`](src/app/(app)) get it from their shared layout.
+
+Regenerate the auth tables with `npx auth@<better-auth version> generate --config src/lib/auth.ts` if the auth config gains plugins or fields, and add the result as a new migration.
+
 ### Deploying
 
-Netlify builds on every push to `main` ([`netlify.toml`](netlify.toml)). The build needs no secrets; the running site needs `DATABASE_URL` set in Netlify's environment variables (pooled connection, scoped to Functions). Until it is, pages render but anything touching the database fails.
+Netlify builds on every push to `main` ([`netlify.toml`](netlify.toml)), and builds a deploy preview for each pull request. The running site needs these environment variables:
+
+| Variable | Notes |
+|---|---|
+| `DATABASE_URL` | Pooled Neon connection. Production uses the production branch; previews should use `dev`. |
+| `BETTER_AUTH_SECRET` | Random, 32+ characters. Without it, auth refuses to run in production. Changing it signs everyone out. |
+| `SIGNUP_ACCESS_CODE` | The invite code. Unset means sign-up is closed. |
+
+Leave `BETTER_AUTH_URL` **unset** on Netlify. The app then accepts requests for `handingover.netlify.app` and its `*--handingover.netlify.app` previews and rejects any other host.
+
+The build itself needs no secrets, though without `BETTER_AUTH_SECRET` in the build environment Better Auth logs a harmless "default secret" error while pages are prepared.
+
+Before merging a branch that adds a migration, apply it to production with `npm run migrate` using the production `DATABASE_URL_UNPOOLED`.
 
 ## Repo structure
 
@@ -107,7 +138,7 @@ Netlify builds on every push to `main` ([`netlify.toml`](netlify.toml)). The bui
 
 They're loaded and cross-checked in [`src/lib/content.ts`](src/lib/content.ts). A question pointing at a field that doesn't exist, or a field with no question to fill it, **fails the build** with a message naming the problem. The database stores these ids as plain text and can't catch the mistake itself.
 
-[`src/`](src) is the Next.js app (App Router, TypeScript, Tailwind). [`db/`](db) holds migrations. `AGENTS.md` and `CLAUDE.md` are generated by Next.js and re-added by `next dev`; they're committed deliberately.
+[`src/`](src) is the Next.js app (App Router, TypeScript, Tailwind). Public pages live in `src/app/(public)/`, signed-in pages in `src/app/(app)/`. [`db/`](db) holds migrations; [`scripts/`](scripts) holds test tooling. `AGENTS.md` and `CLAUDE.md` are generated by Next.js and re-added by `next dev`; they're committed deliberately.
 
 Project material lives under [`docs/`](docs) — this repo is the official record, superseding the original Obsidian vault.
 
@@ -121,14 +152,18 @@ Project material lives under [`docs/`](docs) — this repo is the official recor
 
 ## Roadmap
 
-**Next**
+**Done**
 
 - [Artifact template](docs/Artifact%20Template.md) — all 14 sections mapped; **Sections 1, 2, 3 and 5 are the v1 build scope**.
 - [Artifact fields](data/artifact-fields.yaml) and [question bank](data/question-bank.yaml) — v1 fields given stable ids, and the bank narrowed and mapped onto them.
-- [Schema](db/migrations/001_init.sql) — records, sessions, messages, entities and field values. Applied to Neon.
-- Next.js app scaffolded, content loader validating `data/`, database client and health check.
-- The opening questionnaire and generated session plan.
-- The interview loop.
+- [Schema](db/migrations/001_init.sql) — records, sessions, messages, entities and field values.
+- Next.js app, content loader validating `data/`, database client and health check, deployed to Netlify.
+- Accounts: sign-up with an access code, sign-in, sign-out, and protected pages.
+
+**Next**
+
+- The opening conversation and the generated plan of sittings.
+- The interview loop for each sitting.
 
 **Later**
 
@@ -136,6 +171,7 @@ Project material lives under [`docs/`](docs) — this repo is the official recor
 - **Synthetic personas and DB seeding** — we generate our own rather than waiting on the client, and demo against them. No real personal data enters the prototype.
 - Gamification and progress feedback across plan, sessions, and questions.
 - Designed, styled PDF output.
+- Password reset and email verification (needs an email provider).
 - Second participant on their own device.
 - Genuinely secure asymmetric disclosure.
 - Jurisdictions beyond Victoria.
