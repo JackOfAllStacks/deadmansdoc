@@ -4,8 +4,13 @@ const framingTechniques = require("./data/framingTechniques.js");
 // Only a handful of examples per category go into the prompt -- the full
 // ~167-question bank verbatim, on every turn, burns tokens for no benefit
 // (it's reference material to spark good questions, not a script to read
-// aloud) and blows through small-provider rate limits fast.
-const EXAMPLES_PER_CATEGORY = 4;
+// aloud), blows through small-provider rate limits fast, and is punishing
+// prompt-processing time on a small local model with no GPU. Override via
+// env var for that case -- e.g. QUESTION_BANK_EXAMPLES=1, or 0 to drop the
+// question bank section entirely and lean on the category names alone.
+const EXAMPLES_PER_CATEGORY = Number.isFinite(Number(process.env.QUESTION_BANK_EXAMPLES))
+  ? Number(process.env.QUESTION_BANK_EXAMPLES)
+  : 4;
 
 function formatQuestionBank() {
   const byCategory = {};
@@ -17,6 +22,7 @@ function formatQuestionBank() {
   }
   return Object.entries(byCategory)
     .map(([cat, qs]) => {
+      if (EXAMPLES_PER_CATEGORY <= 0) return `### ${cat} (${qs.length} questions in the bank)`;
       const sample = qs.slice(0, EXAMPLES_PER_CATEGORY);
       return `### ${cat} (${qs.length} questions in the bank, e.g.)\n${sample
         .map((q) => `- ${q}`)

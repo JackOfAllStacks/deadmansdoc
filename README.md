@@ -95,3 +95,28 @@ npm run dev            # builds the question bank and runs `netlify dev`
 ```
 Requires the [Netlify CLI](https://docs.netlify.com/cli/get-started/) (installed
 via `npm install` as a dev dependency) and a [Neon](https://neon.tech) project.
+
+### Using a local Ollama install instead of a hosted provider
+
+Useful when testing hits a hosted provider's rate limits. In `.env`:
+```
+LLM_BASE_URL=http://localhost:11434/v1
+LLM_API_KEY=
+LLM_MODEL=<a model you've pulled that supports tools, e.g. llama3.2>
+```
+No API key needed -- Ollama's OpenAI-compatible endpoint doesn't require one, and
+`src/llm.js` only sends an `Authorization` header when a key is actually set. This
+only works for **local dev** (`npm run dev` / `netlify dev`), not the deployed
+site -- Netlify's servers can't reach `localhost` on your machine. `.env` is
+gitignored and never read by the deployed site, so this can't accidentally
+affect production; that keeps reading its provider config from Netlify's own
+site env vars regardless of what's in your local `.env`.
+
+Small local models are usually CPU-only and noticeably slower at processing a
+long prompt than a hosted GPU -- e.g. ~24s for a 32-token prompt was typical on
+one test machine with a 1B model. Since the interview's system prompt is
+normally ~2,500 tokens (guardrails, framing techniques, question bank
+samples), set `QUESTION_BANK_EXAMPLES=0` to drop the question-bank section
+from the prompt entirely and cut that down substantially -- the interviewer
+still works, it just improvises within each category without the sampled
+examples to draw on.

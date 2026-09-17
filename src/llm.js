@@ -1,16 +1,19 @@
 // Thin adapter over an OpenAI-compatible chat completions API (tool calling
 // included). Defaults to Groq serving an open-weight model for prototyping;
-// swap providers later by changing LLM_BASE_URL / LLM_API_KEY / LLM_MODEL
-// only -- nothing else in this file is provider-specific.
+// swap providers by changing LLM_BASE_URL / LLM_API_KEY / LLM_MODEL only --
+// nothing else in this file is provider-specific. This also covers a local
+// Ollama install (LLM_BASE_URL=http://localhost:11434/v1, no key needed) --
+// see README for the local-testing setup, including why that only works
+// when running the app locally (`npm run dev`), not against the deployed
+// site, which can't reach your machine's localhost.
 const { TOOLS, executeToolCall } = require("./tools");
 
 const MAX_TOOL_ROUNDS = 6;
 
 function getConfig() {
   const baseUrl = process.env.LLM_BASE_URL || "https://api.groq.com/openai/v1";
-  const apiKey = process.env.LLM_API_KEY;
+  const apiKey = process.env.LLM_API_KEY || null;
   const model = process.env.LLM_MODEL || "openai/gpt-oss-120b";
-  if (!apiKey) throw new Error("LLM_API_KEY is not set");
   return { baseUrl, apiKey, model };
 }
 
@@ -23,12 +26,11 @@ function sleep(ms) {
 // short retry so it doesn't surface to the user as a broken app.
 async function callChatCompletions(messages, attempt = 0) {
   const { baseUrl, apiKey, model } = getConfig();
+  const headers = { "Content-Type": "application/json" };
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
+    headers,
     body: JSON.stringify({
       model,
       messages,
