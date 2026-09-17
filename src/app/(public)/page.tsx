@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { artifact } from "@/lib/content";
 
 export default function Home() {
@@ -25,6 +26,18 @@ export default function Home() {
           ))}
         </ol>
       </section>
+
+      <nav className="flex items-center gap-4">
+        <Link
+          href="/sign-in"
+          className="rounded-md bg-foreground px-4 py-2.5 font-medium text-background"
+        >
+          Sign in
+        </Link>
+        <Link href="/sign-up" className="text-foreground/80 underline">
+          Create an account
+        </Link>
+      </nav>
     </main>
   );
 }
