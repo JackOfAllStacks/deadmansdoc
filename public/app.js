@@ -16,6 +16,7 @@
   const chatForm = document.getElementById("chat-form");
   const chatInput = document.getElementById("chat-input");
   const resumeBadge = document.getElementById("resume-badge");
+  const viewDataLink = document.getElementById("view-data-link");
 
   startForm.addEventListener("change", (e) => {
     if (e.target.name === "mode") {
@@ -54,6 +55,8 @@
 
     resumeBadge.hidden = false;
     resumeBadge.textContent = `Your code to come back: ${resumeCode}`;
+    viewDataLink.href = `/view.html?code=${encodeURIComponent(resumeCode)}`;
+    viewDataLink.hidden = false;
 
     screenStart.hidden = true;
     screenChat.hidden = false;

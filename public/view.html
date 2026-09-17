@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Handover — Saved data</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <span class="wordmark">The Handover</span>
+    <a href="/" class="link-button" style="margin:0;">Back to interview</a>
+  </header>
+
+  <main class="screen">
+    <div class="card">
+      <h1>What's been saved</h1>
+      <p class="lede-note">
+        This is a plain view of what's been recorded for one record so far — not the finished
+        handover document (that's a separate step, done later, from this data).
+      </p>
+
+      <form id="lookup-form">
+        <label>
+          Resume code
+          <input type="text" name="resumeCode" placeholder="e.g. harbor-willow-482" required />
+        </label>
+        <button type="submit">Load</button>
+      </form>
+      <p id="lookup-error" class="error" hidden></p>
+    </div>
+
+    <div id="results" hidden>
+      <section class="card data-section">
+        <h2>Record</h2>
+        <dl class="kv" id="record-summary"></dl>
+      </section>
+
+      <section class="card data-section">
+        <h2>People <span class="count" id="people-count"></span></h2>
+        <div id="people-list" class="data-list"></div>
+        <p class="empty-note" id="people-empty" hidden>No one recorded yet.</p>
+      </section>
+
+      <section class="card data-section">
+        <h2>Facts <span class="count" id="facts-count"></span></h2>
+        <div id="facts-list"></div>
+        <p class="empty-note" id="facts-empty" hidden>No facts recorded yet.</p>
+      </section>
+
+      <section class="card data-section">
+        <h2>Gaps <span class="count" id="gaps-count"></span></h2>
+        <div id="gaps-list" class="data-list"></div>
+        <p class="empty-note" id="gaps-empty" hidden>No gaps flagged yet.</p>
+      </section>
+    </div>
+  </main>
+
+  <script src="/view.js"></script>
+</body>
+</html>
