@@ -50,7 +50,9 @@ The **set of domains is the same for every user**. What varies per user:
 
 The finished output is a **printable document**, structured on the client's draft Family Guide. Discovery found that a physical piece of paper has genuine value here; the product does not need to be technically sophisticated to be worth having.
 
-The interview exists to fill the fields of that template. Locking the template down is therefore what makes the interview buildable.
+One record produces **two printed artifacts**: the Guide, which the family can read at any time, and a Sealed Envelope, printed separately and opened only after death. That is how asymmetric disclosure works here — a physical seal, rather than a server deciding when to release something. Every field is Open, Sealed, or a Pointer that records where a secret lives without ever printing the secret itself.
+
+The interview exists to fill the fields of that template. Locking the template down is therefore what makes the interview buildable. See [Artifact Template](docs/Artifact%20Template.md).
 
 ## Decisions locked
 
@@ -65,7 +67,8 @@ The interview exists to fill the fields of that template. Locking the template d
 | Session plan | Fixed domain template, filtered per user for time and order |
 | Artifact structure | Lifted from the client's draft Family Guide |
 | Artifact output | Markdown or Word for MVP — no designed PDF yet |
-| Asymmetric disclosure | In scope for the demo; **demonstrated, not genuinely secure** |
+| Asymmetric disclosure | In scope for the demo; **demonstrated, not genuinely secure**. Two printed documents, split per field |
+| Trigger event | Death only. Incapacity is a known, accepted gap |
 | Death trigger / ADNS | Dropped — the artifact is physical, so no digital release trigger is needed |
 | Consent | Consent and who was present are captured |
 | Jurisdiction | Victoria only; built to be correct within Victoria |
@@ -86,7 +89,7 @@ Project material lives under [`docs/`](docs) — this repo is the official recor
 
 **Next**
 
-- Lock the artifact template, derived from the Family Guide structure.
+- [Artifact template](docs/Artifact%20Template.md) — all 14 sections mapped; **Sections 1, 2, 3 and 5 are the v1 build scope**.
 - Convert the question bank into structured data, with irreplaceability / decay / generativity as frontmatter, mapped to artifact fields.
 - Connect Neon; schema for records, sessions, answers, and artifact fields.
 - The opening questionnaire and generated session plan.
