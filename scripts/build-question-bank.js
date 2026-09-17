@@ -1,14 +1,14 @@
-// Compiles Discovery/Questions/*.md and Discovery/Question Brainstorming/Question Framing Techniques.md
+// Compiles docs/Questions/*.md and docs/Question Brainstorming/Question Framing Techniques.md
 // into JSON/text the server-side code can import. Re-run this whenever discovery content changes:
 //   node scripts/build-question-bank.js
 const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.join(__dirname, "..");
-const QUESTIONS_DIR = path.join(ROOT, "Discovery", "Questions");
+const QUESTIONS_DIR = path.join(ROOT, "docs", "Questions");
 const FRAMING_FILE = path.join(
   ROOT,
-  "Discovery",
+  "docs",
   "Question Brainstorming",
   "Question Framing Techniques.md"
 );

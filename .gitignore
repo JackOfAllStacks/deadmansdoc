@@ -17,3 +17,7 @@ dist/
 build/
 .next/
 .netlify/
+
+# Generated from docs/Questions/*.md by scripts/build-question-bank.js --
+# docs/ is the source of truth, this is a build artifact.
+src/data/
