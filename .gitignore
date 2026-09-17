@@ -25,3 +25,6 @@ build/
 # TypeScript / Next.js generated
 *.tsbuildinfo
 next-env.d.ts
+
+# Created by local `netlify build` / `netlify serve`
+deno.lock
