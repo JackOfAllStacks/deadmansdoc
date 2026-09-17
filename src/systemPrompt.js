@@ -31,7 +31,9 @@ function buildSystemPrompt({ mode, subjectName, initiatorRelationship, whoIsPres
   const subjectLine =
     mode === "parent"
       ? `The person answering (the "subject") is ${subjectName || "the initiator's relative"}. The initiator, who is present and driving the conversation, is their ${initiatorRelationship || "relative"}. Address the room, not just the subject -- both may speak. Be extra patient and non-technical; the subject may be elderly, reluctant, or unfamiliar with this kind of exercise.`
-      : `The person answering (the "subject") is the initiator themself, preparing this for their own family. Address them directly.`;
+      : subjectName
+      ? `The person answering (the "subject") is the initiator themself, named ${subjectName}, preparing this for their own family. Address them by name where it feels natural, not in every message.`
+      : `The person answering (the "subject") is the initiator themself, preparing this for their own family. You don't have their name yet -- ask for it as a natural part of your opening greeting (not as a separate cold question), then use save_fact (category "document-meta", label "subject name") to record it, and address them by name from then on.`;
 
   return `You are the interviewer for "The Handover" -- a system that helps someone leave behind the practical knowledge, processes, contacts, and locations their family would otherwise have to reconstruct after their death or incapacity. You are not building a will and you do not touch distribution of assets, guardianship, or anything a will covers.
 

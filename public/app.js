@@ -12,6 +12,7 @@
   const showResumeBtn = document.getElementById("show-resume");
   const startError = document.getElementById("start-error");
   const parentFields = document.getElementById("parent-fields");
+  const selfFields = document.getElementById("self-fields");
   const messagesEl = document.getElementById("messages");
   const chatForm = document.getElementById("chat-form");
   const chatInput = document.getElementById("chat-input");
@@ -21,6 +22,7 @@
   startForm.addEventListener("change", (e) => {
     if (e.target.name === "mode") {
       parentFields.hidden = e.target.value !== "parent";
+      selfFields.hidden = e.target.value !== "self";
     }
   });
 
@@ -99,10 +101,11 @@
     e.preventDefault();
     startError.hidden = true;
     const data = new FormData(startForm);
+    const mode = data.get("mode");
     const payload = {
       action: "create",
-      mode: data.get("mode"),
-      subjectName: data.get("subjectName") || null,
+      mode,
+      subjectName: (mode === "self" ? data.get("yourName") : data.get("subjectName")) || null,
       initiatorRelationship: data.get("initiatorRelationship") || null,
       whoIsPresent: data.get("whoIsPresent") || null,
       consentGiven: data.get("consent") === "on",
