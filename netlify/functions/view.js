@@ -31,6 +31,13 @@ exports.handler = async (event) => {
     if (!record) return json(404, { error: "No record found for that code" });
 
     const { people, facts, gaps } = await db.getRecordSnapshot(record.id);
+    const rawMessages = await db.getMessagesForRecord(record.id, 1000);
+    const messages = rawMessages.map((m) => ({
+      role: m.role,
+      content: m.content,
+      toolName: m.tool_name,
+      createdAt: m.created_at,
+    }));
 
     return json(200, {
       record: {
@@ -45,6 +52,7 @@ exports.handler = async (event) => {
       people,
       facts,
       gaps,
+      messages,
     });
   } catch (err) {
     console.error(err);

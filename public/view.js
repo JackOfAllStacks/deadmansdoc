@@ -20,6 +20,59 @@
     return `<span class="badge ${kind || ""}">${esc(text)}</span>`;
   }
 
+  let lastMessages = [];
+
+  // A short, human-readable line for a tool-call message instead of dumping
+  // its raw {args, result} JSON -- e.g. "save_person -> Elena Chen (wife)"
+  // rather than a wall of braces. Falls back to the tool name alone if the
+  // shape is anything unexpected.
+  function summarizeToolCall(toolName, contentJson) {
+    let parsed;
+    try {
+      parsed = JSON.parse(contentJson);
+    } catch {
+      return toolName || "tool call";
+    }
+    const args = parsed.args || {};
+    const failed = !(parsed.result && parsed.result.ok);
+    const suffix = failed ? " (failed)" : "";
+
+    if (toolName === "save_person") {
+      const bits = [args.relationship, (args.roles || []).join(", ")].filter(Boolean).join(", ");
+      return `save_person → ${args.name || "?"}${bits ? ` (${bits})` : ""}${suffix}`;
+    }
+    if (toolName === "save_fact") {
+      return `save_fact → [${args.category}] ${args.label}: ${args.value}${suffix}`;
+    }
+    if (toolName === "flag_gap") {
+      return `flag_gap → [${args.category}] ${args.description}${suffix}`;
+    }
+    return `${toolName}${suffix}`;
+  }
+
+  function renderMessages(messages) {
+    lastMessages = messages || [];
+    applyMessagesFilter();
+  }
+
+  function applyMessagesFilter() {
+    const showTools = document.getElementById("show-tool-calls").checked;
+    const container = document.getElementById("conversation");
+    document.getElementById("messages-count").textContent = lastMessages.length ? `(${lastMessages.length})` : "";
+    const visible = lastMessages.filter((m) => showTools || m.role !== "tool");
+    document.getElementById("messages-empty").hidden = visible.length > 0;
+    container.innerHTML = visible
+      .map((m) => {
+        if (m.role === "tool") {
+          return `<div class="bubble system-note tool-note">${esc(summarizeToolCall(m.toolName, m.content))}</div>`;
+        }
+        return `<div class="bubble ${esc(m.role)}">${esc(m.content)}</div>`;
+      })
+      .join("");
+  }
+
+  document.getElementById("show-tool-calls").addEventListener("change", applyMessagesFilter);
+
   function renderRecord(record) {
     const el = document.getElementById("record-summary");
     const modeLabel = record.mode === "parent" ? "A parent / relative" : "Themself";
@@ -127,6 +180,7 @@
         return;
       }
       renderRecord(body.record);
+      renderMessages(body.messages);
       renderPeople(body.people);
       renderFacts(body.facts);
       renderGaps(body.gaps);

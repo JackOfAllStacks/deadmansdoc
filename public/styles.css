@@ -203,6 +203,17 @@ button[type="submit"]:hover { opacity: 0.92; }
   text-align: center;
 }
 
+.bubble.tool-note {
+  align-self: center;
+  max-width: 95%;
+  color: var(--muted);
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  background: var(--paper);
+  border: 1px dashed var(--line);
+  padding: 0.35rem 0.7rem;
+}
+
 .composer {
   display: flex;
   gap: 0.6rem;
