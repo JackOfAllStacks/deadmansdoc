@@ -42,6 +42,26 @@
     return div;
   }
 
+  async function sendChatRequest(payload) {
+    const thinking = addBubble("assistant", "...");
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        thinking.textContent = body.error || "Something went wrong.";
+        return;
+      }
+      thinking.textContent = body.reply;
+    } catch {
+      thinking.textContent = "Couldn't reach the server. Please try again.";
+    }
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
   function enterChat({ recordId, sessionId, resumeCode, history }) {
     state.recordId = recordId;
     state.sessionId = sessionId;
@@ -70,6 +90,7 @@
         "system-note",
         "Write down your code above somewhere safe — it's how you get back in if you stop."
       );
+      sendChatRequest({ recordId, sessionId, opening: true });
     }
     chatInput.focus();
   }
@@ -131,29 +152,7 @@
     if (!text) return;
     chatInput.value = "";
     addBubble("user", text);
-
-    const thinking = addBubble("assistant", "...");
-
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recordId: state.recordId,
-          sessionId: state.sessionId,
-          message: text,
-        }),
-      });
-      const body = await res.json();
-      if (!res.ok) {
-        thinking.textContent = body.error || "Something went wrong.";
-        return;
-      }
-      thinking.textContent = body.reply;
-    } catch {
-      thinking.textContent = "Couldn't reach the server. Please try again.";
-    }
-    messagesEl.scrollTop = messagesEl.scrollHeight;
+    await sendChatRequest({ recordId: state.recordId, sessionId: state.sessionId, message: text });
   });
 
   chatInput.addEventListener("keydown", (e) => {

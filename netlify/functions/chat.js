@@ -25,8 +25,8 @@ exports.handler = async (event) => {
     return json(400, { error: "Invalid JSON" });
   }
 
-  const { recordId, sessionId, message } = payload;
-  if (!recordId || !sessionId || !message || !message.trim()) {
+  const { recordId, sessionId, message, opening } = payload;
+  if (!recordId || !sessionId || (!opening && (!message || !message.trim()))) {
     return json(400, { error: "recordId, sessionId and message are required" });
   }
 
@@ -52,14 +52,20 @@ exports.handler = async (event) => {
       whoIsPresent: session.who_is_present,
     });
 
+    const effectiveMessage = opening
+      ? "(The subject has just joined and given consent -- there is no message from them yet. Greet them warmly in one short paragraph using the session context you've been given, then ask your first question, following your instructions on where to start. Don't mention that you were prompted to do this.)"
+      : message;
+
     const { reply, toolLog } = await runInterviewTurn({
       recordId,
       systemPrompt,
       history,
-      userMessage: message,
+      userMessage: effectiveMessage,
     });
 
-    await db.addMessage({ sessionId, recordId, role: "user", content: message });
+    if (!opening) {
+      await db.addMessage({ sessionId, recordId, role: "user", content: message });
+    }
     for (const t of toolLog) {
       await db.addMessage({
         sessionId,
