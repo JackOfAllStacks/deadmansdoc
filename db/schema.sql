@@ -83,11 +83,24 @@ create table if not exists gaps (
   resolved_at timestamptz
 );
 
+-- Every time an interview turn fails (LLM error, rate limit, malformed tool
+-- call, etc), independent of whatever error message the user was shown --
+-- for diagnosing issues after the fact, not shown to end users.
+create table if not exists error_logs (
+  id uuid primary key default gen_random_uuid(),
+  record_id uuid references records(id) on delete set null,
+  session_id uuid references sessions(id) on delete set null,
+  context text not null,
+  message text not null,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists idx_sessions_record on sessions(record_id);
 create index if not exists idx_messages_session on messages(session_id);
 create index if not exists idx_people_record on people(record_id);
 create index if not exists idx_facts_record on facts(record_id);
 create index if not exists idx_gaps_record on gaps(record_id);
+create index if not exists idx_error_logs_created on error_logs(created_at desc);
 
 -- Additive migration for databases created before family_action existed.
 alter table facts add column if not exists family_action text;

@@ -81,8 +81,20 @@ exports.handler = async (event) => {
     return json(200, { reply, saved: toolLog.map((t) => ({ tool: t.name, ok: t.result.ok })) });
   } catch (err) {
     console.error(err);
-    const message = String((err && err.message) || err);
-    if (message.includes("429") || message.includes("rate_limit")) {
+    const errMessage = String((err && err.message) || err);
+
+    try {
+      await db.logError({
+        recordId,
+        sessionId,
+        context: opening ? "chat_turn:opening" : "chat_turn:message",
+        message: errMessage,
+      });
+    } catch (logErr) {
+      console.error("Failed to write error_logs row:", logErr);
+    }
+
+    if (errMessage.includes("429") || errMessage.includes("rate_limit")) {
       return json(429, {
         error: "The AI is getting a lot of requests right now -- please wait a few seconds and send that again.",
       });

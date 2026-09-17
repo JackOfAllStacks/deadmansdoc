@@ -305,3 +305,40 @@ button[type="submit"]:hover { opacity: 0.92; }
 .fact-value { font-size: 0.95rem; }
 .fact-action { font-size: 0.88rem; margin-top: 0.25rem; color: #4d5e3f; }
 .fact-notes { font-size: 0.85rem; color: var(--muted); margin-top: 0.15rem; }
+
+/* Admin table */
+#records-table,
+#errors-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+#records-table th,
+#records-table td,
+#errors-table th,
+#errors-table td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+#errors-table td:last-child {
+  white-space: normal;
+  max-width: 32rem;
+}
+
+#records-table th,
+#errors-table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.delete-btn {
+  color: #a13a2f;
+  margin: 0;
+}

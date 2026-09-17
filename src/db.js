@@ -186,6 +186,46 @@ async function getRecordSnapshot(recordId) {
   return { people, facts, gaps };
 }
 
+async function listRecordsWithCounts(limit = 200) {
+  const sql = getSql();
+  return sql(
+    `select r.*,
+       (select count(*) from people p where p.record_id = r.id) as people_count,
+       (select count(*) from facts f where f.record_id = r.id) as facts_count,
+       (select count(*) from gaps g where g.record_id = r.id) as gaps_count,
+       (select count(*) from sessions s where s.record_id = r.id) as sessions_count
+     from records r
+     order by r.updated_at desc
+     limit $1`,
+    [limit]
+  );
+}
+
+async function deleteRecord(recordId) {
+  const sql = getSql();
+  await sql(`delete from records where id = $1`, [recordId]);
+}
+
+async function logError({ recordId, sessionId, context, message }) {
+  const sql = getSql();
+  await sql(
+    `insert into error_logs (record_id, session_id, context, message) values ($1, $2, $3, $4)`,
+    [recordId || null, sessionId || null, context, String(message).slice(0, 4000)]
+  );
+}
+
+async function listRecentErrors(limit = 100) {
+  const sql = getSql();
+  return sql(
+    `select e.*, r.resume_code
+     from error_logs e
+     left join records r on r.id = e.record_id
+     order by e.created_at desc
+     limit $1`,
+    [limit]
+  );
+}
+
 module.exports = {
   createRecord,
   getRecordByResumeCode,
@@ -201,4 +241,8 @@ module.exports = {
   upsertFact,
   addGap,
   getRecordSnapshot,
+  listRecordsWithCounts,
+  deleteRecord,
+  logError,
+  listRecentErrors,
 };

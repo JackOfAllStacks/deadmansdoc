@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Handover — Admin</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <span class="wordmark">The Handover — Admin</span>
+    <button id="change-key" class="link-button" type="button" hidden>Change admin key</button>
+  </header>
+
+  <main class="screen">
+    <div id="key-card" class="card">
+      <h1>Admin key required</h1>
+      <p class="lede-note">Not something a real user would ever see. Testing-only view of every record.</p>
+      <form id="key-form">
+        <label>
+          Admin key
+          <input type="password" name="adminKey" required />
+        </label>
+        <button type="submit">Continue</button>
+      </form>
+      <p id="key-error" class="error" hidden></p>
+    </div>
+
+    <div id="table-wrap" hidden>
+      <div class="card">
+        <h1>All records <span class="count" id="record-count"></span></h1>
+        <p class="lede-note">Sorted by most recently updated. Deleting a record removes everything for it (sessions, messages, people, facts, gaps) permanently.</p>
+        <div style="overflow-x:auto;">
+          <table id="records-table">
+            <thead>
+              <tr>
+                <th>Resume code</th>
+                <th>Mode</th>
+                <th>Subject</th>
+                <th>Status</th>
+                <th>People</th>
+                <th>Facts</th>
+                <th>Gaps</th>
+                <th>Updated</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="records-body"></tbody>
+          </table>
+        </div>
+        <p class="empty-note" id="records-empty" hidden>No records yet.</p>
+      </div>
+
+      <div class="card data-section">
+        <h1>Error log <span class="count" id="error-count"></span></h1>
+        <p class="lede-note">Every failed interview turn (LLM errors, rate limits, malformed tool calls), whatever the user was shown instead.</p>
+        <div style="overflow-x:auto;">
+          <table id="errors-table">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Context</th>
+                <th>Resume code</th>
+                <th>Message</th>
+              </tr>
+            </thead>
+            <tbody id="errors-body"></tbody>
+          </table>
+        </div>
+        <p class="empty-note" id="errors-empty" hidden>No errors logged.</p>
+      </div>
+    </div>
+    <p id="load-error" class="error" hidden></p>
+  </main>
+
+  <script src="/admin.js"></script>
+</body>
+</html>
