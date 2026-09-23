@@ -1,0 +1,66 @@
+# Session template — v1
+#
+# The sittings every plan is built from. Everyone gets the same sittings; the
+# opening conversation only changes how long each is estimated to take and the
+# order they come in (anything mentioned unprompted goes first).
+#
+# `covers` lists what each sitting fills, as section ids (s3), field-group ids
+# (s5.owed) or field ids (s1.first_calls) from artifact-fields.yaml. Every v1
+# field must be covered by exactly one sitting, or the build fails.
+#
+# Estimates: base_minutes plus each matching rule, rounded to round_to_minutes.
+# A sitting longer than max_minutes_per_sitting is split into parts.
+#
+# Rule shapes (`when` names a signal from src/lib/intake/signals.ts):
+#   count:  { when, over, each, cap, unknown }  adds `each` per unit above `over`, up to `cap`
+#   match:  { when, is, add, unknown }          adds `add` when the signal equals `is`
+# `unknown` is the value assumed when the conversation didn't establish it.
+#
+# These numbers are first guesses. Tune them against real sittings.
+
+version: 0.1
+max_minutes_per_sitting: 30
+round_to_minutes: 5
+
+sittings:
+  - key: people
+    title: The people around you
+    summary: Who your family should call first, who does what, and who to keep out of it.
+    default_order: 1
+    covers: [s3, s1.first_calls, s1.fallback_contact, s1.routing_map]
+    base_minutes: 15
+    rules:
+      - { when: family_count, over: 3, each: 2, cap: 10, unknown: 4 }
+      - { when: adviser_count, over: 2, each: 1, cap: 3, unknown: 1 }
+
+  - key: first-days
+    title: The first days and weeks
+    summary: What has to happen straight away, in what order, and what must wait.
+    default_order: 2
+    covers: [s2, s1.immediate_actions, s1.do_not_yet]
+    base_minutes: 15
+    rules:
+      - { when: has_time_constrained_rites, is: true, add: 5, unknown: false }
+      - { when: has_matters_in_progress, is: true, add: 5, unknown: false }
+
+  - key: money-out
+    title: Money going out
+    summary: The accounts you have, the bills they pay, and what must keep running.
+    default_order: 3
+    covers: [s5.exists, s5.outgoing]
+    base_minutes: 15
+    rules:
+      - { when: account_band, is: "5+", add: 5, unknown: "2-4" }
+      - { when: runs_household_money_alone, is: true, add: 5, unknown: true }
+      - { when: has_business_or_trust, is: true, add: 5, unknown: false }
+
+  - key: money-in-owed
+    title: What's owed, and what's still coming in
+    summary: Debts and guarantees, and money that will keep arriving after you die.
+    default_order: 4
+    covers: [s5.owed, s5.incoming]
+    base_minutes: 10
+    rules:
+      - { when: has_debts_or_guarantees, is: true, add: 5, unknown: false }
+      - { when: has_income_after_death, is: true, add: 5, unknown: false }
+      - { when: has_business_or_trust, is: true, add: 5, unknown: false }
