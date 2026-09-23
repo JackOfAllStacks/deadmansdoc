@@ -31,19 +31,21 @@ check "sign-up with short password rejected" 400 "$(code_of -X POST "$BASE/api/a
 echo "(waiting out the 3-per-10s auth rate limit)"; sleep 11
 check "sign-up with right code" 200 "$(signup -H "x-signup-code: $CODE" -c "$JAR")"
 
-check "home works when signed in" 200 "$(code_of -b "$JAR" "$BASE/home")"
-sed "s/<!-- -->//g" "$DIR/body" | grep -q "Welcome, E2E Tester" && check "home greets user" yes yes || check "home greets user" yes no
+# A new account has no record yet, so /home sends it to /start.
+check "home sends a new account to start" "$BASE/start" "$(loc_of -b "$JAR" "$BASE/home")"
+check "start works when signed in" 200 "$(code_of -b "$JAR" "$BASE/start")"
+grep -q "E2E Tester" "$DIR/body" && check "start shows the user's name" yes yes || check "start shows the user's name" yes no
 check "sign-in page bounces signed-in user" "$BASE/home" "$(loc_of -b "$JAR" "$BASE/sign-in")"
 check "open redirect blocked" "$BASE/home" "$(loc_of -b "$JAR" "$BASE/sign-in?next=//evil.example")"
 check "safe next honoured" "$BASE/home?x=1" "$(loc_of -b "$JAR" "$BASE/sign-in?next=%2Fhome%3Fx%3D1")"
 
 check "sign-out" 200 "$(code_of -X POST "$BASE/api/auth/sign-out" -H "Origin: $BASE" -H "Content-Type: application/json" -d '{}' -b "$JAR" -c "$JAR")"
-check "home redirects after sign-out" 307 "$(code_of -b "$JAR" "$BASE/home")"
+check "home redirects to sign-in after sign-out" "$BASE/sign-in?next=%2Fhome" "$(loc_of -b "$JAR" "$BASE/home")"
 
 sleep 11
 check "sign-in wrong password" 401 "$(code_of -X POST "$BASE/api/auth/sign-in/email" -H "Origin: $BASE" -H "Content-Type: application/json" -d "{\"email\":\"$EMAIL\",\"password\":\"wrong-password-x\"}")"
 check "sign-in right password" 200 "$(code_of -X POST "$BASE/api/auth/sign-in/email" -H "Origin: $BASE" -H "Content-Type: application/json" -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}" -c "$JAR")"
-check "home works after sign-in" 200 "$(code_of -b "$JAR" "$BASE/home")"
+check "start works after sign-in" 200 "$(code_of -b "$JAR" "$BASE/start")"
 
 # A cookie that looks right but isn't a real session: the proxy lets it through,
 # requireSession must send it to sign-in, and sign-in must render (no loop).

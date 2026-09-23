@@ -67,7 +67,8 @@ The interview exists to fill the fields of that template. Locking the template d
 | Fidelity | Prototype-first, but **not throwaway** — built to be iterated toward production |
 | Accounts | One account per record; no second participant login |
 | Interview | Free-form AI conversation; question bank as coverage checklist |
-| Session plan | Fixed domain template, filtered per user for time and order |
+| Session plan | Fixed template of sittings, filtered per user for time and order |
+| Opening conversation | Claude Opus 5, streamed, with tools that record a rough picture |
 | Artifact structure | Lifted from the client's draft Family Guide |
 | Artifact output | Markdown or Word for MVP — no designed PDF yet |
 | Asymmetric disclosure | In scope for the demo; **demonstrated, not genuinely secure**. Two printed documents, split per field |
@@ -97,10 +98,13 @@ npm run dev      # http://localhost:3000
 npm run build    # also validates data/ — see below
 npm run lint
 npm test         # unit tests (vitest)
-scripts/e2e-auth.sh   # auth end-to-end checks against a running server
+scripts/e2e-auth.sh           # auth checks against a running server
+node scripts/e2e-intake.mjs   # full browser journey (spends API credit)
 ```
 
 `GET /api/health` reports whether the database is reachable and which content version is loaded.
+
+`scripts/e2e-intake.mjs` drives a real browser through sign-up, the opening conversation and the plan, using a synthetic persona. It calls the real Claude API (about US$0.10–0.15 a run) and needs `npx playwright install chromium --only-shell` once. Both scripts create `…@example.test` accounts; delete them afterwards.
 
 `scripts/e2e-auth.sh` expects a server on `http://localhost:3000` (`npm run build && npm start`, or `netlify serve --offline --port 3000`) and the dev database. It creates `…@example.test` accounts; delete them afterwards. It pauses between groups of requests to stay under the sign-in rate limit, so it takes about a minute.
 
@@ -125,12 +129,30 @@ Netlify builds on every push to `main` ([`netlify.toml`](netlify.toml)), and bui
 | `DATABASE_URL` | Pooled Neon connection. Production uses the production branch; previews should use `dev`. |
 | `BETTER_AUTH_SECRET` | Random, 32+ characters. Without it, auth refuses to run in production. Changing it signs everyone out. |
 | `SIGNUP_ACCESS_CODE` | The invite code. Unset means sign-up is closed. |
+| `ANTHROPIC_API_KEY` | For the opening conversation. Without it that page errors; the rest of the site is fine. |
 
 Leave `BETTER_AUTH_URL` **unset** on Netlify. The app then accepts requests for `handingover.netlify.app` and its `*--handingover.netlify.app` previews and rejects any other host.
 
 The build itself needs no secrets, though without `BETTER_AUTH_SECRET` in the build environment Better Auth logs a harmless "default secret" error while pages are prepared.
 
 Before merging a branch that adds a migration, apply it to production with `npm run migrate` using the production `DATABASE_URL_UNPOOLED`.
+
+## The opening conversation and the plan
+
+A new account goes `/start` → `/start/intake` → `/plan/new` → `/plan`; `/home` sends people to whichever step they're up to.
+
+**Starting** ([`src/app/(app)/start`](src/app/(app)/start)) records who the handover is for, who's in the room, and consent, including an acknowledgement that this isn't a will.
+
+**The conversation** ([`src/lib/intake`](src/lib/intake)) is Claude Opus 5, streamed to the browser as newline-delimited JSON. It has two tools: `record_intake` stores a rough picture (counts, yes/no, and which topics were raised unprompted), and `finish_intake` ends it.
+
+- The model writes its reply **before** calling a tool, so a turn is normally one API call. About US$0.11 for a whole conversation.
+- The system prompt is fixed for everyone so it caches; per-person details go in a context block at the start of the conversation, fixed for its lifetime.
+- Limits: 12 exchanges (after which the server finishes the conversation regardless), 2,000 characters a message, one reply at a time per record, and three model calls a turn.
+- Tool input is validated against the zod schema in [`signals.ts`](src/lib/intake/signals.ts), which also generates the tool's JSON Schema. A failure goes back to the model as a tool error rather than being stored.
+- A person's message is only saved once the model has replied, so a failed call leaves nothing behind and can simply be sent again.
+- Every model call logs its token usage as `intake_model_call`.
+
+**The plan** ([`src/lib/plan/build-plan.ts`](src/lib/plan/build-plan.ts)) is worked out in code, not by the model. [`data/session-template.yaml`](data/session-template.yaml) holds the sittings, their base minutes and the rules that adjust them; tune it there rather than in code. Order follows whatever was raised unprompted, then the template's own order. Sittings over 30 minutes split into parts. The build fails unless every v1 field is covered by exactly one sitting.
 
 ## Repo structure
 
@@ -156,20 +178,21 @@ Project material lives under [`docs/`](docs) — this repo is the official recor
 
 - [Artifact template](docs/Artifact%20Template.md) — all 14 sections mapped; **Sections 1, 2, 3 and 5 are the v1 build scope**.
 - [Artifact fields](data/artifact-fields.yaml) and [question bank](data/question-bank.yaml) — v1 fields given stable ids, and the bank narrowed and mapped onto them.
-- [Schema](db/migrations/001_init.sql) — records, sessions, messages, entities and field values.
+- [Schema](db/migrations/001_init.sql) — records, sittings, messages, entities and field values.
 - Next.js app, content loader validating `data/`, database client and health check, deployed to Netlify.
 - Accounts: sign-up with an access code, sign-in, sign-out, and protected pages.
+- The opening conversation and the plan of sittings.
 
 **Next**
 
-- The opening conversation and the generated plan of sittings.
-- The interview loop for each sitting.
+- The conversation for each sitting: the real interview, filling the artifact fields.
+- Printing the Guide and the Sealed Envelope.
 
 **Later**
 
 - **Split-screen live artifact view** — chat on one side, the document updating in real time on the other. A core centrepiece of the intended UX, but dependent on the template being fixed first.
 - **Synthetic personas and DB seeding** — we generate our own rather than waiting on the client, and demo against them. No real personal data enters the prototype.
-- Gamification and progress feedback across plan, sessions, and questions.
+- Richer progress feedback and gamification.
 - Designed, styled PDF output.
 - Password reset and email verification (needs an email provider).
 - Second participant on their own device.
