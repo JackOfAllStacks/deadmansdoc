@@ -1,4 +1,5 @@
-import { errorCounts, listAccounts, recentErrors, totals } from "@/lib/admin";
+import Link from "next/link";
+import { errorCounts, listAccounts, listRecords, recentErrors, totals } from "@/lib/admin";
 import { requireAdmin } from "@/lib/session";
 import { RoleToggle } from "./role-toggle";
 
@@ -19,11 +20,12 @@ function when(value: string): string {
 
 export default async function AdminPage() {
   const { user } = await requireAdmin();
-  const [counts, errors, summary, accounts] = await Promise.all([
+  const [counts, errors, summary, accounts, records] = await Promise.all([
     errorCounts(),
     recentErrors(),
     totals(),
     listAccounts(),
+    listRecords(),
   ]);
 
   const figures = [
@@ -38,7 +40,7 @@ export default async function AdminPage() {
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
         <p className="text-sm text-foreground/70">
-          Across every account. Records, the drafted Guide and the completeness check come next.
+          Across every account. Everything here crosses account boundaries — keep it to people who need it.
         </p>
       </header>
 
@@ -49,6 +51,30 @@ export default async function AdminPage() {
             <p className="text-sm text-foreground/60">{label}</p>
           </div>
         ))}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-medium">Records</h2>
+        {records.length ? (
+          <ul className="flex flex-col gap-2">
+            {records.map((r) => (
+              <li key={r.id} className="rounded-md border border-foreground/15">
+                <Link href={`/admin/records/${r.id}`} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 p-3 hover:bg-foreground/5">
+                  <span className="flex flex-col">
+                    <span className="font-medium">{r.subject_name}</span>
+                    <span className="text-sm text-foreground/60">{r.owner_email}</span>
+                  </span>
+                  <span className="text-sm text-foreground/60">
+                    {r.intake_done ? "opening conversation done" : "opening conversation unfinished"} ·{" "}
+                    {r.sittings_done} of {r.sittings} sittings · {r.values} things recorded
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-foreground/70">No records yet.</p>
+        )}
       </section>
 
       <section className="flex flex-col gap-3">
