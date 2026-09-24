@@ -3,7 +3,8 @@ import { greetingFor } from "@/lib/intake/prompt";
 import { MAX_MESSAGE_LENGTH } from "@/lib/intake/agent";
 import { getRecordForUser, intakeMessages, speakersFor } from "@/lib/records";
 import { requireSession } from "@/lib/session";
-import { IntakeChat, type ChatMessage } from "./intake-chat";
+import { toChatHistory } from "@/lib/transcript";
+import { IntakeChat } from "./intake-chat";
 
 export const metadata = { title: "A first conversation · The Handover" };
 
@@ -13,18 +14,7 @@ export default async function IntakePage() {
   if (!record) redirect("/start");
   if (record.intake_completed_at) redirect("/home");
 
-  const history: ChatMessage[] = [];
-  for (const m of await intakeMessages(record.id)) {
-    if (m.role === "agent" && m.content.trim()) {
-      history.push({ from: "agent", text: m.content });
-    } else if (m.role === "subject" || m.role === "helper") {
-      // Stored as "Name: text" for the model; recover the name for display.
-      const first = m.blocks[0];
-      const labelled = first && first.type === "text" ? first.text : "";
-      const name = labelled.endsWith(`: ${m.content}`) ? labelled.slice(0, -(m.content.length + 2)) : "";
-      history.push({ from: "person", name, text: m.content });
-    }
-  }
+  const history = toChatHistory(await intakeMessages(record.id));
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-6 py-10">

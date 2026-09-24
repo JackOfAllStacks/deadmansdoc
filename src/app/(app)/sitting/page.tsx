@@ -7,7 +7,8 @@ import { capturedIn, filledFields } from "@/lib/sitting/capture";
 import { coverageOf } from "@/lib/sitting/coverage";
 import { greetingFor } from "@/lib/sitting/prompt";
 import { isBusy, openSitting, sittingMessages } from "@/lib/sitting/store";
-import { SittingChat, type ChatMessage } from "./sitting-chat";
+import { toChatHistory } from "@/lib/transcript";
+import { SittingChat } from "./sitting-chat";
 
 export const metadata = { title: "Your sitting · The Handover" };
 export const dynamic = "force-dynamic";
@@ -26,13 +27,7 @@ export default async function SittingPage() {
     filledFields(record.id),
   ]);
 
-  const history: ChatMessage[] = stored
-    .filter((m) => m.role !== "tool" && m.content.trim())
-    .map((m) =>
-      m.role === "agent"
-        ? { from: "agent", text: m.content }
-        : { from: "person", name: m.content.split(":")[0] ?? "", text: m.content.replace(/^[^:]*:\s*/, "") },
-    );
+  const history = toChatHistory(stored);
 
   const summary = sessionTemplate.sittings.find((s) => s.key === sitting.sitting_key)?.summary ?? "";
 

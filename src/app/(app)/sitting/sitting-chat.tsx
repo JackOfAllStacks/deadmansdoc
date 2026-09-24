@@ -6,8 +6,7 @@ import { useRouter } from "next/navigation";
 import type { CapturedItem } from "@/lib/sitting/capture";
 import type { Coverage } from "@/lib/sitting/coverage";
 import type { SittingEvent } from "@/lib/sitting/agent";
-
-export type ChatMessage = { from: "agent"; text: string } | { from: "person"; name: string; text: string };
+import type { ChatMessage } from "@/lib/transcript";
 
 type Status = "idle" | "sending" | "finished" | "catching-up";
 type Progress = Pick<Coverage, "answered" | "gaps" | "total">;

@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import Link from "next/link";
 import type { IntakeEvent } from "@/lib/intake/agent";
-
-export type ChatMessage = { from: "agent"; text: string } | { from: "person"; name: string; text: string };
+import type { ChatMessage } from "@/lib/transcript";
 
 type Status = "idle" | "sending" | "finished";
 
