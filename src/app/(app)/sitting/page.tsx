@@ -3,8 +3,9 @@ import { sessionTemplate } from "@/lib/content";
 import { getRecordForUser, speakersFor } from "@/lib/records";
 import { requireSession } from "@/lib/session";
 import { MAX_MESSAGE_LENGTH } from "@/lib/sitting/agent";
-import { capturedIn, filledFields } from "@/lib/sitting/capture";
+import { capturedIn, filledFields, knownEntities } from "@/lib/sitting/capture";
 import { coverageOf } from "@/lib/sitting/coverage";
+import { documentOutline, looseNotes } from "@/lib/sitting/document";
 import { greetingFor } from "@/lib/sitting/prompt";
 import { isBusy, openSitting, sittingMessages } from "@/lib/sitting/store";
 import { toChatHistory } from "@/lib/transcript";
@@ -21,10 +22,11 @@ export default async function SittingPage() {
   const sitting = await openSitting(record.id);
   if (!sitting) redirect("/plan");
 
-  const [stored, captured, filled] = await Promise.all([
+  const [stored, captured, filled, entities] = await Promise.all([
     sittingMessages(sitting.id),
     capturedIn(sitting.id),
     filledFields(record.id),
+    knownEntities(record.id),
   ]);
 
   const history = toChatHistory(stored);
@@ -32,7 +34,7 @@ export default async function SittingPage() {
   const summary = sessionTemplate.sittings.find((s) => s.key === sitting.sitting_key)?.summary ?? "";
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-8">
+    <main className="mx-auto flex w-full max-w-[92rem] flex-1 flex-col gap-6 px-6 py-8">
       <header className="flex flex-col gap-1">
         <p className="text-sm text-foreground/60">
           Sitting {sitting.seq} · about {sitting.estimated_minutes} minutes
@@ -44,7 +46,9 @@ export default async function SittingPage() {
       <SittingChat
         greeting={greetingFor(record, sitting, summary)}
         history={history}
-        captured={captured}
+        outline={documentOutline(sitting.covers, captured)}
+        notes={looseNotes(captured)}
+        people={entities.filter((e) => e.entityType === "person").map((e) => e.label)}
         coverage={coverageOf(sitting.covers, filled)}
         speakers={speakersFor(record)}
         maxLength={MAX_MESSAGE_LENGTH}
