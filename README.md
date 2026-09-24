@@ -101,6 +101,7 @@ npm test         # unit tests (vitest)
 scripts/e2e-auth.sh           # auth checks against a running server
 node scripts/e2e-intake.mjs   # opening conversation and plan (spends API credit)
 node scripts/e2e-sitting.mjs  # the whole journey, including a sitting (spends more)
+node scripts/e2e-admin-record.mjs  # the admin view of a record it left behind
 ```
 
 `GET /api/health` reports whether the database is reachable and which content version is loaded.
@@ -198,11 +199,29 @@ Every signed-in page shares a header with an account menu: **Your account**, **A
 
 **[`/account`](src/app/(app)/account)** shows who you're signed in as, lets you change the name the conversation calls you, summarises your record, and deletes the account.
 
-**[`/admin`](src/app/(app)/admin)** is for whoever is tuning the thing. Today it shows totals across every account and the failures from [`error_logs`](db/migrations/004_admin_errors.sql) — what kind, which HTTP status, which model served it, and how long it took before giving up. Netlify's function logs are per-deploy and awkward to search after the fact; this outlives the deploy and can be queried.
+**[`/admin`](src/app/(app)/admin)** is for whoever is tuning the thing: every account, every record, and the failures from [`error_logs`](db/migrations/004_admin_errors.sql) — what kind, which HTTP status, which model served it, how long before it gave up. Netlify's function logs are per-deploy and awkward to search after the fact; this outlives the deploy and can be queried.
+
+**[`/admin/records/[id]`](src/app/(app)/admin/records)** is one record in full: every field with what was recorded against it, what the family would have to do about it, how sure they were, the entries and the gaps, anything kept that no field covered, and the whole conversation in order. It is someone's account of their own death, and the page says so.
 
 Failures are recorded by `logFailure()` in [`src/lib/errors.ts`](src/lib/errors.ts), which classifies them coarsely (`rate_limit`, `overloaded`, `auth`, `bad_request`, `server_error`, `network_error`, `app_error`) and **never throws** — logging a handled error must not create an unhandled one. A failure with no HTTP status never reached the provider at all, which is a different problem from one it answered and refused.
 
-Records, the drafted Guide and the completeness check are the next things to land here, carried over from the fork described below.
+### The two documents
+
+The Guide and the Sealed Envelope are **rendered, not written** ([`render.ts`](src/lib/artifact/render.ts)). Every field is already typed, already in template order, and already carries its own disclosure, so there is nothing for a model to decide: the same record always produces the same document, and nothing can appear that nobody said. The fork needed a model for this because its data was free-form; ours doesn't.
+
+The awkward rules from [the template](docs/Artifact%20Template.md) are the ones that matter, and they're the ones under test:
+
+- A sealed item leaves a **visible marker** in the Guide, never a blank — a blank reads as "there is nothing here".
+- A section whose every item is sealed still prints its heading and says where its contents are. A missing section is indistinguishable from a life without one.
+- **One sealed item is enough for an envelope to print.** There is no minimum.
+- If nothing is sealed, the Guide says so, and nobody spends the worst week of their life hunting for an envelope that was never printed.
+- A gap prints as what it is — "Not yet known. Peter may know." — because a routed gap beats a blank.
+
+### The completeness check
+
+How much of the template a record covers. Most of it is arithmetic: a field with a value is recorded, a field with a recorded gap is a known unknown. **One model call** answers the only question the data can't — whether something is genuinely missing or simply doesn't apply to this person, which is usually only knowable from what was said ("we're not religious, there's no rush"). It runs on demand, never on page load, and it only judges the fields that are still outstanding.
+
+A verdict of "doesn't apply" is ignored unless the model quotes the words behind it. Silence isn't evidence, and neither is someone saying they're done for the day.
 
 ## Repo structure
 
@@ -235,7 +254,7 @@ What's being carried across, translated rather than copied:
 | Priority on gaps | This schema already treats an unanswered field with `who_would_know` as content, not a blank. The fork's contribution is ranking them. | Landed |
 | Free-form overflow alongside the fixed fields | The fields make the printed artifact predictable; the overflow catches what they'd otherwise drop. | Landed, as `save_note` |
 | `error_logs` | Queryable failures that outlive the deploy. | Landed |
-| The drafted Guide, and the completeness check | The check reads the transcript as well as the saved data, because "no, we don't have any pets" only ever exists in what was said. | Next |
+| The drafted Guide, and the completeness check | The check reads the transcript as well as the saved data, because "no, we don't have any pets" only ever exists in what was said. | Landed — the Guide as a renderer rather than a generation step |
 
 Its question bank is the same 167 these 63 were narrowed from, so nothing is owed there. Its credentials questions — where passwords and recovery codes are kept — stay out as written: the answer is the **Pointer** disclosure level, recording where something is without ever collecting the secret itself.
 
@@ -252,10 +271,11 @@ Its question bank is the same 167 these 63 were narrowed from, so nothing is owe
 - Account menu, account page with deletion, admin role, and the failure log.
 - The conversation for each sitting: the real interview, filling the artifact fields, started from the plan whenever suits.
 
+- The admin view of a record: what was captured, both documents, and the completeness check.
+
 **Next**
 
-- The admin view of a record: what was captured, the drafted Guide, and the completeness check.
-- Printing the Guide and the Sealed Envelope.
+- Printing the Guide and the Sealed Envelope properly — the Markdown is there; the paper isn't.
 
 **Later**
 
