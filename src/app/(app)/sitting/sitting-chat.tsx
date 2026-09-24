@@ -399,13 +399,15 @@ function DocumentPanel({
         </div>
       </div>
 
-      <article className="flex flex-col gap-6 text-sm leading-relaxed">
+      <article className="flex flex-col gap-8 text-[0.9375rem] leading-relaxed">
         {outline.map((section) => (
-          <section key={section.id} className="flex flex-col gap-4">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-foreground/45">{section.title}</h3>
+          <section key={section.id} className="flex flex-col gap-5">
+            <h3 className="border-b border-foreground/15 pb-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-foreground/40">
+              {section.title}
+            </h3>
             {section.groups.map((group, gi) => (
-              <div key={gi} className="flex flex-col gap-4">
-                {group.title && <h4 className="font-semibold text-foreground/75">{group.title}</h4>}
+              <div key={gi} className="flex flex-col gap-5">
+                {group.title && <h4 className="text-sm font-semibold text-foreground/85">{group.title}</h4>}
                 {group.fields.map((field) => (
                   <FieldBody key={field.id} field={field} people={people} locked={locked} save={save} />
                 ))}
@@ -415,8 +417,10 @@ function DocumentPanel({
         ))}
 
         {notes.length > 0 && (
-          <section className="flex flex-col gap-4">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-foreground/45">Also worth knowing</h3>
+          <section className="flex flex-col gap-5">
+            <h3 className="border-b border-foreground/15 pb-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-foreground/40">
+              Also worth knowing
+            </h3>
             {notes.map((note) => (
               <NoteBody key={note.label} note={note} locked={locked} save={save} />
             ))}
@@ -426,14 +430,6 @@ function DocumentPanel({
     </aside>
   );
 }
-
-const PLACEHOLDER: Record<DocumentFieldView["type"], string> = {
-  text: "Nothing here yet.",
-  list: "Nothing here yet — one per line.",
-  ordered: "Nothing here yet — one step per line, in order.",
-  people: "Nobody here yet — names, separated by commas.",
-  entities: "Nothing here yet — one per line.",
-};
 
 const isAction = (line: string) => /^what to do\s*:/i.test(line.trim());
 
@@ -514,12 +510,14 @@ function LiveBody({
   label,
   locked,
   onCommit,
+  onFocusChange,
 }: {
   field: DocumentFieldView;
   body: string;
   label: string;
   locked: boolean;
   onCommit: (text: string) => void;
+  onFocusChange?: (focused: boolean) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -531,7 +529,6 @@ function LiveBody({
   }, [field, body]);
 
   return (
-    <div className="relative">
       <div
         ref={ref}
         role="textbox"
@@ -540,7 +537,9 @@ function LiveBody({
         contentEditable={!locked}
         suppressContentEditableWarning
         spellCheck
+        onFocus={() => onFocusChange?.(true)}
         onBlur={() => {
+          onFocusChange?.(false);
           const el = ref.current;
           if (el) onCommit(readBack(el));
         }}
@@ -578,20 +577,15 @@ function LiveBody({
             selection?.addRange(range);
           }
         }}
-        className={`-mx-1 rounded-sm px-1 py-0.5 text-foreground/90 outline-none ${
+        // Empty is left empty -- room waiting to be written in, rather than a
+        // line of filler saying there is nothing there. The height keeps it
+        // big enough to put a cursor in.
+        className={`-mx-1 min-h-[1.75rem] rounded-sm px-1 py-0.5 text-foreground outline-none ${
           locked
             ? "cursor-default opacity-70"
             : "cursor-text hover:bg-foreground/[0.03] focus:bg-foreground/[0.04] focus:ring-1 focus:ring-foreground/20"
         }`}
       />
-      {!body && (
-        <p className="pointer-events-none absolute inset-0 px-1 py-0.5 text-foreground/30">
-          {field.type === "entities" || field.type === "people" || field.type === "list" || field.type === "ordered"
-            ? PLACEHOLDER[field.type]
-            : PLACEHOLDER.text}
-        </p>
-      )}
-    </div>
   );
 }
 
@@ -609,6 +603,7 @@ function FieldBody({
   const body = renderBlock(shapeOf(field), field.entries);
   const gap = field.entries.find((e) => e.kind === "gap");
   const [saving, setSaving] = useState(false);
+  const [writing, setWriting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function commit(text: string) {
@@ -625,16 +620,23 @@ function FieldBody({
   }
 
   return (
-    <div data-field={field.id} className="flex flex-col gap-1">
-      <h5 className="text-[0.8125rem] font-medium text-foreground/70">{field.label}</h5>
+    <div data-field={field.id} className="flex flex-col gap-1.5">
+      <h5 className="text-xs font-semibold uppercase tracking-[0.06em] text-foreground/55">{field.label}</h5>
 
       {!body && gap ? (
         <p className="italic text-foreground/40">Not yet known{gap.detail ? ` — ${gap.detail} may know` : ""}.</p>
       ) : null}
 
-      <LiveBody field={field} body={body} label={field.label} locked={locked} onCommit={commit} />
+      <LiveBody
+        field={field}
+        body={body}
+        label={field.label}
+        locked={locked}
+        onCommit={commit}
+        onFocusChange={setWriting}
+      />
 
-      {field.type === "people" && people.length > 0 && !body && (
+      {field.type === "people" && people.length > 0 && writing && (
         <p className="text-xs text-foreground/40">Names, separated by commas: {people.join(", ")}</p>
       )}
       {saving && <p className="text-xs text-foreground/40">Saving…</p>}
@@ -667,7 +669,7 @@ function NoteBody({ note, locked, save }: { note: DocumentEntry; locked: boolean
 
   return (
     <div className="flex flex-col gap-1">
-      <h5 className="text-[0.8125rem] font-medium text-foreground/70">{note.label}</h5>
+      <h5 className="text-xs font-semibold uppercase tracking-[0.06em] text-foreground/55">{note.label}</h5>
       <LiveBody field={asField} body={body} label={note.label} locked={locked} onCommit={commit} />
       {error && (
         <p role="alert" className="text-xs text-red-600 dark:text-red-300">
