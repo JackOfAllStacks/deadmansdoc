@@ -1,4 +1,13 @@
-import { expandCovers, fieldsById, questionBank, type Field, type Level, type Question } from "@/lib/content";
+import {
+  expandCovers,
+  fieldsById,
+  questionBank,
+  sessionTemplate,
+  type Field,
+  type Level,
+  type Question,
+} from "@/lib/content";
+import type { SittingTopic } from "@/lib/plan/template";
 import type { FilledField } from "@/lib/sitting/capture";
 
 // The question bank is a checklist, not a script. Each turn the server works
@@ -36,6 +45,47 @@ export function coverageOf(covers: string[], filled: FilledField[]): Coverage {
     gaps: mine.filter((f) => byId.get(f.id) === "unknown").length,
     outstanding: fields.filter((f) => !settledIds(filled).has(f.id)),
   };
+}
+
+/**
+ * What a person is shown while the conversation runs: the sitting's areas, in
+ * plain words, each reporting how much of itself has been settled.
+ *
+ * This is the scaffolding the interview otherwise lacks. An empty text box
+ * asks someone to work out for themselves what is worth saying about their own
+ * death; these say what ground is being covered and how far through it we are.
+ */
+export interface TopicProgress {
+  label: string;
+  blurb: string;
+  total: number;
+  answered: number;
+  gaps: number;
+  done: boolean;
+  started: boolean;
+}
+
+export function topicsFor(sittingKey: string): SittingTopic[] {
+  return sessionTemplate.sittings.find((s) => s.key === sittingKey)?.topics ?? [];
+}
+
+export function topicProgress(topics: SittingTopic[], filled: FilledField[]): TopicProgress[] {
+  const byId = new Map(filled.map((f) => [f.field_id, f.status]));
+  return topics.map((topic) => {
+    const answered = topic.covers.filter((id) => byId.get(id) === "answered").length;
+    const gaps = topic.covers.filter((id) => byId.get(id) === "unknown").length;
+    return {
+      label: topic.label,
+      blurb: topic.blurb,
+      total: topic.covers.length,
+      answered,
+      gaps,
+      // A topic is finished once every field under it is settled — which
+      // includes "nobody knows", because that is an answer the family needs.
+      done: answered + gaps === topic.covers.length,
+      started: answered + gaps > 0,
+    };
+  });
 }
 
 // Highest priority first, then the ranking the bank was narrowed by:

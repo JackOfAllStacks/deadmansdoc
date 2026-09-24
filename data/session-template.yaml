@@ -8,6 +8,10 @@
 # (s5.owed) or field ids (s1.first_calls) from artifact-fields.yaml. Every v1
 # field must be covered by exactly one sitting, or the build fails.
 #
+# `topics` is what the person is shown: plain-language areas this sitting will
+# cover, written for someone who has never seen the field list. Every field a
+# sitting covers must belong to exactly one of its topics, or the build fails.
+#
 # Estimates: base_minutes plus each matching rule, rounded to round_to_minutes.
 # A sitting longer than max_minutes_per_sitting is split into parts.
 #
@@ -26,6 +30,19 @@ sittings:
   - key: people
     title: The people around you
     summary: Who your family should call first, who does what, and who to keep out of it.
+    topics:
+      - label: Who to ring first
+        blurb: The two or three people your family should call before anyone else, and how to reach them.
+        covers: [s1.first_calls, s1.fallback_contact, s1.routing_map]
+      - label: Who's around
+        blurb: Family, household, and the people the rest of the record will keep referring back to.
+        covers: [s3.household, s3.key_people, s3.interrelationships]
+      - label: Who does what
+        blurb: Who holds which responsibility, who understands the money, and which professionals are involved.
+        covers: [s3.responsibilities, s3.financial_knower, s3.expectations_communicated, s3.advisers]
+      - label: Who to be careful with
+        blurb: Anyone who shouldn't be called, and any disagreement worth warning the family about.
+        covers: [s3.do_not_contact, s3.wrong_call, s3.anticipated_disagreement]
     default_order: 1
     covers: [s3, s1.first_calls, s1.fallback_contact, s1.routing_map]
     base_minutes: 15
@@ -36,6 +53,19 @@ sittings:
   - key: first-days
     title: The first days and weeks
     summary: What has to happen straight away, in what order, and what must wait.
+    topics:
+      - label: The first few days
+        blurb: What has to happen straight away, including anything religious or cultural with a time limit.
+        covers: [s2.first_72h, s1.immediate_actions, s2.time_constrained_rites]
+      - label: What must wait
+        blurb: What not to cancel, close or sign yet, and what stops being possible once an institution is told.
+        covers: [s1.do_not_yet, s2.impossible_after_notice]
+      - label: Things with a clock on them
+        blurb: Deadlines that start at the date of death, decisions needed within days, and what would be lost in a week.
+        covers: [s2.deadlines, s2.urgent_decisions, s2.first_week_losses]
+      - label: The months after
+        blurb: What the first month and the first six months look like, roughly in order.
+        covers: [s2.first_30d, s2.first_6m]
     default_order: 2
     covers: [s2, s1.immediate_actions, s1.do_not_yet]
     base_minutes: 15
@@ -46,6 +76,19 @@ sittings:
   - key: money-out
     title: Money going out
     summary: The accounts you have, the bills they pay, and what must keep running.
+    topics:
+      - label: What's held, and where
+        blurb: Accounts, investments, cash and any business or entity registrations.
+        covers: [s5.accounts, s5.balances, s5.investments, s5.cash, s5.entities]
+      - label: Where the paperwork lives
+        blurb: Where the documents are, who helps with them, and anything the family doesn't yet know about.
+        covers: [s5.financial_docs_location, s5.accountant, s5.contact_before_change, s5.undisclosed_arrangements]
+      - label: The bills, and what pays them
+        blurb: Which account the household actually runs on, what comes out of it, and what's automatic.
+        covers: [s5.bill_account, s5.bill_account_freeze, s5.regular_bills, s5.auto_vs_manual]
+      - label: What must not stop
+        blurb: Payments that would fail quietly, accounts that can't be closed, and where money would be wasted.
+        covers: [s5.uninterruptible_payments, s5.silent_failures, s5.do_not_close_accounts, s5.annual_surprises, s5.burn_on_death]
     default_order: 3
     covers: [s5.exists, s5.outgoing]
     base_minutes: 15
@@ -57,6 +100,19 @@ sittings:
   - key: money-in-owed
     title: What's owed, and what's still coming in
     summary: Debts and guarantees, and money that will keep arriving after you die.
+    topics:
+      - label: What's owed
+        blurb: Mortgage, loans, cards and tax — including anything nobody in the family knows about.
+        covers: [s5.mortgage_loans_cards, s5.tax_outstanding, s5.hidden_debts]
+      - label: What someone else could inherit
+        blurb: Debts that pass on, anything co-signed or guaranteed, and money privately lent or borrowed.
+        covers: [s5.debts_passing, s5.cosigned, s5.guarantees, s5.private_loans]
+      - label: Money still coming in
+        blurb: What would keep arriving, when it arrives, and roughly how much.
+        covers: [s5.money_after_death, s5.delayed_payouts, s5.expected_amounts, s5.prior_period_payments]
+      - label: What nobody would think to chase
+        blurb: Anything that has to be claimed, and income nobody else knows to expect.
+        covers: [s5.claim_required, s5.unchased_income]
     default_order: 4
     covers: [s5.owed, s5.incoming]
     base_minutes: 10

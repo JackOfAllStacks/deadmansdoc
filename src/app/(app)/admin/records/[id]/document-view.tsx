@@ -22,27 +22,27 @@ export function DocumentView({ markdown, filename }: { markdown: string; filenam
       <div className="flex flex-wrap gap-3 print:hidden">
         <button
           onClick={copy}
-          className="rounded-md border border-foreground/20 px-3 py-1.5 text-sm hover:bg-foreground/5"
+          className="rounded-md border border-line px-3 py-1.5 text-sm hover:bg-soft"
         >
           {copied ? "Copied" : "Copy"}
         </button>
         <a
           href={href}
           download={filename}
-          className="rounded-md border border-foreground/20 px-3 py-1.5 text-sm hover:bg-foreground/5"
+          className="rounded-md border border-line px-3 py-1.5 text-sm hover:bg-soft"
         >
           Download
         </a>
         <button
           onClick={() => window.print()}
-          className="rounded-md border border-foreground/20 px-3 py-1.5 text-sm hover:bg-foreground/5"
+          className="rounded-md border border-line px-3 py-1.5 text-sm hover:bg-soft"
         >
           Print
         </button>
       </div>
       {/* The Markdown itself, not a rendering of it: this is the artifact, and
           what it actually says matters more than how it looks for now. */}
-      <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-foreground/15 p-4 font-mono text-sm leading-relaxed">
+      <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-line p-4 font-mono text-sm leading-relaxed">
         {markdown}
       </pre>
     </div>

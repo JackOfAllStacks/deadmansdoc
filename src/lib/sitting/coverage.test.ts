@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { sessionTemplate } from "@/lib/content";
-import { coverageOf, remainingQuestions, sittingFields } from "@/lib/sitting/coverage";
+import {
+  coverageOf,
+  remainingQuestions,
+  sittingFields,
+  topicProgress,
+  topicsFor,
+} from "@/lib/sitting/coverage";
 import type { FilledField } from "@/lib/sitting/capture";
 
 const covers = (key: string) => sessionTemplate.sittings.find((s) => s.key === key)!.covers;
@@ -81,5 +87,43 @@ describe("coverageOf", () => {
     expect(out.gaps).toBe(1);
     expect(out.total).toBe(sittingFields(covers("people")).length);
     expect(out.outstanding.map((f) => f.id)).not.toContain("s3.key_people");
+  });
+});
+
+describe("topicProgress", () => {
+  const topics = topicsFor("people");
+
+  it("gives every sitting plain-language areas to show", () => {
+    for (const sitting of sessionTemplate.sittings) {
+      expect(topicsFor(sitting.key).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("starts with nothing ticked and nothing started", () => {
+    const progress = topicProgress(topics, []);
+    expect(progress.every((t) => !t.started && !t.done)).toBe(true);
+    expect(progress.map((t) => t.answered)).toEqual(topics.map(() => 0));
+  });
+
+  it("marks an area as started as soon as anything under it lands", () => {
+    const [first] = topics;
+    const progress = topicProgress(topics, answered(first.covers[0]));
+    expect(progress[0]).toMatchObject({ started: true, done: false, answered: 1 });
+    expect(progress[1].started).toBe(false);
+  });
+
+  it("counts a gap as settling a field, because it is an answer too", () => {
+    const [first] = topics;
+    const filled: FilledField[] = first.covers.map((field_id, i) => ({
+      field_id,
+      status: i === 0 ? "unknown" : "answered",
+    }));
+    const progress = topicProgress(topics, filled);
+    expect(progress[0]).toMatchObject({ done: true, gaps: 1, answered: first.covers.length - 1 });
+  });
+
+  it("ignores fields belonging to another sitting", () => {
+    const progress = topicProgress(topics, answered("s5.regular_bills"));
+    expect(progress.every((t) => !t.started)).toBe(true);
   });
 });

@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { startRecord, type FormState } from "@/app/(app)/actions";
 import { Field, FormError, SubmitButton } from "@/components/form";
+import { Card } from "@/components/ui";
 
 const CHOICES = [
   { value: "self", label: "Myself" },
@@ -59,7 +60,7 @@ export function StartForm({ accountName }: { accountName: string }) {
         required
       />
 
-      <div className="flex flex-col gap-3 rounded-md border border-foreground/15 p-4">
+      <Card tone="quiet" className="flex flex-col gap-3">
         <label className="flex gap-3">
           <input
             type="checkbox"
@@ -85,7 +86,7 @@ export function StartForm({ accountName }: { accountName: string }) {
           />
           <span>Everyone taking part is happy to begin, and knows they can stop at any time.</span>
         </label>
-      </div>
+      </Card>
 
       <FormError message={state.error ?? null} />
       <SubmitButton pending={pending}>{pending ? "Starting…" : "Begin"}</SubmitButton>

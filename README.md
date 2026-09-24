@@ -147,7 +147,9 @@ Before merging a branch that adds a migration, apply it to production with `npm 
 
 ## The opening conversation and the plan
 
-A new account goes `/start` → `/start/intake` → `/plan/new` → `/plan`; `/home` sends people to whichever step they're up to.
+A new account goes `/start` → `/start/intake` → `/plan/new` → `/plan`. `/home` is a dashboard rather than a step: it names the one thing to do next, and everything else stays reachable from the header.
+
+**Nobody is dropped into an empty box.** A conversation that hasn't started yet opens on what happens now, how long it takes, and what the record covers; the text box appears once someone chooses to begin. The client's feedback was about exactly this, and it applies to the opening conversation and the sittings alike.
 
 **Starting** ([`src/app/(app)/start`](src/app/(app)/start)) records who the handover is for, who's in the room, and consent, including an acknowledgement that this isn't a will.
 
@@ -159,6 +161,8 @@ A new account goes `/start` → `/start/intake` → `/plan/new` → `/plan`; `/h
 - Tool input is validated against the zod schema in [`signals.ts`](src/lib/intake/signals.ts), which also generates the tool's JSON Schema. A failure goes back to the model as a tool error rather than being stored.
 - A person's message is only saved once the model has replied, so a failed call leaves nothing behind and can simply be sent again.
 - Every model call logs its token usage as `intake_model_call`.
+
+**Going back to it.** The opening conversation stays readable after it finishes — it is the only thing that explains why the plan came out as it did — and it can be reopened to add something. Finishing it a second time re-cuts **only the sittings nobody has started**: they're re-estimated and re-ordered from the fuller picture, while anything done or in progress is left exactly as it was, because what was said in it is already in the record. The untouched sittings also keep their own dates and positions — the slots they already occupy are handed out again in the new order, so remembering something doesn't rearrange someone's month. Reopening is refused outright while a sitting is open. See `reviseRemaining` in [`build-plan.ts`](src/lib/plan/build-plan.ts).
 
 **The plan** ([`src/lib/plan/build-plan.ts`](src/lib/plan/build-plan.ts)) is worked out in code, not by the model. [`data/session-template.yaml`](data/session-template.yaml) holds the sittings, their base minutes and the rules that adjust them; tune it there rather than in code. Order follows whatever was raised unprompted, then the template's own order. Sittings over 30 minutes split into parts. The build fails unless every v1 field is covered by exactly one sitting.
 
@@ -187,6 +191,10 @@ Every value carries **`family_action`** (what someone who has never touched this
 
 **The question bank is a checklist, not a script** ([`coverage.ts`](src/lib/sitting/coverage.ts)). Each turn the server works out which questions still fill something this sitting covers and hasn't settled, ranked by priority then irreplaceability, and passes a few to the model, which writes its own questions. A field counts as settled once it holds an answer **or a recorded gap**, so nobody is asked twice about something they've already said they don't know. `question_asks` is written by the server from what the tools did — the model is never asked to keep track.
 
+**The person can see what's being covered.** Each sitting carries plain-language **topics** — "Who to ring first", "What must not stop" — written for someone who has never seen a field id. They live beside the sitting in [`session-template.yaml`](data/session-template.yaml), each naming the field ids it stands for, and the build fails unless every field a sitting covers belongs to exactly one of its topics. That constraint is the point: the topics are a promise about what a conversation will cover, so they can't quietly drift from what it actually does. They're shown as cards on the plan and as a checklist beside the conversation, ticking over as fields are settled — counted on the server from what is stored, never tallied in the browser.
+
+They deliberately stop short of listing the questions themselves. Showing the whole checklist would turn the conversation back into a form, which is the thing it exists to avoid.
+
 **Caching.** The system prompt is identical for every sitting and every person. What changes — who this is, what's recorded, what's left, how long is left — goes in a system message **after** the history, so the cached prefix stays valid.
 
 **Stopping.** At four minutes remaining the model is told to draw to a close; if someone says they're done, it finishes in that turn without asking again. A turn cap ends the sitting server-side regardless. Leaving part-way keeps everything — a sitting stays open until it's finished.
@@ -195,7 +203,9 @@ Every value carries **`family_action`** (what someone who has never touched this
 
 ## Getting around, and the admin view
 
-Every signed-in page shares a header with an account menu: **Your account**, **Admin** for admins, and **Sign out**.
+Every signed-in page shares a header: **Home**, **Your plan** once there is one, **Opening conversation** once there is a record, and an account menu with **Your account**, **Admin** for admins, and **Sign out**. Which links appear follows how far someone has got, worked out in [`journey.ts`](src/lib/journey.ts) — there's no use offering a plan to somebody who hasn't made one.
+
+**[`/home`](src/app/(app)/home)** is where someone lands: the next thing to do with a button on it, every sitting with the areas it covers, and a count of what's in the record — including gaps, which are counted separately because "nobody knows where that is" is itself worth recording.
 
 **[`/account`](src/app/(app)/account)** shows who you're signed in as, lets you change the name the conversation calls you, summarises your record, and deletes the account.
 
@@ -222,6 +232,14 @@ The awkward rules from [the template](docs/Artifact%20Template.md) are the ones 
 How much of the template a record covers. Most of it is arithmetic: a field with a value is recorded, a field with a recorded gap is a known unknown. **One model call** answers the only question the data can't — whether something is genuinely missing or simply doesn't apply to this person, which is usually only knowable from what was said ("we're not religious, there's no rush"). It runs on demand, never on page load, and it only judges the fields that are still outstanding.
 
 A verdict of "doesn't apply" is ignored unless the model quotes the words behind it. Silence isn't evidence, and neither is someone saying they're done for the day.
+
+## The look of it
+
+Everything visual is a token in [`globals.css`](src/app/globals.css): surfaces, text, lines, one accent, and the three states anything in the record can be in (**recorded**, **not known**, **still to come**). Pages use the names — `bg-surface`, `text-muted`, `border-line` — and never a raw colour or an opacity-on-black trick, so the whole product can be re-toned from that one file. The palette is warm rather than clinical on purpose: this is a product about dying, used by people who are frightened or grieving, and stark monochrome reads as a hospital form.
+
+Headings are set in a serif and body text in a grotesque, because what this makes is a **document**, and it should look like one from the first screen while the interface itself stays out of the way.
+
+[`src/components/ui.tsx`](src/components/ui.tsx) is the vocabulary every page is built from — `Page`, `PageHeader`, `Card`, `Button`, `Badge`, `Progress`, `Note`, `Alert`. [`chat.tsx`](src/components/chat.tsx) holds the conversation itself, shared by the opening conversation and the sittings, which had a copy each until this branch. [`topics.tsx`](src/components/topics.tsx) is the scaffolding. The rule is that a page composes these: if something doesn't fit, it earns a variant there rather than a private copy in the page.
 
 ## Repo structure
 
@@ -273,44 +291,35 @@ The spine is built and walkable end to end: someone signs up, talks to the openi
 - The sitting interview: typed capture into the artifact fields, startable from the plan whenever suits.
 - The Guide and the Sealed Envelope, rendered from data rather than written by a model.
 - The completeness check, and the admin view of a record.
+- A front end: a visual language, a component vocabulary, a header, a home worth landing on, and scaffolding around both conversations.
 
-**Not built: most of what a person sees.** One shared component file and 26 lines of CSS, with Tailwind utilities written inline page by page. There is no typography scale, no spacing rhythm, no component vocabulary. The product logic runs several layers deep; the surface is a prototype, and looks it. That is what the next few branches are for.
+**Not built: the person's own view of their Guide.** Only an admin can read the document the whole product exists to make. That is the next branch, and it is the wrong way round until it lands.
 
-### The problem the front end has to solve
+### The problem the front end had to solve
 
 Shown to the client, the feedback was not about the capture or the documents — it was about being dropped into a chat box.
 
-An open text field asks the person to know what's worth saying. A form of the old kind asked a question and gave you somewhere to put the answer; a conversation asks you to produce the material yourself, from your own head, about your own death. That is a harder thing to do, and the interface currently offers almost no help with it.
+An open text field asks the person to know what's worth saying. A form of the old kind asked a question and gave you somewhere to put the answer; a conversation asks you to produce the material yourself, from your own head, about your own death. That is a harder thing to do, and the interface offered almost no help with it.
 
-So the work is not decoration. It is **scaffolding**: showing what ground is being covered, what's been got so far, what's still to come, and what sort of thing a useful answer looks like — enough structure that someone can lean on it, without collapsing back into a form and losing what the conversation is for.
+So the work was not decoration. It was **scaffolding**: showing what ground is being covered, what's been got so far, what's still to come, and what sort of thing a useful answer looks like — enough structure that someone can lean on it, without collapsing back into a form and losing what the conversation is for.
+
+What that turned into is described under [Getting around](#getting-around-and-the-admin-view) and [The sittings](#the-sittings): plain-language **topics** per sitting, held in [`session-template.yaml`](data/session-template.yaml) and checked at build time, shown before a conversation starts and ticked off as it runs.
 
 ## What's next, in order
 
-Each of these is a branch. The order is deliberate: the visual language comes first so the rest is built in it rather than retrofitted.
+Each of these is a branch. The front end came first so the rest is built in its vocabulary rather than retrofitted; what follows is ordered the same way, cheapest-unlock first.
 
-### 1. The front end — a real home, signposting, and a visual language
-
-The largest piece, and the one the client would notice.
-
-- **A home worth landing on.** `/home` is currently a redirect that computes where you're up to and sends you there. It should be a place: the record, progress across the sittings, what's next, what's been captured, what's still unknown.
-- **Navigation.** Today the app is one linear corridor — after the opening conversation creates the plan, there is no way back to it. A header nav and a sense of place, so every page is reachable.
-- **Context before the conversation**, not after. What this is, how long it takes, who it's for, what happens to what you say.
-- **Scaffolding during the interview** — cards or similar showing the areas being covered, so the empty box stops being empty. This is the client's specific request.
-- **A component vocabulary** extracted from what's already there, so the next feature doesn't add a fourteenth variation on a card.
-
-**Open question to settle in this branch.** The opening conversation currently locks once it has enough to build a plan. Reaching it again means deciding what happens when someone adds to it: does the plan rebuild, and what becomes of sittings already done against the old one? Worth answering deliberately rather than by accident.
-
-### 2. The Guide, readable by the person it's about
+### 1. The Guide, readable by the person it's about
 
 Only admins can read the Guide today. The person whose record it is cannot see what they've said — in a product built on trust, about their own death, that is the wrong way round. It is also the most reassuring screen in the product, currently invisible to the people it's for.
 
 Ordered before the split screen on purpose: this is the same renderer, on its own page. Doing it first makes the next branch mostly wiring rather than a second implementation.
 
-### 3. The split-screen live artifact
+### 2. The split-screen live artifact
 
 Chat on one side, the document filling in on the other — named from the start as a centrepiece of the intended experience, and the clearest way to show someone that talking is producing something. The capture panel beside a sitting is a first sketch of it; this is the real thing, using the renderer from the branch above.
 
-### 4. Synthetic personas and seeding
+### 3. Synthetic personas and seeding
 
 Demos currently mean improvising answers live, or pasting a script, and paying for model calls to show what the product already knows how to do.
 
@@ -321,11 +330,11 @@ Two different needs, worth building as two things:
 
 No real personal data, ever — these are written by us.
 
-### 5. Gamification
+### 4. Gamification
 
 Its own piece of work rather than a note at the end of a list. The discovery brief asked for a large, intimidating task made to feel finite; what exists is a progress bar and minute estimates. Worth designing properly once there is a visual language to design in.
 
-### 6. Printing, and the styled PDF
+### 5. Printing, and the styled PDF
 
 The Markdown is there; the paper isn't. Low priority until the rest is real, and it overlaps almost entirely with the styled PDF, so the two are one branch. Deliberately last: styling the artifact before the app has a look means doing it twice.
 
@@ -346,7 +355,8 @@ Things that are true about the code today, recorded so they are chosen rather th
 | **Sittings cost more than they should** | A nine-message sitting took 25 model calls — about 2.8 a message, where the opening conversation averages one. Something in the turn loop is going round more often than it needs to. Not urgent, not understood yet, worth an hour with the logs. |
 | **Sonnet files less tidily than Opus** | Same script, same persona: a phone number went to an overflow note instead of onto the person, and a "don't ring him yet" landed in an entry's notes rather than the field for things not to do yet. Sonnet is the right call for now on cost. Judge any change with `scripts/e2e-sitting.mjs`, not by feel. |
 | **Admins can read every transcript** | Accepted, deliberately. It is the tool for tuning the interview, and the data is synthetic. It needs an answer before anyone's real life goes in, and not before. |
-| **The split into parts never happens** | The planner splits a sitting over 30 minutes into parts, but no sitting can reach 30 under the current rules, so that path is unreachable from real data. Built and tested; don't promise it in a demo. |
+| **The split into parts never happens** | The planner splits a sitting over 30 minutes into parts, but no sitting can reach 30 under the current rules, so that path is unreachable from real data. Built and tested; don't promise it in a demo. `reviseRemaining` declines to re-cut a plan containing one rather than guess at how the parts should be redrawn. |
+| **The visual language has had one pair of eyes on it** | Tokens, type scale and components are in place and consistent, but the palette and spacing are a first pass, checked at desktop and phone width in both colour schemes and no further. It is a foundation to react to, not a finished design. |
 
 ## Guardrails
 

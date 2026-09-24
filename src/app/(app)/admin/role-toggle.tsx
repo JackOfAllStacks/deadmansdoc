@@ -25,7 +25,7 @@ export function RoleToggle({
   }, {});
 
   if (isSelf) {
-    return <span className="text-sm text-foreground/50">That&apos;s you</span>;
+    return <span className="text-sm text-faint">That&apos;s you</span>;
   }
 
   // Granting admin is one click; taking it away asks first, because the
@@ -35,7 +35,7 @@ export function RoleToggle({
       <button
         type="button"
         onClick={() => setConfirming(true)}
-        className="rounded-md border border-foreground/20 px-3 py-1.5 text-sm hover:bg-foreground/5"
+        className="rounded-md border border-line px-3 py-1.5 text-sm hover:bg-soft"
       >
         Remove admin
       </button>
@@ -46,13 +46,13 @@ export function RoleToggle({
     <form action={action} className="flex flex-wrap items-center justify-end gap-2">
       <input type="hidden" name="userId" value={userId} />
       <input type="hidden" name="role" value={next} />
-      {next === "user" && <span className="text-sm text-foreground/60">Remove admin from {email}?</span>}
+      {next === "user" && <span className="text-sm text-muted">Remove admin from {email}?</span>}
       <button
         type="submit"
         disabled={pending}
         className={
           next === "admin"
-            ? "rounded-md border border-foreground/20 px-3 py-1.5 text-sm hover:bg-foreground/5 disabled:opacity-50"
+            ? "rounded-md border border-line px-3 py-1.5 text-sm hover:bg-soft disabled:opacity-50"
             : "rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
         }
       >
@@ -64,7 +64,7 @@ export function RoleToggle({
         </button>
       )}
       {state.error && (
-        <span role="alert" className="w-full text-right text-sm text-red-700 dark:text-red-300">
+        <span role="alert" className="w-full text-right text-sm text-danger">
           {state.error}
         </span>
       )}

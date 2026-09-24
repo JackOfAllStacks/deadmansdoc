@@ -1,22 +1,24 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { CapturedItem } from "@/lib/sitting/capture";
-import type { Coverage } from "@/lib/sitting/coverage";
+import { Composer, SpeakerPicker, Transcript } from "@/components/chat";
+import { TopicChecklist } from "@/components/topics";
+import { Badge, ButtonLink, Card, Note, Progress as ProgressBar } from "@/components/ui";
 import type { SittingEvent } from "@/lib/sitting/agent";
+import type { CapturedItem } from "@/lib/sitting/capture";
+import type { Coverage, TopicProgress } from "@/lib/sitting/coverage";
 import type { ChatMessage } from "@/lib/transcript";
 
 type Status = "idle" | "sending" | "finished" | "catching-up";
 type Progress = Pick<Coverage, "answered" | "gaps" | "total">;
 
-const KIND_LABEL: Record<CapturedItem["kind"], string> = {
-  field: "Recorded",
-  entity: "Added",
-  amount: "Sealed",
-  gap: "Not known",
-  note: "Noted",
+const KIND: Record<CapturedItem["kind"], { label: string; tone: "recorded" | "unknown" | "neutral" | "accent" }> = {
+  field: { label: "Recorded", tone: "recorded" },
+  entity: { label: "Added", tone: "recorded" },
+  amount: { label: "Sealed", tone: "accent" },
+  gap: { label: "Not known", tone: "unknown" },
+  note: { label: "Noted", tone: "neutral" },
 };
 
 export function SittingChat({
@@ -24,6 +26,7 @@ export function SittingChat({
   history,
   captured,
   coverage,
+  topics,
   speakers,
   maxLength,
   busy,
@@ -32,6 +35,7 @@ export function SittingChat({
   history: ChatMessage[];
   captured: CapturedItem[];
   coverage: Coverage;
+  topics: TopicProgress[];
   speakers: string[];
   maxLength: number;
   busy: boolean;
@@ -39,18 +43,14 @@ export function SittingChat({
   const [messages, setMessages] = useState<ChatMessage[]>(history);
   const [items, setItems] = useState<CapturedItem[]>(captured);
   const [progress, setProgress] = useState<Progress>(coverage);
+  const [areas, setAreas] = useState<TopicProgress[]>(topics);
   const [live, setLive] = useState("");
   const [draft, setDraft] = useState("");
   const [speaker, setSpeaker] = useState(speakers[0]);
   const [status, setStatus] = useState<Status>(busy ? "catching-up" : "idle");
   const [summary, setSummary] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const endRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
-  }, [messages, live, status]);
 
   // Opened while a reply was still being written -- which happens if someone
   // reloads or comes back on another tab. The turn finishes on the server
@@ -81,8 +81,7 @@ export function SittingChat({
     };
   }, [status, router]);
 
-  async function send(event?: FormEvent) {
-    event?.preventDefault();
+  async function send() {
     const text = draft.trim();
     if (!text || status !== "idle") return;
 
@@ -144,6 +143,7 @@ export function SittingChat({
             });
           } else if (e.type === "progress") {
             setProgress({ answered: e.answered, gaps: e.gaps, total: e.total });
+            setAreas(e.topics);
           } else if (e.type === "error") {
             outcome = "error";
             if (e.kept) setError(e.message);
@@ -173,84 +173,45 @@ export function SittingChat({
     }
   }
 
-  function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-      event.preventDefault();
-      void send();
-    }
-  }
+  const waiting = status === "sending" || status === "catching-up";
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
-      <div className="flex flex-col gap-6">
-        <ol aria-live="polite" aria-label="Conversation" className="flex flex-col gap-4">
-          <Bubble message={{ from: "agent", text: greeting }} />
-          {messages.map((m, i) => (
-            <Bubble key={i} message={m} />
-          ))}
-          {(status === "sending" || status === "catching-up") && (
-            <Bubble message={{ from: "agent", text: live }} pending={!live} />
-          )}
-        </ol>
-        <div ref={endRef} />
+      {/* On a phone the areas come first: they're what stops the box being a
+          blank one. The conversation scrolls itself into view after every turn,
+          so being second costs nothing once it's under way. */}
+      <div className="order-2 flex flex-col gap-6 lg:order-1">
+        <Transcript greeting={greeting} messages={messages} live={live} pending={waiting} />
 
         {status === "finished" ? (
-          <div className="flex flex-col items-start gap-3 rounded-md border border-foreground/15 p-4">
-            <p className="font-medium">That&apos;s this sitting done.</p>
-            {summary && <p className="text-sm text-foreground/70">{summary}</p>}
-            <Link href="/plan" className="rounded-md bg-foreground px-4 py-2.5 font-medium text-background">
-              Back to your plan
-            </Link>
-          </div>
+          <Card tone="accent" className="flex flex-col items-start gap-3">
+            <h2 className="text-lg">That&apos;s this sitting done</h2>
+            {summary && <p className="measure text-sm text-muted">{summary}</p>}
+            <ButtonLink href="/plan">Back to your plan</ButtonLink>
+          </Card>
         ) : (
-          <form onSubmit={send} className="flex flex-col gap-3">
-            {speakers.length > 1 && (
-              <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                <legend className="sr-only">Who is typing?</legend>
-                <span className="text-foreground/60">Who&apos;s typing:</span>
-                {speakers.map((name) => (
-                  <label key={name} className="flex items-center gap-1.5">
-                    <input type="radio" name="speaker" checked={speaker === name} onChange={() => setSpeaker(name)} />
-                    {name}
-                  </label>
-                ))}
-              </fieldset>
-            )}
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={onKeyDown}
-              maxLength={maxLength}
-              rows={3}
-              placeholder="Type your answer…"
-              aria-label="Your answer"
-              className="resize-y rounded-md border border-foreground/20 bg-background px-3 py-2 text-base outline-none focus:border-foreground/60 focus:ring-2 focus:ring-foreground/10"
-            />
-            {error && (
-              <p role="alert" className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-                {error}
-              </p>
-            )}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Link href="/plan" className="text-sm text-foreground/60 underline">
+          <Composer
+            draft={draft}
+            onDraft={setDraft}
+            onSend={send}
+            maxLength={maxLength}
+            busy={status !== "idle"}
+            error={error}
+            footer={
+              <ButtonLink href="/plan" tone="quiet">
                 Stop for now
-              </Link>
-              <div className="flex items-center gap-3">
-                <span className="hidden text-sm text-foreground/50 sm:inline">Enter to send</span>
-                <button
-                  type="submit"
-                  disabled={status !== "idle" || !draft.trim()}
-                  className="rounded-md bg-foreground px-4 py-2.5 font-medium text-background transition-opacity disabled:opacity-50"
-                >
-                  {status === "idle" ? "Send" : "Waiting…"}
-                </button>
-              </div>
-            </div>
-          </form>
+              </ButtonLink>
+            }
+          >
+            <SpeakerPicker speakers={speakers} speaker={speaker} onChange={setSpeaker} />
+          </Composer>
         )}
       </div>
 
-      <CapturePanel items={items} progress={progress} />
+      <aside className="order-1 flex h-fit flex-col gap-4 lg:order-2 lg:sticky lg:top-6">
+        <TopicChecklist topics={areas} />
+        <CapturePanel items={items} progress={progress} />
+      </aside>
     </div>
   );
 }
@@ -258,59 +219,29 @@ export function SittingChat({
 function CapturePanel({ items, progress }: { items: CapturedItem[]; progress: Progress }) {
   const done = progress.answered + progress.gaps;
   return (
-    <aside className="flex h-fit flex-col gap-3 rounded-md border border-foreground/15 p-4 lg:sticky lg:top-6">
+    <Card tone="plain" className="flex flex-col gap-3">
       <div className="flex flex-col gap-2">
-        <h2 className="font-medium">What we&apos;ve recorded</h2>
-        <p className="text-sm text-foreground/60">
-          {progress.answered} answered
+        <h2 className="text-base">What we&apos;ve written down</h2>
+        <p className="text-sm text-muted">
+          {progress.answered} recorded
           {progress.gaps > 0 && `, ${progress.gaps} to find out`} of {progress.total}
         </p>
-        <div
-          className="h-1.5 overflow-hidden rounded-full bg-foreground/10"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={progress.total}
-          aria-valuenow={done}
-          aria-label="Recorded so far"
-        >
-          <div
-            className="h-full bg-foreground transition-[width] duration-500"
-            style={{ width: `${progress.total ? (done / progress.total) * 100 : 0}%` }}
-          />
-        </div>
+        <ProgressBar value={done} max={progress.total} label="Recorded so far" tone="recorded" />
       </div>
 
       {items.length ? (
         <ol className="flex flex-col gap-2 text-sm">
           {items.map((item, i) => (
-            <li key={i} className="flex flex-col gap-0.5 border-t border-foreground/10 pt-2">
-              <span className="text-xs uppercase tracking-wide text-foreground/40">{KIND_LABEL[item.kind]}</span>
-              <span>{item.label}</span>
-              {item.detail && <span className="text-foreground/60">{item.detail}</span>}
+            <li key={i} className="flex flex-col items-start gap-1 border-t border-line pt-2">
+              <Badge tone={KIND[item.kind].tone}>{KIND[item.kind].label}</Badge>
+              <span className="leading-snug">{item.label}</span>
+              {item.detail && <span className="text-muted">{item.detail}</span>}
             </li>
           ))}
         </ol>
       ) : (
-        <p className="text-sm text-foreground/60">
-          Things will appear here as you talk. Nothing is written down until you say it.
-        </p>
+        <Note>Things appear here as you talk. Nothing is written down until you say it.</Note>
       )}
-    </aside>
-  );
-}
-
-function Bubble({ message, pending = false }: { message: ChatMessage; pending?: boolean }) {
-  const isAgent = message.from === "agent";
-  return (
-    <li className={`flex flex-col gap-1 ${isAgent ? "items-start" : "items-end"}`}>
-      {!isAgent && message.name && <span className="text-xs text-foreground/50">{message.name}</span>}
-      <div
-        className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-4 py-3 leading-relaxed ${
-          isAgent ? "bg-foreground/5" : "bg-foreground text-background"
-        }`}
-      >
-        {pending ? <span className="text-foreground/50">…</span> : message.text}
-      </div>
-    </li>
+    </Card>
   );
 }
