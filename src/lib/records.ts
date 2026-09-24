@@ -11,6 +11,7 @@ export type Relationship = "self" | "parent" | "other";
 
 export interface RecordRow {
   id: string;
+  owner_user_id: string;
   subject_name: string;
   subject_relationship: Relationship;
   intake: Signals;
@@ -20,7 +21,7 @@ export interface RecordRow {
 
 export async function getRecordForUser(userId: string): Promise<RecordRow | null> {
   const rows = await db()`
-    select id, subject_name, subject_relationship, intake, intake_completed_at, present
+    select id, owner_user_id, subject_name, subject_relationship, intake, intake_completed_at, present
     from records
     where owner_user_id = ${userId}
     order by created_at

@@ -70,6 +70,7 @@ import type { IntakeEvent } from "./agent";
 
 const record: RecordRow = {
   id: "rec-1",
+  owner_user_id: "user-1",
   subject_name: "Margaret",
   subject_relationship: "parent",
   intake: { family_count: 2 },

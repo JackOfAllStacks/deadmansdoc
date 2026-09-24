@@ -8,6 +8,7 @@ import {
   type MessageRow,
   type RecordRow,
 } from "@/lib/records";
+import { logFailure } from "@/lib/errors";
 import { contextBlock, SYSTEM_PROMPT, WRAP_UP } from "./prompt";
 import { applySignalUpdate, finishSchema, signalUpdateSchema, toToolSchema, type Signals } from "./signals";
 
@@ -124,6 +125,7 @@ export async function runIntakeTurn(
   text: string,
   send: (event: IntakeEvent) => void,
 ): Promise<void> {
+  const startedAt = Date.now();
   // Showing the reply must never be what breaks saving it.
   const emit = (event: IntakeEvent) => {
     try {
@@ -239,7 +241,14 @@ export async function runIntakeTurn(
       if (shownText && !failed) break;
     }
   } catch (err) {
-    console.error("intake: turn failed", err);
+    await logFailure({
+      context: "intake:turn",
+      error: err,
+      recordId: record.id,
+      userId: record.owner_user_id,
+      model: MODEL,
+      startedAt,
+    });
     // If the reply was already saved it stays on screen and the conversation
     // can carry on; if not, nothing from this message was kept.
     if (!userSaved) emit({ type: "reset" });

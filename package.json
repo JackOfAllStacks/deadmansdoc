@@ -12,7 +12,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "migrate": "node --env-file=.env.local db/migrate.mjs"
+    "migrate": "node --env-file=.env.local db/migrate.mjs",
+    "make-admin": "node --env-file=.env.local scripts/make-admin.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.126.0",

@@ -120,6 +120,10 @@ Auth is [Better Auth](https://www.better-auth.com), configured in [`src/lib/auth
 
 Regenerate the auth tables with `npx auth@<better-auth version> generate --config src/lib/auth.ts` if the auth config gains plugins or fields, and add the result as a new migration.
 
+**Deleting an account** removes it and everything hanging off it — the record, the conversation, the plan — immediately and for good. With no email provider there's nothing to confirm through, so the current password is the check. The only thing left behind is any row in `error_logs`, whose references null out rather than cascading; nothing anyone typed is stored there.
+
+**Admins** are a `role` on the user. The field is `input: false` in the auth config, so it can't be set through sign-up or any other request — only with `npm run make-admin -- someone@example.com` (add `--remove` to take it away). Admin pages return **404** rather than redirecting, so they don't announce themselves to accounts that shouldn't see them.
+
 ### Deploying
 
 Netlify builds on every push to `main` ([`netlify.toml`](netlify.toml)), and builds a deploy preview for each pull request. The running site needs these environment variables:
@@ -154,6 +158,18 @@ A new account goes `/start` → `/start/intake` → `/plan/new` → `/plan`; `/h
 
 **The plan** ([`src/lib/plan/build-plan.ts`](src/lib/plan/build-plan.ts)) is worked out in code, not by the model. [`data/session-template.yaml`](data/session-template.yaml) holds the sittings, their base minutes and the rules that adjust them; tune it there rather than in code. Order follows whatever was raised unprompted, then the template's own order. Sittings over 30 minutes split into parts. The build fails unless every v1 field is covered by exactly one sitting.
 
+## Getting around, and the admin view
+
+Every signed-in page shares a header with an account menu: **Your account**, **Admin** for admins, and **Sign out**.
+
+**[`/account`](src/app/(app)/account)** shows who you're signed in as, lets you change the name the conversation calls you, summarises your record, and deletes the account.
+
+**[`/admin`](src/app/(app)/admin)** is for whoever is tuning the thing. Today it shows totals across every account and the failures from [`error_logs`](db/migrations/004_admin_errors.sql) — what kind, which HTTP status, which model served it, and how long it took before giving up. Netlify's function logs are per-deploy and awkward to search after the fact; this outlives the deploy and can be queried.
+
+Failures are recorded by `logFailure()` in [`src/lib/errors.ts`](src/lib/errors.ts), which classifies them coarsely (`rate_limit`, `overloaded`, `auth`, `bad_request`, `server_error`, `network_error`, `app_error`) and **never throws** — logging a handled error must not create an unhandled one. A failure with no HTTP status never reached the provider at all, which is a different problem from one it answered and refused.
+
+Records, the drafted Guide and the completeness check are the next things to land here, carried over from the fork described below.
+
 ## Repo structure
 
 [`data/`](data) holds the product's core data assets — the artifact field definitions and the question bank that fills them. Everything else reads from these.
@@ -172,6 +188,23 @@ Project material lives under [`docs/`](docs) — this repo is the official recor
 - **`Potential Use Case's for Demonstration.md`** — early feature and demo ideas.
 - Story map and logic-branching sketches — **working drafts, not specifications**. Useful for direction only.
 
+## The fork
+
+[`spaceshanti/deadmansdoc1`](https://github.com/spaceshanti/deadmansdoc1) is a fork of this repo that went a different way on purpose: a plain HTML/JS proof of concept, used to tune the interview prompt and watch what the model actually captures. This repo stays the real one — TypeScript, auth, migrations, deploy pipeline — and ideas travel from the fork to here.
+
+What's being carried across, translated rather than copied:
+
+| From the fork | Why |
+|---|---|
+| `family_action` on every fact | What a non-expert has to *actually do* about it. "Nothing to do, it's on autopay" is a valid answer and worth recording. |
+| `confidence` — stated / uncertain / inferred | A document family will rely on should say how sure it is. |
+| Priority on gaps | This schema already treats an unanswered field with `who_would_know` as content, not a blank. The fork's contribution is ranking them. |
+| Free-form overflow alongside the fixed fields | The fields make the printed artifact predictable; the overflow catches what they'd otherwise drop. |
+| `error_logs` | Landed, see above. |
+| The drafted Guide, and the completeness check | The check reads the transcript as well as the saved data, because "no, we don't have any pets" only ever exists in what was said. |
+
+Its question bank is the same 167 these 63 were narrowed from, so nothing is owed there. Its credentials questions — where passwords and recovery codes are kept — stay out as written: the answer is the **Pointer** disclosure level, recording where something is without ever collecting the secret itself.
+
 ## Roadmap
 
 **Done**
@@ -182,10 +215,12 @@ Project material lives under [`docs/`](docs) — this repo is the official recor
 - Next.js app, content loader validating `data/`, database client and health check, deployed to Netlify.
 - Accounts: sign-up with an access code, sign-in, sign-out, and protected pages.
 - The opening conversation and the plan of sittings.
+- Account menu, account page with deletion, admin role, and the failure log.
 
 **Next**
 
-- The conversation for each sitting: the real interview, filling the artifact fields.
+- The conversation for each sitting: the real interview, filling the artifact fields, and starting one from the plan whenever suits rather than on its suggested date.
+- The admin view of a record: what was captured, the drafted Guide, and the completeness check.
 - Printing the Guide and the Sealed Envelope.
 
 **Later**

@@ -21,6 +21,17 @@ export const auth = betterAuth({
     minPasswordLength: 10,
     autoSignIn: true,
   },
+  user: {
+    additionalFields: {
+      // input: false keeps this out of the sign-up body. Without it, anyone
+      // could make themselves an admin by adding a field to the request.
+      role: { type: "string", required: false, input: false, defaultValue: "user" },
+    },
+    // Deleting is permanent and immediate: everything hangs off records, which
+    // cascades from "user". There's no email provider to confirm through, so
+    // the current password is the confirmation.
+    deleteUser: { enabled: true },
+  },
   // In-memory counters reset on every serverless cold start.
   rateLimit: { storage: "database" },
   hooks: {
