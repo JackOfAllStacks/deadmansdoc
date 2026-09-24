@@ -23,6 +23,30 @@ export async function listAccounts(): Promise<Account[]> {
   return rows as Account[];
 }
 
+export interface RecordSummary {
+  id: string;
+  subject_name: string;
+  owner_email: string;
+  created_at: string;
+  intake_done: boolean;
+  sittings: number;
+  sittings_done: number;
+  values: number;
+}
+
+export async function listRecords(): Promise<RecordSummary[]> {
+  const rows = await db()`
+    select r.id, r.subject_name, u.email as owner_email, r.created_at,
+           r.intake_completed_at is not null as intake_done,
+           (select count(*) from sittings s where s.record_id = r.id)::int as sittings,
+           (select count(*) from sittings s where s.record_id = r.id and s.status = 'done')::int as sittings_done,
+           (select count(*) from field_values f where f.record_id = r.id)::int as values
+    from records r
+    join "user" u on u.id = r.owner_user_id
+    order by r.created_at desc`;
+  return rows as RecordSummary[];
+}
+
 export type RoleChange = { ok: true; email: string; role: Role } | { ok: false; reason: string };
 
 /**
