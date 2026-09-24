@@ -68,7 +68,7 @@ The interview exists to fill the fields of that template. Locking the template d
 | Accounts | One account per record; no second participant login |
 | Interview | Free-form AI conversation; question bank as coverage checklist |
 | Session plan | Fixed template of sittings, filtered per user for time and order |
-| Opening conversation | Claude Opus 5, streamed, with tools that record a rough picture |
+| Model | Claude Sonnet 5 for both conversations, streamed, set in one place ([`src/lib/model.ts`](src/lib/model.ts)) |
 | Artifact structure | Lifted from the client's draft Family Guide |
 | Artifact output | Markdown or Word for MVP — no designed PDF yet |
 | Asymmetric disclosure | In scope for the demo; **demonstrated, not genuinely secure**. Two printed documents, split per field |
@@ -99,12 +99,13 @@ npm run build    # also validates data/ — see below
 npm run lint
 npm test         # unit tests (vitest)
 scripts/e2e-auth.sh           # auth checks against a running server
-node scripts/e2e-intake.mjs   # full browser journey (spends API credit)
+node scripts/e2e-intake.mjs   # opening conversation and plan (spends API credit)
+node scripts/e2e-sitting.mjs  # the whole journey, including a sitting (spends more)
 ```
 
 `GET /api/health` reports whether the database is reachable and which content version is loaded.
 
-`scripts/e2e-intake.mjs` drives a real browser through sign-up, the opening conversation and the plan, using a synthetic persona. It calls the real Claude API (about US$0.10–0.15 a run) and needs `npx playwright install chromium --only-shell` once. Both scripts create `…@example.test` accounts; delete them afterwards.
+`scripts/e2e-intake.mjs` drives a real browser through sign-up, the opening conversation and the plan, using a synthetic persona. It calls the real Claude API and needs `npx playwright install chromium --only-shell` once. Both scripts create `…@example.test` accounts; delete them afterwards.
 
 `scripts/e2e-auth.sh` expects a server on `http://localhost:3000` (`npm run build && npm start`, or `netlify serve --offline --port 3000`) and the dev database. It creates `…@example.test` accounts; delete them afterwards. It pauses between groups of requests to stay under the sign-in rate limit, so it takes about a minute.
 
@@ -147,9 +148,9 @@ A new account goes `/start` → `/start/intake` → `/plan/new` → `/plan`; `/h
 
 **Starting** ([`src/app/(app)/start`](src/app/(app)/start)) records who the handover is for, who's in the room, and consent, including an acknowledgement that this isn't a will.
 
-**The conversation** ([`src/lib/intake`](src/lib/intake)) is Claude Opus 5, streamed to the browser as newline-delimited JSON. It has two tools: `record_intake` stores a rough picture (counts, yes/no, and which topics were raised unprompted), and `finish_intake` ends it.
+**The conversation** ([`src/lib/intake`](src/lib/intake)) is streamed to the browser as newline-delimited JSON. It has two tools: `record_intake` stores a rough picture (counts, yes/no, and which topics were raised unprompted), and `finish_intake` ends it.
 
-- The model writes its reply **before** calling a tool, so a turn is normally one API call. About US$0.11 for a whole conversation.
+- The model writes its reply **before** calling a tool, so a turn is normally one API call.
 - The system prompt is fixed for everyone so it caches; per-person details go in a context block at the start of the conversation, fixed for its lifetime.
 - Limits: 12 exchanges (after which the server finishes the conversation regardless), 2,000 characters a message, one reply at a time per record, and three model calls a turn.
 - Tool input is validated against the zod schema in [`signals.ts`](src/lib/intake/signals.ts), which also generates the tool's JSON Schema. A failure goes back to the model as a tool error rather than being stored.
@@ -157,6 +158,37 @@ A new account goes `/start` → `/start/intake` → `/plan/new` → `/plan`; `/h
 - Every model call logs its token usage as `intake_model_call`.
 
 **The plan** ([`src/lib/plan/build-plan.ts`](src/lib/plan/build-plan.ts)) is worked out in code, not by the model. [`data/session-template.yaml`](data/session-template.yaml) holds the sittings, their base minutes and the rules that adjust them; tune it there rather than in code. Order follows whatever was raised unprompted, then the template's own order. Sittings over 30 minutes split into parts. The build fails unless every v1 field is covered by exactly one sitting.
+
+## The sittings
+
+A sitting is one conversation about one area, started from `/plan` whenever suits. **The dates are a suggestion, not a gate** — any planned sitting can be started at any time, and one can be left part-way and picked up later. Only one runs at a time.
+
+**What the model can record** ([`schema.ts`](src/lib/sitting/schema.ts)) is generated from [`artifact-fields.yaml`](data/artifact-fields.yaml), not written out by hand. Adding a field or an entity shape to that file changes the tools with no code change:
+
+| Tool | For |
+|---|---|
+| `save_field` | One answer against one field — prose, a list, an ordered sequence, or a pointer at people |
+| `save_entity` | A person, account, bill, debt, income stream or routing rule. The field id says which shape it is, so only that shape's keys are accepted |
+| `save_amount` | A figure against something already recorded |
+| `flag_gap` | An "I don't know", with who would know and how much it matters |
+| `save_note` | Something worth keeping that no field covers |
+| `finish_sitting` | Ends it, with a summary |
+
+Three rules do most of the work:
+
+- **Figures are sealed by construction.** An entity-typed field that is sealed — balances, expected amounts — is filled only by `save_amount`, against an entry that already exists. A number cannot be written into the open list beside it, whatever the model does.
+- **Entities are upserted** on `(record, type, lower(label))`, so a person mentioned in five turns is one row. Repeated mentions are normal in conversation; without this they pile up.
+- **Anything pointing at a person must name someone already recorded.** An unknown name comes back as a tool error listing who is known, which keeps the key-people list the spine of the document rather than a pile of half-known names.
+
+Every value carries **`family_action`** (what someone who has never touched this will have to do — "nothing, it runs on its own" counts), **`confidence`** (stated / uncertain / inferred), and a disclosure, defaulting to the field's own.
+
+**The question bank is a checklist, not a script** ([`coverage.ts`](src/lib/sitting/coverage.ts)). Each turn the server works out which questions still fill something this sitting covers and hasn't settled, ranked by priority then irreplaceability, and passes a few to the model, which writes its own questions. A field counts as settled once it holds an answer **or a recorded gap**, so nobody is asked twice about something they've already said they don't know. `question_asks` is written by the server from what the tools did — the model is never asked to keep track.
+
+**Caching.** The system prompt is identical for every sitting and every person. What changes — who this is, what's recorded, what's left, how long is left — goes in a system message **after** the history, so the cached prefix stays valid.
+
+**Stopping.** At four minutes remaining the model is told to draw to a close; if someone says they're done, it finishes in that turn without asking again. A turn cap ends the sitting server-side regardless. Leaving part-way keeps everything — a sitting stays open until it's finished.
+
+**A reply outlives the browser.** If someone closes the tab or reloads mid-reply, the turn still finishes and saves server-side. A page opened while that's happening asks [`/api/sitting/state`](src/app/api/sitting/state/route.ts) and waits, rather than sending into a locked sitting.
 
 ## Getting around, and the admin view
 
@@ -194,14 +226,14 @@ Project material lives under [`docs/`](docs) — this repo is the official recor
 
 What's being carried across, translated rather than copied:
 
-| From the fork | Why |
-|---|---|
-| `family_action` on every fact | What a non-expert has to *actually do* about it. "Nothing to do, it's on autopay" is a valid answer and worth recording. |
-| `confidence` — stated / uncertain / inferred | A document family will rely on should say how sure it is. |
-| Priority on gaps | This schema already treats an unanswered field with `who_would_know` as content, not a blank. The fork's contribution is ranking them. |
-| Free-form overflow alongside the fixed fields | The fields make the printed artifact predictable; the overflow catches what they'd otherwise drop. |
-| `error_logs` | Landed, see above. |
-| The drafted Guide, and the completeness check | The check reads the transcript as well as the saved data, because "no, we don't have any pets" only ever exists in what was said. |
+| From the fork | Why | Status |
+|---|---|---|
+| `family_action` on every fact | What a non-expert has to *actually do* about it. "Nothing to do, it's on autopay" is a valid answer and worth recording. | Landed |
+| `confidence` — stated / uncertain / inferred | A document family will rely on should say how sure it is. | Landed |
+| Priority on gaps | This schema already treats an unanswered field with `who_would_know` as content, not a blank. The fork's contribution is ranking them. | Landed |
+| Free-form overflow alongside the fixed fields | The fields make the printed artifact predictable; the overflow catches what they'd otherwise drop. | Landed, as `save_note` |
+| `error_logs` | Queryable failures that outlive the deploy. | Landed |
+| The drafted Guide, and the completeness check | The check reads the transcript as well as the saved data, because "no, we don't have any pets" only ever exists in what was said. | Next |
 
 Its question bank is the same 167 these 63 were narrowed from, so nothing is owed there. Its credentials questions — where passwords and recovery codes are kept — stay out as written: the answer is the **Pointer** disclosure level, recording where something is without ever collecting the secret itself.
 
@@ -216,10 +248,10 @@ Its question bank is the same 167 these 63 were narrowed from, so nothing is owe
 - Accounts: sign-up with an access code, sign-in, sign-out, and protected pages.
 - The opening conversation and the plan of sittings.
 - Account menu, account page with deletion, admin role, and the failure log.
+- The conversation for each sitting: the real interview, filling the artifact fields, started from the plan whenever suits.
 
 **Next**
 
-- The conversation for each sitting: the real interview, filling the artifact fields, and starting one from the plan whenever suits rather than on its suggested date.
 - The admin view of a record: what was captured, the drafted Guide, and the completeness check.
 - Printing the Guide and the Sealed Envelope.
 

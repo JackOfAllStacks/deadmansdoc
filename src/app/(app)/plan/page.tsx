@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { sessionTemplate } from "@/lib/content";
 import { addDays, formatMinutes, totalMinutes } from "@/lib/plan/build-plan";
@@ -5,6 +6,7 @@ import { getRecordForUser, listSittings } from "@/lib/records";
 import { requireSession } from "@/lib/session";
 import { formatDay, todayInMelbourne } from "@/lib/today";
 import { MoveSitting } from "./move-sitting";
+import { StartSitting } from "./start-sitting";
 
 export const metadata = { title: "Your plan · The Handover" };
 
@@ -54,18 +56,29 @@ export default async function PlanPage() {
             </div>
             <p className="text-sm text-foreground/70">{summaries.get(s.sitting_key)}</p>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="text-sm">{formatDay(s.scheduled_for)}</span>
+              <span className="text-sm text-foreground/70">
+                {s.status === "done" ? "Done" : `Suggested for ${formatDay(s.scheduled_for)}`}
+              </span>
               {s.status === "planned" && (
                 <MoveSitting sittingId={s.id} date={s.scheduled_for} min={today} max={addDays(today, 365)} />
               )}
             </div>
+            {s.status === "planned" && <StartSitting sittingId={s.id} title={s.title} />}
+            {s.status === "in_progress" && (
+              <Link
+                href="/sitting"
+                className="self-start rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background"
+              >
+                Carry on
+              </Link>
+            )}
           </li>
         ))}
       </ol>
 
       <p className="rounded-md bg-foreground/5 p-4 text-sm text-foreground/80">
-        The conversations for each sitting are the next part being built. Your plan is saved, and
-        you&apos;ll be able to start from here.
+        The dates are a suggestion, not a deadline — start a sitting whenever it suits, and stop
+        part-way whenever you need to. Nothing is lost by stopping.
       </p>
     </main>
   );
