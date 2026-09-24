@@ -1,5 +1,6 @@
 import { fieldsById } from "@/lib/content";
 import { db } from "@/lib/db";
+import { formatEntityText, formatFieldText } from "@/lib/sitting/format";
 import type { AmountCapture, EntityCapture, FieldCapture, KnownEntity } from "@/lib/sitting/validate";
 
 // Writing down what a sitting captured.
@@ -145,6 +146,10 @@ export interface CapturedItem {
   kind: "field" | "entity" | "amount" | "gap" | "note";
   label: string;
   detail: string | null;
+  /** Which document field this belongs under; null for a free-form note. */
+  fieldId: string | null;
+  /** The substantive content, formatted for display. Never set for a sealed amount. */
+  text: string | null;
 }
 
 // What this sitting has written down, for the panel beside the conversation
@@ -162,18 +167,28 @@ export async function capturedIn(sittingId: string): Promise<CapturedItem[]> {
       coalesce(ei.label, fv.field_id)                 as label,
       coalesce(fv.who_would_know, fv.family_action)   as detail,
       fv.field_id                                     as field_id,
+      fv.value                                        as value,
+      ei.data                                         as entity_data,
       m.position                                      as position
     from field_values fv
     join messages m on m.id = fv.source_message_id
     left join entity_instances ei on ei.id = fv.entity_instance_id
     where m.sitting_id = ${sittingId}
     union all
-    select 'note', n.label, n.family_action, null, m.position
+    select 'note', n.label, n.family_action, null, to_jsonb(n.value), null, m.position
     from overflow_notes n
     join messages m on m.id = n.source_message_id
     where m.sitting_id = ${sittingId}
     order by position`;
-  return (rows as (CapturedItem & { field_id: string | null })[]).map((r) => ({
+  type Row = {
+    kind: CapturedItem["kind"];
+    label: string;
+    detail: string | null;
+    field_id: string | null;
+    value: unknown;
+    entity_data: Record<string, string> | null;
+  };
+  return (rows as Row[]).map((r) => ({
     kind: r.kind,
     // Entities carry their own name; everything else is shown by what the
     // field is called, not its id.
@@ -181,6 +196,17 @@ export async function capturedIn(sittingId: string): Promise<CapturedItem[]> {
       ? (fieldsById.get(r.field_id)?.label ?? r.label)
       : r.label,
     detail: r.detail,
+    fieldId: r.field_id,
+    text:
+      r.kind === "amount"
+        ? null
+        : r.kind === "entity"
+          ? formatEntityText(r.entity_data)
+          : r.kind === "note"
+            ? formatFieldText(r.value)
+            : r.kind === "field"
+              ? formatFieldText(r.value)
+              : null,
   }));
 }
 

@@ -3,26 +3,39 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { CapturedItem } from "@/lib/sitting/capture";
 import type { Coverage } from "@/lib/sitting/coverage";
+import type { DocumentEntry, DocumentSectionView } from "@/lib/sitting/document";
 import type { SittingEvent } from "@/lib/sitting/agent";
 import type { ChatMessage } from "@/lib/transcript";
 
 type Status = "idle" | "sending" | "finished" | "catching-up";
 type Progress = Pick<Coverage, "answered" | "gaps" | "total">;
 
-const KIND_LABEL: Record<CapturedItem["kind"], string> = {
-  field: "Recorded",
-  entity: "Added",
-  amount: "Sealed",
-  gap: "Not known",
-  note: "Noted",
-};
+// Folds a "saved" event into the outline: a field already holding an entry
+// with this label gets updated in place (the same person or thing mentioned
+// again), anything else is a new entry, appended where it belongs.
+function withSaved(outline: DocumentSectionView[], event: Extract<SittingEvent, { type: "saved" }>): DocumentSectionView[] {
+  if (!event.fieldId) return outline;
+  const entry: DocumentEntry = { label: event.kind === "entity" ? event.label : "", text: event.text ?? event.detail };
+  return outline.map((section) => ({
+    ...section,
+    groups: section.groups.map((group) => ({
+      ...group,
+      fields: group.fields.map((field) => {
+        if (field.id !== event.fieldId) return field;
+        const at = field.entries.findIndex((e) => e.label === entry.label);
+        const entries = at === -1 ? [...field.entries, entry] : field.entries.map((e, i) => (i === at ? entry : e));
+        return { ...field, entries };
+      }),
+    })),
+  }));
+}
 
 export function SittingChat({
   greeting,
   history,
-  captured,
+  outline,
+  notes,
   coverage,
   speakers,
   maxLength,
@@ -30,14 +43,16 @@ export function SittingChat({
 }: {
   greeting: string;
   history: ChatMessage[];
-  captured: CapturedItem[];
+  outline: DocumentSectionView[];
+  notes: DocumentEntry[];
   coverage: Coverage;
   speakers: string[];
   maxLength: number;
   busy: boolean;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(history);
-  const [items, setItems] = useState<CapturedItem[]>(captured);
+  const [doc, setDoc] = useState<DocumentSectionView[]>(outline);
+  const [extraNotes, setExtraNotes] = useState<DocumentEntry[]>(notes);
   const [progress, setProgress] = useState<Progress>(coverage);
   const [live, setLive] = useState("");
   const [draft, setDraft] = useState("");
@@ -134,14 +149,15 @@ export function SittingChat({
           } else if (e.type === "saved") {
             // The same entry gets added to more than once as details come out,
             // and each one is an update rather than another row.
-            setItems((list) => {
-              const item = { kind: e.kind, label: e.label, detail: e.detail };
-              const at = list.findIndex((x) => x.kind === item.kind && x.label === item.label);
-              if (at === -1) return [...list, item];
-              const next = [...list];
-              next[at] = { ...item, detail: item.detail ?? next[at].detail };
-              return next;
-            });
+            if (e.fieldId) {
+              setDoc((current) => withSaved(current, e));
+            } else {
+              const entry: DocumentEntry = { label: e.label, text: e.text ?? e.detail };
+              setExtraNotes((list) => {
+                const at = list.findIndex((n) => n.label === entry.label);
+                return at === -1 ? [...list, entry] : list.map((n, i) => (i === at ? entry : n));
+              });
+            }
           } else if (e.type === "progress") {
             setProgress({ answered: e.answered, gaps: e.gaps, total: e.total });
           } else if (e.type === "error") {
@@ -250,17 +266,29 @@ export function SittingChat({
         )}
       </div>
 
-      <CapturePanel items={items} progress={progress} />
+      <DocumentPanel outline={doc} notes={extraNotes} progress={progress} />
     </div>
   );
 }
 
-function CapturePanel({ items, progress }: { items: CapturedItem[]; progress: Progress }) {
+// The document itself, unfolding as the conversation fills it in. Every field
+// this sitting can fill is shown from the start, empty, under the same
+// headers the finished Guide will use -- so what's missing is as visible as
+// what's there.
+function DocumentPanel({
+  outline,
+  notes,
+  progress,
+}: {
+  outline: DocumentSectionView[];
+  notes: DocumentEntry[];
+  progress: Progress;
+}) {
   const done = progress.answered + progress.gaps;
   return (
-    <aside className="flex h-fit flex-col gap-3 rounded-md border border-foreground/15 p-4 lg:sticky lg:top-6">
+    <aside className="flex h-fit max-h-[calc(100vh-3rem)] flex-col gap-4 overflow-y-auto rounded-md border border-foreground/15 p-4 lg:sticky lg:top-6">
       <div className="flex flex-col gap-2">
-        <h2 className="font-medium">What we&apos;ve recorded</h2>
+        <h2 className="font-medium">The document, so far</h2>
         <p className="text-sm text-foreground/60">
           {progress.answered} answered
           {progress.gaps > 0 && `, ${progress.gaps} to find out`} of {progress.total}
@@ -280,21 +308,51 @@ function CapturePanel({ items, progress }: { items: CapturedItem[]; progress: Pr
         </div>
       </div>
 
-      {items.length ? (
-        <ol className="flex flex-col gap-2 text-sm">
-          {items.map((item, i) => (
-            <li key={i} className="flex flex-col gap-0.5 border-t border-foreground/10 pt-2">
-              <span className="text-xs uppercase tracking-wide text-foreground/40">{KIND_LABEL[item.kind]}</span>
-              <span>{item.label}</span>
-              {item.detail && <span className="text-foreground/60">{item.detail}</span>}
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <p className="text-sm text-foreground/60">
-          Things will appear here as you talk. Nothing is written down until you say it.
-        </p>
-      )}
+      <div className="flex flex-col gap-5 text-sm">
+        {outline.map((section) => (
+          <section key={section.id} className="flex flex-col gap-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground/50">{section.title}</h3>
+            {section.groups.map((group, gi) => (
+              <div key={gi} className="flex flex-col gap-3">
+                {group.title && <h4 className="font-medium text-foreground/80">{group.title}</h4>}
+                <dl className="flex flex-col gap-2.5">
+                  {group.fields.map((field) => (
+                    <div key={field.id} className="flex flex-col gap-1 border-t border-foreground/10 pt-2">
+                      <dt className="text-foreground/70">{field.label}</dt>
+                      {field.entries.length ? (
+                        <dd className="flex flex-col gap-1">
+                          {field.entries.map((entry, ei) => (
+                            <span key={ei}>
+                              {entry.label && <span className="font-medium">{entry.label}</span>}
+                              {entry.text ? (entry.label ? ` — ${entry.text}` : entry.text) : ""}
+                            </span>
+                          ))}
+                        </dd>
+                      ) : (
+                        <dd className="text-foreground/40">Not yet covered</dd>
+                      )}
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
+          </section>
+        ))}
+
+        {notes.length > 0 && (
+          <section className="flex flex-col gap-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground/50">Other notes</h3>
+            <ul className="flex flex-col gap-1.5">
+              {notes.map((note, i) => (
+                <li key={i} className="border-t border-foreground/10 pt-2">
+                  <span className="font-medium">{note.label}</span>
+                  {note.text ? ` — ${note.text}` : ""}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
     </aside>
   );
 }

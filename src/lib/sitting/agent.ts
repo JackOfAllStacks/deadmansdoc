@@ -13,6 +13,7 @@ import {
   saveNote,
   type FilledField,
 } from "@/lib/sitting/capture";
+import { formatEntityText, formatFieldText } from "@/lib/sitting/format";
 import { coverageOf, remainingQuestions } from "@/lib/sitting/coverage";
 import { contextBlock, LAST_TURN, stateBlock, SYSTEM_PROMPT, WRAP_UP } from "@/lib/sitting/prompt";
 import {
@@ -49,7 +50,14 @@ export type SittingEvent =
   | { type: "text"; text: string }
   | { type: "reset" }
   // Something was written down; the panel beside the conversation shows these.
-  | { type: "saved"; kind: "field" | "entity" | "amount" | "gap" | "note"; label: string; detail: string | null }
+  | {
+      type: "saved";
+      kind: "field" | "entity" | "amount" | "gap" | "note";
+      label: string;
+      detail: string | null;
+      fieldId: string | null;
+      text: string | null;
+    }
   | { type: "progress"; answered: number; gaps: number; total: number }
   | { type: "done"; summary: string }
   | { type: "end" }
@@ -166,7 +174,14 @@ async function runTool(
       if (typeof capture === "string") return { result: capture, failed: true };
       await saveFieldValue(record.id, capture, messageId);
       state.touched.add(capture.fieldId);
-      emit({ type: "saved", kind: "field", label: labelOf(capture.fieldId), detail: capture.familyAction });
+      emit({
+        type: "saved",
+        kind: "field",
+        label: labelOf(capture.fieldId),
+        detail: capture.familyAction,
+        fieldId: capture.fieldId,
+        text: formatFieldText(capture.value),
+      });
       return { result: "Recorded.", failed: false };
     }
 
@@ -180,7 +195,14 @@ async function runTool(
       if (!state.known.some((k) => k.id === id)) {
         state.known.push({ id, entityType: capture.entityType, label: capture.label });
       }
-      emit({ type: "saved", kind: "entity", label: capture.label, detail: labelOf(capture.fieldId) });
+      emit({
+        type: "saved",
+        kind: "entity",
+        label: capture.label,
+        detail: labelOf(capture.fieldId),
+        fieldId: capture.fieldId,
+        text: formatEntityText(capture.data),
+      });
       return { result: `Recorded ${capture.label}.`, failed: false };
     }
 
@@ -191,7 +213,14 @@ async function runTool(
       if (typeof capture === "string") return { result: capture, failed: true };
       await saveAmount(record.id, capture, messageId);
       state.touched.add(capture.fieldId);
-      emit({ type: "saved", kind: "amount", label: parsed.data.entity_label, detail: "sealed" });
+      emit({
+        type: "saved",
+        kind: "amount",
+        label: parsed.data.entity_label,
+        detail: "sealed",
+        fieldId: capture.fieldId,
+        text: null,
+      });
       return { result: "Recorded, and sealed.", failed: false };
     }
 
@@ -214,7 +243,14 @@ async function runTool(
         };
       }
       state.touched.add(field_id);
-      emit({ type: "saved", kind: "gap", label: labelOf(field_id), detail: who_would_know });
+      emit({
+        type: "saved",
+        kind: "gap",
+        label: labelOf(field_id),
+        detail: who_would_know,
+        fieldId: field_id,
+        text: note,
+      });
       return { result: "Noted as unknown.", failed: false };
     }
 
@@ -228,7 +264,7 @@ async function runTool(
         { label, value, familyAction: family_action, confidence },
         messageId,
       );
-      emit({ type: "saved", kind: "note", label, detail: null });
+      emit({ type: "saved", kind: "note", label, detail: null, fieldId: null, text: value });
       return { result: "Kept.", failed: false };
     }
 

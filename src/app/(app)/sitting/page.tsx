@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/session";
 import { MAX_MESSAGE_LENGTH } from "@/lib/sitting/agent";
 import { capturedIn, filledFields } from "@/lib/sitting/capture";
 import { coverageOf } from "@/lib/sitting/coverage";
+import { documentOutline, looseNotes } from "@/lib/sitting/document";
 import { greetingFor } from "@/lib/sitting/prompt";
 import { isBusy, openSitting, sittingMessages } from "@/lib/sitting/store";
 import { toChatHistory } from "@/lib/transcript";
@@ -44,7 +45,8 @@ export default async function SittingPage() {
       <SittingChat
         greeting={greetingFor(record, sitting, summary)}
         history={history}
-        captured={captured}
+        outline={documentOutline(sitting.covers, captured)}
+        notes={looseNotes(captured)}
         coverage={coverageOf(sitting.covers, filled)}
         speakers={speakersFor(record)}
         maxLength={MAX_MESSAGE_LENGTH}
