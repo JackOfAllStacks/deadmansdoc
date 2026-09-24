@@ -11,7 +11,7 @@ import {
 import { logFailure } from "@/lib/errors";
 import { MODEL } from "@/lib/model";
 import { contextBlock, SYSTEM_PROMPT, WRAP_UP } from "./prompt";
-import { applySignalUpdate, finishSchema, signalUpdateSchema, toToolSchema, type Signals, type SittingKey } from "./signals";
+import { applySignalUpdate, finishSchema, signalUpdateSchema, toToolSchema, type Signals } from "./signals";
 
 type MessageParam = Anthropic.Beta.BetaMessageParam;
 type ContentBlockParam = Anthropic.Beta.BetaContentBlockParam;
@@ -25,8 +25,6 @@ export type IntakeEvent =
   | { type: "text"; text: string }
   // The model's reply is being regenerated; discard what was shown so far.
   | { type: "reset" }
-  // A topic was raised unprompted; the panel beside the conversation shows these.
-  | { type: "signals"; frontOfMind: SittingKey[] }
   // The opening conversation is over; the plan comes next.
   | { type: "done" }
   // The reply is complete; waiting for the person.
@@ -235,7 +233,6 @@ export async function runIntakeTurn(
       await appendIntakeMessage(record.id, { role: "tool", content: "", blocks: results });
       messages.push({ role: "user", content: results });
       await saveIntakeSignals(record.id, signals);
-      if (signals.front_of_mind?.length) emit({ type: "signals", frontOfMind: signals.front_of_mind });
 
       // The reply is written before the tool call, so the turn is normally
       // over here. Go round again only if nothing has been said this turn, or

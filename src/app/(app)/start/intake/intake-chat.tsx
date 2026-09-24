@@ -3,31 +3,20 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import Link from "next/link";
 import type { IntakeEvent } from "@/lib/intake/agent";
-import type { SittingKey } from "@/lib/intake/signals";
 import type { ChatMessage } from "@/lib/transcript";
 
 type Status = "idle" | "sending" | "finished";
-
-export interface FocusArea {
-  key: SittingKey;
-  title: string;
-  summary: string;
-}
 
 export function IntakeChat({
   greeting,
   history,
   speakers,
   maxLength,
-  areas,
-  frontOfMind,
 }: {
   greeting: string;
   history: ChatMessage[];
   speakers: string[];
   maxLength: number;
-  areas: FocusArea[];
-  frontOfMind: SittingKey[];
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(history);
   const [live, setLive] = useState("");
@@ -35,7 +24,6 @@ export function IntakeChat({
   const [speaker, setSpeaker] = useState(speakers[0]);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [identified, setIdentified] = useState<SittingKey[]>(frontOfMind);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -92,8 +80,6 @@ export function IntakeChat({
           } else if (e.type === "reset") {
             reply = "";
             setLive("");
-          } else if (e.type === "signals") {
-            setIdentified(e.frontOfMind);
           } else if (e.type === "error") {
             outcome = "error";
             if (e.kept) setError(e.message);
@@ -128,110 +114,72 @@ export function IntakeChat({
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
-      <div className="flex flex-col gap-6">
-        <ol aria-live="polite" className="flex flex-col gap-4">
-          <Bubble message={{ from: "agent", text: greeting }} />
-          {messages.map((m, i) => (
-            <Bubble key={i} message={m} />
-          ))}
-          {status === "sending" && (
-            <Bubble message={{ from: "agent", text: live }} pending={!live} />
-          )}
-        </ol>
-        <div ref={endRef} />
-
-        {status === "finished" ? (
-          <div className="flex flex-col items-start gap-3 rounded-md border border-foreground/15 p-4">
-            <p>That&apos;s everything for now. Next, let&apos;s set a rhythm for the sittings.</p>
-            <Link href="/plan/new" className="rounded-md bg-foreground px-4 py-2.5 font-medium text-background">
-              See your plan
-            </Link>
-          </div>
-        ) : (
-          <form onSubmit={send} className="flex flex-col gap-3">
-            {speakers.length > 1 && (
-              <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                <legend className="sr-only">Who is typing?</legend>
-                <span className="text-foreground/60">Who&apos;s typing:</span>
-                {speakers.map((name) => (
-                  <label key={name} className="flex items-center gap-1.5">
-                    <input
-                      type="radio"
-                      name="speaker"
-                      checked={speaker === name}
-                      onChange={() => setSpeaker(name)}
-                    />
-                    {name}
-                  </label>
-                ))}
-              </fieldset>
-            )}
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={onKeyDown}
-              maxLength={maxLength}
-              rows={3}
-              placeholder="Type your answer…"
-              aria-label="Your answer"
-              className="resize-y rounded-md border border-foreground/20 bg-background px-3 py-2 text-base outline-none focus:border-foreground/60 focus:ring-2 focus:ring-foreground/10"
-            />
-            {error && (
-              <p role="alert" className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-                {error}
-              </p>
-            )}
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-foreground/50">Enter to send · Shift+Enter for a new line</span>
-              <button
-                type="submit"
-                disabled={status !== "idle" || !draft.trim()}
-                className="rounded-md bg-foreground px-4 py-2.5 font-medium text-background transition-opacity disabled:opacity-50"
-              >
-                {status === "sending" ? "Waiting…" : "Send"}
-              </button>
-            </div>
-          </form>
+    <div className="flex flex-col gap-6">
+      <ol aria-live="polite" className="flex flex-col gap-4">
+        <Bubble message={{ from: "agent", text: greeting }} />
+        {messages.map((m, i) => (
+          <Bubble key={i} message={m} />
+        ))}
+        {status === "sending" && (
+          <Bubble message={{ from: "agent", text: live }} pending={!live} />
         )}
-      </div>
-
-      <FocusPanel areas={areas} identified={identified} />
-    </div>
-  );
-}
-
-// The sittings ahead, appearing as the conversation touches on them. The set
-// is fixed for everyone; what changes is which ones are already front of mind
-// by the time the plan is built.
-function FocusPanel({ areas, identified }: { areas: FocusArea[]; identified: SittingKey[] }) {
-  return (
-    <aside className="flex h-fit flex-col gap-3 rounded-md border border-foreground/15 p-4 lg:sticky lg:top-6">
-      <div className="flex flex-col gap-1">
-        <h2 className="font-medium">Shaping your sittings</h2>
-        <p className="text-sm text-foreground/60">
-          {identified.length
-            ? "Already on your mind — these will likely come first."
-            : "Nothing raised yet. Whatever you mention here shapes what comes first."}
-        </p>
-      </div>
-      <ol className="flex flex-col gap-2 text-sm">
-        {areas.map((area) => {
-          const found = identified.includes(area.key);
-          return (
-            <li
-              key={area.key}
-              className={`flex flex-col gap-0.5 rounded-md border p-2.5 transition-colors ${
-                found ? "border-foreground/30 bg-foreground/5" : "border-foreground/10"
-              }`}
-            >
-              <span className={found ? "font-medium" : "text-foreground/50"}>{area.title}</span>
-              <span className="text-xs text-foreground/50">{area.summary}</span>
-            </li>
-          );
-        })}
       </ol>
-    </aside>
+      <div ref={endRef} />
+
+      {status === "finished" ? (
+        <div className="flex flex-col items-start gap-3 rounded-md border border-foreground/15 p-4">
+          <p>That&apos;s everything for now. Next, let&apos;s set a rhythm for the sittings.</p>
+          <Link href="/plan/new" className="rounded-md bg-foreground px-4 py-2.5 font-medium text-background">
+            See your plan
+          </Link>
+        </div>
+      ) : (
+        <form onSubmit={send} className="flex flex-col gap-3">
+          {speakers.length > 1 && (
+            <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <legend className="sr-only">Who is typing?</legend>
+              <span className="text-foreground/60">Who&apos;s typing:</span>
+              {speakers.map((name) => (
+                <label key={name} className="flex items-center gap-1.5">
+                  <input
+                    type="radio"
+                    name="speaker"
+                    checked={speaker === name}
+                    onChange={() => setSpeaker(name)}
+                  />
+                  {name}
+                </label>
+              ))}
+            </fieldset>
+          )}
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={onKeyDown}
+            maxLength={maxLength}
+            rows={3}
+            placeholder="Type your answer…"
+            aria-label="Your answer"
+            className="resize-y rounded-md border border-foreground/20 bg-background px-3 py-2 text-base outline-none focus:border-foreground/60 focus:ring-2 focus:ring-foreground/10"
+          />
+          {error && (
+            <p role="alert" className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+              {error}
+            </p>
+          )}
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-foreground/50">Enter to send · Shift+Enter for a new line</span>
+            <button
+              type="submit"
+              disabled={status !== "idle" || !draft.trim()}
+              className="rounded-md bg-foreground px-4 py-2.5 font-medium text-background transition-opacity disabled:opacity-50"
+            >
+              {status === "sending" ? "Waiting…" : "Send"}
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
   );
 }
 

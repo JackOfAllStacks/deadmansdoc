@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { sessionTemplate } from "@/lib/content";
 import { greetingFor } from "@/lib/intake/prompt";
 import { MAX_MESSAGE_LENGTH } from "@/lib/intake/agent";
 import { getRecordForUser, intakeMessages, speakersFor } from "@/lib/records";
@@ -18,7 +17,7 @@ export default async function IntakePage() {
   const history = toChatHistory(await intakeMessages(record.id));
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-10">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-6 py-10">
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">A first conversation</h1>
         <p className="text-foreground/70">
@@ -30,8 +29,6 @@ export default async function IntakePage() {
         history={history}
         speakers={speakersFor(record)}
         maxLength={MAX_MESSAGE_LENGTH}
-        areas={sessionTemplate.sittings.map((s) => ({ key: s.key, title: s.title, summary: s.summary }))}
-        frontOfMind={record.intake?.front_of_mind ?? []}
       />
     </main>
   );
