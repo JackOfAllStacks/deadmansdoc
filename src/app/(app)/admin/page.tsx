@@ -1,5 +1,6 @@
-import { errorCounts, recentErrors, totals } from "@/lib/admin";
+import { errorCounts, listAccounts, recentErrors, totals } from "@/lib/admin";
 import { requireAdmin } from "@/lib/session";
+import { RoleToggle } from "./role-toggle";
 
 export const metadata = { title: "Admin · The Handover" };
 
@@ -17,8 +18,13 @@ function when(value: string): string {
 }
 
 export default async function AdminPage() {
-  await requireAdmin();
-  const [counts, errors, summary] = await Promise.all([errorCounts(), recentErrors(), totals()]);
+  const { user } = await requireAdmin();
+  const [counts, errors, summary, accounts] = await Promise.all([
+    errorCounts(),
+    recentErrors(),
+    totals(),
+    listAccounts(),
+  ]);
 
   const figures = [
     ["Accounts", summary.accounts],
@@ -43,6 +49,35 @@ export default async function AdminPage() {
             <p className="text-sm text-foreground/60">{label}</p>
           </div>
         ))}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-medium">People</h2>
+        <p className="text-sm text-foreground/70">
+          Admins can see every account and every record, and can make other admins. Keep it to
+          people who need it.
+        </p>
+        <ul className="flex flex-col gap-2">
+          {accounts.map((a) => (
+            <li
+              key={a.id}
+              className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-md border border-foreground/15 p-3"
+            >
+              <div className="flex flex-col">
+                <span className="font-medium">
+                  {a.name}
+                  {a.role === "admin" && (
+                    <span className="ml-2 rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-normal">admin</span>
+                  )}
+                </span>
+                <span className="text-sm text-foreground/60">
+                  {a.email} · {a.records === 1 ? "1 record" : `${a.records} records`}
+                </span>
+              </div>
+              <RoleToggle userId={a.id} email={a.email} role={a.role} isSelf={a.id === user.id} />
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="flex flex-col gap-3">

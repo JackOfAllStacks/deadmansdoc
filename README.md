@@ -123,7 +123,9 @@ Regenerate the auth tables with `npx auth@<better-auth version> generate --confi
 
 **Deleting an account** removes it and everything hanging off it — the record, the conversation, the plan — immediately and for good. With no email provider there's nothing to confirm through, so the current password is the check. The only thing left behind is any row in `error_logs`, whose references null out rather than cascading; nothing anyone typed is stored there.
 
-**Admins** are a `role` on the user. The field is `input: false` in the auth config, so it can't be set through sign-up or any other request — only with `npm run make-admin -- someone@example.com` (add `--remove` to take it away). Admin pages return **404** rather than redirecting, so they don't announce themselves to accounts that shouldn't see them.
+**Admins** are a `role` on the user. The field is `input: false` in the auth config, so it can never be set by anything the browser sends. Admin pages return **404** rather than redirecting, so they don't announce themselves to accounts that shouldn't see them.
+
+An admin makes other admins from the **People** list on `/admin`. Two things it won't do: change your own access, and remove the last admin. Both would leave a page nobody can reach, since granting admin needs an admin. The first admin on a fresh database has to come from outside that loop — `npm run make-admin -- someone@example.com` (`--remove` to take it away), which is also the way back in if every admin is somehow lost.
 
 ### Deploying
 
