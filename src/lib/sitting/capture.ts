@@ -73,36 +73,35 @@ export async function saveEntity(recordId: string, capture: EntityCapture, messa
   return entityId;
 }
 
-// A direct correction to an entry that already exists: unlike saveEntity,
-// this targets a specific row by id rather than upserting by label, so
-// renaming "Jordon" to "Jordan" fixes the entry in place instead of quietly
-// creating a second one. Attributes merge the same way saveEntity's do; an
-// edit that leaves a key out doesn't clear it.
-export async function updateEntity(
-  recordId: string,
-  entityId: string,
-  capture: EntityCapture,
-  messageId: string | null,
-): Promise<void> {
-  await db()`
-    update entity_instances
-    set label = ${capture.label}, data = data || ${JSON.stringify(capture.data)}::jsonb
-    where id = ${entityId} and record_id = ${recordId}`;
+// Editing the document means a line someone deletes has to actually go. Both
+// of these are only reachable from a hand edit: the model can record and
+// correct, but it never removes anything somebody said.
 
+/** Clears a plain field's answer or gap, putting it back to "not yet covered". */
+export async function clearField(recordId: string, fieldId: string): Promise<void> {
   await db()`
-    update field_values
-    set confidence = ${capture.confidence},
-        family_action = coalesce(${capture.familyAction}, family_action),
-        source_message_id = ${messageId},
-        updated_at = now()
-    where record_id = ${recordId} and field_id = ${capture.fieldId} and entity_instance_id = ${entityId}`;
+    delete from field_values
+    where record_id = ${recordId} and field_id = ${fieldId} and entity_instance_id is null`;
 }
 
-/** The merged attributes an entity holds right now, for handing back to an editor. */
-export async function entityData(recordId: string, entityId: string): Promise<Record<string, string>> {
-  const rows = await db()`
-    select data from entity_instances where id = ${entityId} and record_id = ${recordId}`;
-  return (rows[0] as { data: Record<string, string> } | undefined)?.data ?? {};
+/**
+ * Drops any entry under this field that the edit no longer lists, and with it
+ * any entity left belonging to nothing at all. An entity named by another
+ * field as well stays: it was only removed from this list.
+ */
+export async function keepOnlyEntities(recordId: string, fieldId: string, keep: string[]): Promise<void> {
+  const keepIds = keep.length ? keep : ["00000000-0000-0000-0000-000000000000"];
+  await db()`
+    delete from field_values
+    where record_id = ${recordId}
+      and field_id = ${fieldId}
+      and entity_instance_id is not null
+      and entity_instance_id <> all(${keepIds}::uuid[])`;
+
+  await db()`
+    delete from entity_instances ei
+    where ei.record_id = ${recordId}
+      and not exists (select 1 from field_values fv where fv.entity_instance_id = ei.id)`;
 }
 
 export async function saveAmount(recordId: string, capture: AmountCapture, messageId: string | null): Promise<void> {
@@ -167,6 +166,10 @@ export async function saveNote(
       confidence = excluded.confidence,
       source_message_id = excluded.source_message_id,
       updated_at = now()`;
+}
+
+export async function deleteNote(recordId: string, label: string): Promise<void> {
+  await db()`delete from overflow_notes where record_id = ${recordId} and label = ${label}`;
 }
 
 export interface FilledField {

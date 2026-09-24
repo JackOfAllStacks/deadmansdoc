@@ -203,7 +203,10 @@ async function runTool(
         type: "saved",
         kind: "entity",
         label: capture.label,
-        detail: labelOf(capture.fieldId),
+        // What the family has to do, the same thing capturedIn() returns for
+        // this entry -- not which list it went into, which the document shows
+        // as its own heading anyway.
+        detail: capture.familyAction,
         fieldId: capture.fieldId,
         entityId: id,
         attributes: capture.data,
@@ -223,7 +226,7 @@ async function runTool(
         type: "saved",
         kind: "amount",
         label: parsed.data.entity_label,
-        detail: "sealed",
+        detail: null,
         fieldId: capture.fieldId,
         entityId: capture.entityId,
         attributes: null,

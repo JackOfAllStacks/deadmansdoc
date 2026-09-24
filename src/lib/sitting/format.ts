@@ -4,8 +4,10 @@
 
 // A field's value is prose, a list, or (for a "people" field) the names it
 // points at -- formatted the same way wherever it's shown, live or reloaded.
+// A list is one line per item, because that is how it reads in the document
+// and how it has to come back when someone edits it there.
 export function formatFieldText(value: unknown): string {
-  if (Array.isArray(value)) return value.filter(Boolean).join(", ");
+  if (Array.isArray(value)) return value.filter(Boolean).join("\n");
   if (typeof value === "string") return value;
   return "";
 }
