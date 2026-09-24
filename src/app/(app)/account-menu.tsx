@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 
 const ITEM = "block w-full px-4 py-2 text-left text-sm hover:bg-foreground/5";
@@ -10,7 +10,14 @@ const ITEM = "block w-full px-4 py-2 text-left text-sm hover:bg-foreground/5";
 export function AccountMenu({ name, email, admin }: { name: string; email: string; admin: boolean }) {
   const menu = useRef<HTMLDetailsElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
   const [pending, setPending] = useState(false);
+
+  // Navigating away doesn't close a <details> on its own, which would leave
+  // the menu hanging open over the page you just opened.
+  useEffect(() => {
+    if (menu.current) menu.current.open = false;
+  }, [pathname]);
 
   // <details> opens and closes on its own; these only add the two ways people
   // expect a menu to close, so it still works if the JavaScript never runs.
