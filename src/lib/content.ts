@@ -154,6 +154,7 @@ export function contentProblems(
         problems.push(`sitting "${sitting.key}" has a rule on unknown signal "${rule.when}"`);
       }
     }
+    const mine = new Set<string>();
     for (const ref of sitting.covers) {
       const ids = expands.get(ref);
       if (!ids) {
@@ -161,10 +162,28 @@ export function contentProblems(
         continue;
       }
       for (const id of ids) {
+        mine.add(id);
         const other = coveredBy.get(id);
         if (other) problems.push(`field ${id} is covered by both "${other}" and "${sitting.key}"`);
         coveredBy.set(id, sitting.key);
       }
+    }
+
+    // The topics are what a person is told a sitting will cover, so they have
+    // to account for all of it and promise nothing it doesn't hold.
+    const inTopic = new Map<string, string>();
+    for (const topic of sitting.topics ?? []) {
+      for (const id of topic.covers) {
+        if (!mine.has(id)) {
+          problems.push(`topic "${topic.label}" claims ${id}, which "${sitting.key}" doesn't cover`);
+        }
+        const other = inTopic.get(id);
+        if (other) problems.push(`field ${id} is in both "${other}" and "${topic.label}"`);
+        inTopic.set(id, topic.label);
+      }
+    }
+    for (const id of mine) {
+      if (!inTopic.has(id)) problems.push(`field ${id} isn't in any topic of "${sitting.key}"`);
     }
   }
   for (const id of fieldIds) {

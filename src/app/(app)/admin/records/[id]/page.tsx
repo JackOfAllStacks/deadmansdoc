@@ -43,27 +43,27 @@ export default async function AdminRecordPage({ params }: PageProps<"/admin/reco
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-10 px-6 py-10">
       <header className="flex flex-col gap-2">
-        <Link href="/admin" className="text-sm text-foreground/60 underline">
+        <Link href="/admin" className="text-sm text-muted underline">
           Back to admin
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight">{data.header.subject_name}</h1>
-        <p className="text-sm text-foreground/70">
+        <p className="text-sm text-muted">
           {data.header.owner_email} · started {new Date(data.header.created_at).toLocaleDateString("en-AU")} ·{" "}
           {data.header.present.join(", ") || "nobody"} present at consent
         </p>
         {data.header.intake?.summary && (
-          <p className="rounded-md bg-foreground/5 p-3 text-sm">{data.header.intake.summary}</p>
+          <p className="rounded-md bg-soft p-3 text-sm">{data.header.intake.summary}</p>
         )}
         <div className="flex flex-wrap gap-3 pt-1">
           <Link
             href={`/admin/records/${id}/guide`}
-            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink"
           >
             The Guide
           </Link>
           <Link
             href={`/admin/records/${id}/envelope`}
-            className="rounded-md border border-foreground/20 px-4 py-2 text-sm font-medium hover:bg-foreground/5"
+            className="rounded-md border border-line px-4 py-2 text-sm font-medium hover:bg-soft"
           >
             {hasSealedContent(data) ? "The Sealed Envelope" : "No envelope (nothing sealed)"}
           </Link>
@@ -78,7 +78,7 @@ export default async function AdminRecordPage({ params }: PageProps<"/admin/reco
           const fields = sectionFields(section);
           return (
             <div key={section.id} className="flex flex-col gap-2">
-              <h3 className="text-sm font-medium text-foreground/70">
+              <h3 className="text-sm font-medium text-muted">
                 Section {section.number} — {section.title}
               </h3>
               <ul className="flex flex-col gap-1">
@@ -86,22 +86,22 @@ export default async function AdminRecordPage({ params }: PageProps<"/admin/reco
                   const rows = data.values.filter((v) => v.field_id === field.id);
                   const standing = standings.find((s) => s.field.id === field.id)!.standing;
                   return (
-                    <li key={field.id} className="rounded-md border border-foreground/10 p-2 text-sm">
+                    <li key={field.id} className="rounded-md border border-line p-2 text-sm">
                       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                        <span className={rows.length ? "" : "text-foreground/40"}>{field.label}</span>
-                        <span className="text-xs text-foreground/50">
+                        <span className={rows.length ? "" : "text-faint"}>{field.label}</span>
+                        <span className="text-xs text-faint">
                           {field.disclosure !== "open" && `${field.disclosure} · `}
                           {STANDING_LABEL[standing]}
                         </span>
                       </div>
                       {rows.map((row, i) => (
-                        <div key={i} className="mt-1 flex flex-col text-foreground/80">
+                        <div key={i} className="mt-1 flex flex-col text-muted">
                           <span>{valueText(row, labelOf)}</span>
                           {row.family_action && (
-                            <span className="text-foreground/60">What to do: {row.family_action}</span>
+                            <span className="text-muted">What to do: {row.family_action}</span>
                           )}
                           {row.confidence !== "stated" && (
-                            <span className="text-xs text-foreground/50">{row.confidence}</span>
+                            <span className="text-xs text-faint">{row.confidence}</span>
                           )}
                         </div>
                       ))}
@@ -119,7 +119,7 @@ export default async function AdminRecordPage({ params }: PageProps<"/admin/reco
           <h2 className="font-medium">Kept, but no field covered it</h2>
           <ul className="flex flex-col gap-1 text-sm">
             {data.notes.map((n) => (
-              <li key={n.label} className="rounded-md border border-foreground/10 p-2">
+              <li key={n.label} className="rounded-md border border-line p-2">
                 <span className="font-medium">{n.label}</span> — {n.value}
               </li>
             ))}
@@ -129,13 +129,13 @@ export default async function AdminRecordPage({ params }: PageProps<"/admin/reco
 
       <section className="flex flex-col gap-2">
         <h2 className="font-medium">The conversation</h2>
-        <p className="text-sm text-foreground/60">
+        <p className="text-sm text-muted">
           Everything said, in order. This is someone&apos;s account of their own death; read it as that.
         </p>
         <ol className="flex flex-col gap-2">
           {transcript.map((line, i) => (
-            <li key={i} className="rounded-md border border-foreground/10 p-2 text-sm">
-              <span className="text-xs uppercase tracking-wide text-foreground/40">
+            <li key={i} className="rounded-md border border-line p-2 text-sm">
+              <span className="text-xs uppercase tracking-wide text-faint">
                 {line.phase === "intake" ? "Opening conversation" : line.sitting_title}
                 {" · "}
                 {line.role === "agent" ? "Interviewer" : line.role}
@@ -143,7 +143,7 @@ export default async function AdminRecordPage({ params }: PageProps<"/admin/reco
               <p className="mt-1 whitespace-pre-wrap">{line.content}</p>
             </li>
           ))}
-          {!transcript.length && <li className="text-sm text-foreground/60">Nothing said yet.</li>}
+          {!transcript.length && <li className="text-sm text-muted">Nothing said yet.</li>}
         </ol>
       </section>
     </main>

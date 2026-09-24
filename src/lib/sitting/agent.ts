@@ -13,7 +13,7 @@ import {
   saveNote,
   type FilledField,
 } from "@/lib/sitting/capture";
-import { coverageOf, remainingQuestions } from "@/lib/sitting/coverage";
+import { coverageOf, remainingQuestions, topicProgress, topicsFor, type TopicProgress } from "@/lib/sitting/coverage";
 import { contextBlock, LAST_TURN, stateBlock, SYSTEM_PROMPT, WRAP_UP } from "@/lib/sitting/prompt";
 import {
   finishSittingSchema,
@@ -50,7 +50,9 @@ export type SittingEvent =
   | { type: "reset" }
   // Something was written down; the panel beside the conversation shows these.
   | { type: "saved"; kind: "field" | "entity" | "amount" | "gap" | "note"; label: string; detail: string | null }
-  | { type: "progress"; answered: number; gaps: number; total: number }
+  // Recomputed on the server rather than tallied in the browser, so the panel
+  // beside the conversation can't drift from what is actually stored.
+  | { type: "progress"; answered: number; gaps: number; total: number; topics: TopicProgress[] }
   | { type: "done"; summary: string }
   | { type: "end" }
   | { type: "error"; message: string; kept: boolean };
@@ -374,7 +376,8 @@ export async function runSittingTurn(
 
       if (state.touched.size) {
         const after = await filledFields(record.id);
-        emit({ type: "progress", ...coverageOf(sitting.covers, after) });
+        const { answered, gaps, total } = coverageOf(sitting.covers, after);
+        emit({ type: "progress", answered, gaps, total, topics: topicProgress(topicsFor(sitting.sitting_key), after) });
       }
 
       // The reply comes before the tool call, so the turn is normally over

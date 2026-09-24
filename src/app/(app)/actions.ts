@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { sessionTemplate } from "@/lib/content";
 import { addDays, buildPlan, isIsoDate, RHYTHMS, type Rhythm } from "@/lib/plan/build-plan";
-import { createRecord, getRecordForUser, rescheduleSitting, savePlan } from "@/lib/records";
+import { createRecord, getRecordForUser, reopenIntake, rescheduleSitting, savePlan } from "@/lib/records";
 import { requireSession } from "@/lib/session";
 import { openSitting, startSitting } from "@/lib/sitting/store";
 import { todayInMelbourne } from "@/lib/today";
@@ -106,5 +106,21 @@ export async function moveSitting(_prev: FormState, form: FormData): Promise<For
   const moved = await rescheduleSitting(record.id, sittingId.data, date);
   if (!moved) return { error: "That sitting can't be moved now." };
   revalidatePath("/plan");
+  return { ok: true };
+}
+
+/**
+ * Goes back into the opening conversation after it finished. Finishing it
+ * again re-cuts whichever sittings haven't been started; see reviseRemaining.
+ */
+export async function reopenConversation(): Promise<FormState> {
+  const { user } = await requireSession();
+  const record = await getRecordForUser(user.id);
+  if (!record) redirect("/home");
+
+  if (!(await reopenIntake(record.id))) {
+    return { error: "Finish the sitting that's open first, then come back to this." };
+  }
+  revalidatePath("/start/intake");
   return { ok: true };
 }

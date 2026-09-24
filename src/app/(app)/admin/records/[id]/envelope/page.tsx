@@ -20,11 +20,11 @@ export default async function EnvelopePage({ params }: PageProps<"/admin/records
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-6 py-10">
       <div className="flex flex-col gap-1 print:hidden">
-        <Link href={`/admin/records/${id}`} className="text-sm text-foreground/60 underline">
+        <Link href={`/admin/records/${id}`} className="text-sm text-muted underline">
           Back to the record
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight">The Sealed Envelope</h1>
-        <p className="text-sm text-foreground/70">
+        <p className="text-sm text-muted">
           Printed separately and opened only after death. One sealed item is enough for it to exist — there is
           no minimum.
         </p>
@@ -32,7 +32,7 @@ export default async function EnvelopePage({ params }: PageProps<"/admin/records
       {markdown ? (
         <DocumentView markdown={markdown} filename={`envelope-${data.header.subject_name.toLowerCase()}.md`} />
       ) : (
-        <p className="rounded-md border border-foreground/15 p-4 text-sm">
+        <p className="rounded-md border border-line p-4 text-sm">
           Nothing in this record is sealed, so no envelope prints. The Guide says as much, so nobody goes
           looking for one that doesn&apos;t exist.
         </p>

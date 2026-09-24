@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 
-const ITEM = "block w-full px-4 py-2 text-left text-sm hover:bg-foreground/5";
+const ITEM = "block w-full px-4 py-2 text-left text-sm hover:bg-soft";
 
 export function AccountMenu({ name, email, admin }: { name: string; email: string; admin: boolean }) {
   const menu = useRef<HTMLDetailsElement>(null);
@@ -50,15 +50,15 @@ export function AccountMenu({ name, email, admin }: { name: string; email: strin
 
   return (
     <details ref={menu} className="relative">
-      <summary className="cursor-pointer list-none rounded-md px-2 py-1 text-sm text-foreground/70 hover:bg-foreground/5 [&::-webkit-details-marker]:hidden">
+      <summary className="cursor-pointer list-none rounded-md px-2 py-1 text-sm text-muted hover:bg-soft [&::-webkit-details-marker]:hidden">
         {name}
-        <span aria-hidden className="ml-1.5 text-foreground/40">▾</span>
+        <span aria-hidden className="ml-1.5 text-faint">▾</span>
       </summary>
-      <div className="absolute right-0 z-10 mt-1 w-56 overflow-hidden rounded-md border border-foreground/15 bg-background py-1 shadow-lg">
-        <p className="truncate px-4 py-2 text-sm text-foreground/60" title={email}>
+      <div className="absolute right-0 z-10 mt-1 w-56 overflow-hidden rounded-md border border-line bg-surface py-1 shadow-lg">
+        <p className="truncate px-4 py-2 text-sm text-muted" title={email}>
           {email}
         </p>
-        <hr className="my-1 border-foreground/10" />
+        <hr className="my-1 border-line" />
         <Link href="/account" className={ITEM}>
           Your account
         </Link>
@@ -67,7 +67,7 @@ export function AccountMenu({ name, email, admin }: { name: string; email: strin
             Admin
           </Link>
         )}
-        <hr className="my-1 border-foreground/10" />
+        <hr className="my-1 border-line" />
         <button onClick={signOut} disabled={pending} className={`${ITEM} disabled:opacity-50`}>
           {pending ? "Signing out…" : "Sign out"}
         </button>

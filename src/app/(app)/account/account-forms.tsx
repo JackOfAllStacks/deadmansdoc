@@ -30,7 +30,7 @@ export function ChangeName({ name }: { name: string }) {
     <form onSubmit={submit} className="flex flex-col gap-4">
       <Field label="Your name" name="name" value={value} onChange={(e) => setValue(e.target.value)} required />
       <FormError message={error} />
-      {saved && !error && <p className="text-sm text-foreground/70">Saved.</p>}
+      {saved && !error && <p className="text-sm text-muted">Saved.</p>}
       <SubmitButton pending={pending}>{pending ? "Saving…" : "Save"}</SubmitButton>
     </form>
   );
@@ -66,7 +66,7 @@ export function DeleteAccount() {
     return (
       <button
         onClick={() => setConfirming(true)}
-        className="self-start rounded-md border border-red-500/50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-500/10 dark:text-red-300"
+        className="self-start rounded-md border border-danger/40 bg-danger-soft px-4 py-2 text-sm font-medium text-danger hover:border-danger/70"
       >
         Delete my account
       </button>
