@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
+/* Warm rather than clinical: the product ends as a printed document read by
+   people having a bad week, and every grey in the app is this foreground at
+   some opacity over this background -- so warming these two warms all of
+   them. Dark stays neutral. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fbf8f3;
+  --foreground: #26211b;
 }
 
 @theme inline {
