@@ -1,8 +1,8 @@
 // Browser end-to-end: sign-up → opening conversation → plan → one whole sitting.
 //
-// Talks to the real Claude API. A run is roughly 35 model calls and costs
-// about US$0.40–0.60, so it is not something to run in a loop. It creates an
-// …@example.test account that should be deleted afterwards.
+// Talks to the real Claude API: roughly 35 model calls, so not something to
+// run in a loop. It creates an …@example.test account that should be deleted
+// afterwards.
 //
 // Needs a running server on the dev database, and Playwright's browser
 // (npx playwright install chromium --only-shell) once.

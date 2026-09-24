@@ -9,6 +9,7 @@ import {
   type RecordRow,
 } from "@/lib/records";
 import { logFailure } from "@/lib/errors";
+import { MODEL } from "@/lib/model";
 import { contextBlock, SYSTEM_PROMPT, WRAP_UP } from "./prompt";
 import { applySignalUpdate, finishSchema, signalUpdateSchema, toToolSchema, type Signals } from "./signals";
 
@@ -16,7 +17,6 @@ type MessageParam = Anthropic.Beta.BetaMessageParam;
 type ContentBlockParam = Anthropic.Beta.BetaContentBlockParam;
 type ToolResult = Anthropic.Beta.BetaToolResultBlockParam;
 
-export const MODEL = "claude-opus-5";
 export const MAX_USER_TURNS = 12;
 export const MAX_MESSAGE_LENGTH = 2000;
 const MAX_CALLS_PER_TURN = 3;

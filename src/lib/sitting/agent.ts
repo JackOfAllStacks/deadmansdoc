@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { fieldsById, questionBank } from "@/lib/content";
 import { logFailure } from "@/lib/errors";
+import { MODEL } from "@/lib/model";
 import { speakersFor, type MessageRow, type RecordRow } from "@/lib/records";
 import {
   filledFields,
@@ -36,7 +37,6 @@ type MessageParam = Anthropic.Beta.BetaMessageParam;
 type ContentBlockParam = Anthropic.Beta.BetaContentBlockParam;
 type ToolResult = Anthropic.Beta.BetaToolResultBlockParam;
 
-export const MODEL = "claude-opus-5";
 export const MAX_MESSAGE_LENGTH = 4000;
 // A generous ceiling on a half-hour conversation, not a target. The time-based
 // wrap-up below is what normally ends a sitting.
@@ -200,7 +200,19 @@ async function runTool(
       if (!parsed.success) return { result: `That didn't match the schema: ${parsed.error.message}`, failed: true };
       const { field_id, who_would_know, priority, note } = parsed.data;
       if (!fieldsById.has(field_id)) return { result: `There is no field called ${field_id}.`, failed: true };
-      await saveGap(record.id, { fieldId: field_id, whoWouldKnow: who_would_know, priority, note }, messageId);
+      const noted = await saveGap(
+        record.id,
+        { fieldId: field_id, whoWouldKnow: who_would_know, priority, note },
+        messageId,
+      );
+      if (!noted) {
+        // Something is already answered there, and an answer beats a gap. Say
+        // so, rather than letting it believe it wrote something down.
+        return {
+          result: `${labelOf(field_id)} already has an answer, so it isn't a gap. Left as it was.`,
+          failed: false,
+        };
+      }
       state.touched.add(field_id);
       emit({ type: "saved", kind: "gap", label: labelOf(field_id), detail: who_would_know });
       return { result: "Noted as unknown.", failed: false };

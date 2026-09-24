@@ -68,7 +68,7 @@ The interview exists to fill the fields of that template. Locking the template d
 | Accounts | One account per record; no second participant login |
 | Interview | Free-form AI conversation; question bank as coverage checklist |
 | Session plan | Fixed template of sittings, filtered per user for time and order |
-| Opening conversation | Claude Opus 5, streamed, with tools that record a rough picture |
+| Model | Claude Sonnet 5 for both conversations, streamed, set in one place ([`src/lib/model.ts`](src/lib/model.ts)) |
 | Artifact structure | Lifted from the client's draft Family Guide |
 | Artifact output | Markdown or Word for MVP — no designed PDF yet |
 | Asymmetric disclosure | In scope for the demo; **demonstrated, not genuinely secure**. Two printed documents, split per field |
@@ -105,7 +105,7 @@ node scripts/e2e-sitting.mjs  # the whole journey, including a sitting (spends m
 
 `GET /api/health` reports whether the database is reachable and which content version is loaded.
 
-`scripts/e2e-intake.mjs` drives a real browser through sign-up, the opening conversation and the plan, using a synthetic persona. It calls the real Claude API (about US$0.10–0.15 a run) and needs `npx playwright install chromium --only-shell` once. Both scripts create `…@example.test` accounts; delete them afterwards.
+`scripts/e2e-intake.mjs` drives a real browser through sign-up, the opening conversation and the plan, using a synthetic persona. It calls the real Claude API and needs `npx playwright install chromium --only-shell` once. Both scripts create `…@example.test` accounts; delete them afterwards.
 
 `scripts/e2e-auth.sh` expects a server on `http://localhost:3000` (`npm run build && npm start`, or `netlify serve --offline --port 3000`) and the dev database. It creates `…@example.test` accounts; delete them afterwards. It pauses between groups of requests to stay under the sign-in rate limit, so it takes about a minute.
 
@@ -148,9 +148,9 @@ A new account goes `/start` → `/start/intake` → `/plan/new` → `/plan`; `/h
 
 **Starting** ([`src/app/(app)/start`](src/app/(app)/start)) records who the handover is for, who's in the room, and consent, including an acknowledgement that this isn't a will.
 
-**The conversation** ([`src/lib/intake`](src/lib/intake)) is Claude Opus 5, streamed to the browser as newline-delimited JSON. It has two tools: `record_intake` stores a rough picture (counts, yes/no, and which topics were raised unprompted), and `finish_intake` ends it.
+**The conversation** ([`src/lib/intake`](src/lib/intake)) is streamed to the browser as newline-delimited JSON. It has two tools: `record_intake` stores a rough picture (counts, yes/no, and which topics were raised unprompted), and `finish_intake` ends it.
 
-- The model writes its reply **before** calling a tool, so a turn is normally one API call. About US$0.11 for a whole conversation.
+- The model writes its reply **before** calling a tool, so a turn is normally one API call.
 - The system prompt is fixed for everyone so it caches; per-person details go in a context block at the start of the conversation, fixed for its lifetime.
 - Limits: 12 exchanges (after which the server finishes the conversation regardless), 2,000 characters a message, one reply at a time per record, and three model calls a turn.
 - Tool input is validated against the zod schema in [`signals.ts`](src/lib/intake/signals.ts), which also generates the tool's JSON Schema. A failure goes back to the model as a tool error rather than being stored.

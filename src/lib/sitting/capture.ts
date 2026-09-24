@@ -94,9 +94,10 @@ export interface GapCapture {
 }
 
 // A gap never overwrites an answer: if the field is already filled, an "I'm
-// not sure" about some other part of it isn't news.
-export async function saveGap(recordId: string, gap: GapCapture, messageId: string | null): Promise<void> {
-  await db()`
+// not sure" about some other part of it isn't news. Returns whether it was
+// actually recorded, so nothing claims to have written down what it didn't.
+export async function saveGap(recordId: string, gap: GapCapture, messageId: string | null): Promise<boolean> {
+  const rows = await db()`
     insert into field_values
       (record_id, field_id, value, status, disclosure, who_would_know, gap_priority, source_message_id)
     values
@@ -106,7 +107,9 @@ export async function saveGap(recordId: string, gap: GapCapture, messageId: stri
       who_would_know = coalesce(excluded.who_would_know, field_values.who_would_know),
       gap_priority = excluded.gap_priority,
       updated_at = now()
-    where field_values.status = 'unknown'`;
+    where field_values.status = 'unknown'
+    returning id`;
+  return rows.length === 1;
 }
 
 export interface NoteCapture {

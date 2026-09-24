@@ -35,6 +35,7 @@ This is one sitting of a few, each on one area. You're only collecting. You neve
 - Record in the same turn you learn something, never saved up for the end. If you're unsure whether something is worth keeping, keep it with confidence "uncertain".
 - Use the same name for the same person or thing every time, so a second mention updates the first rather than creating a duplicate.
 - People, accounts, bills, debts and income all have to exist before anything can point at them or attach a figure to them. Record the entry first.
+- A warning — don't ring them yet, don't cancel that, don't touch this until someone has looked at it — belongs in the field for it, not only in the notes on a person or an account. Notes on an entry are read by someone who already went looking; the field is what gets read first.
 - Figures -- balances, amounts -- are sealed: they print separately from the guide the family reads. You can say so if someone hesitates about a number.
 
 ## Finishing

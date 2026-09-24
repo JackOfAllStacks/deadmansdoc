@@ -17,6 +17,7 @@ const state = vi.hoisted(() => ({
   completed: [] as { summary: string }[],
   asks: [] as unknown[],
   known: [] as { id: string; entityType: string; label: string }[],
+  gapApplies: true,
   filled: [] as { field_id: string; status: string }[],
   failures: [] as unknown[],
 }));
@@ -84,7 +85,10 @@ vi.mock("@/lib/sitting/capture", () => ({
     return `ent_${state.entities.length}`;
   },
   saveAmount: async (_r: string, c: unknown) => void state.amounts.push(c),
-  saveGap: async (_r: string, c: unknown) => void state.gaps.push(c),
+  saveGap: async (_r: string, c: unknown) => {
+    state.gaps.push(c);
+    return state.gapApplies;
+  },
   saveNote: async (_r: string, _s: string, c: unknown) => void state.notes.push(c),
 }));
 
@@ -143,6 +147,7 @@ beforeEach(() => {
     known: [],
     filled: [],
     failures: [],
+    gapApplies: true,
   });
 });
 
@@ -297,6 +302,24 @@ describe("recording what was said", () => {
     const events = await turn();
     expect(state.gaps[0]).toMatchObject({ whoWouldKnow: "Peter the accountant", priority: "medium" });
     expect(events.find((e) => e.type === "saved")).toMatchObject({ kind: "gap", detail: "Peter the accountant" });
+  });
+
+  it("doesn't claim to have noted a gap on a field that already has an answer", async () => {
+    state.gapApplies = false;
+    state.replies = [
+      {
+        text: "Fair enough.",
+        tools: [
+          {
+            name: "flag_gap",
+            input: { field_id: "s3.advisers", who_would_know: "Peter", priority: "low", note: null },
+          },
+        ],
+      },
+    ];
+    const events = await turn();
+    expect(events.some((e) => e.type === "saved")).toBe(false);
+    expect(JSON.stringify(state.messages.find((m) => m.role === "tool")!.blocks)).toContain("already has an answer");
   });
 
   it("refuses to attach a figure to something not yet recorded", async () => {
