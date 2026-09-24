@@ -56,7 +56,9 @@ export type SittingEvent =
       label: string;
       detail: string | null;
       fieldId: string | null;
+      entityId: string | null;
       text: string | null;
+      attributes: Record<string, string> | null;
     }
   | { type: "progress"; answered: number; gaps: number; total: number }
   | { type: "done"; summary: string }
@@ -180,6 +182,8 @@ async function runTool(
         label: labelOf(capture.fieldId),
         detail: capture.familyAction,
         fieldId: capture.fieldId,
+        entityId: null,
+        attributes: null,
         text: formatFieldText(capture.value),
       });
       return { result: "Recorded.", failed: false };
@@ -201,6 +205,8 @@ async function runTool(
         label: capture.label,
         detail: labelOf(capture.fieldId),
         fieldId: capture.fieldId,
+        entityId: id,
+        attributes: capture.data,
         text: formatEntityText(capture.data),
       });
       return { result: `Recorded ${capture.label}.`, failed: false };
@@ -219,6 +225,8 @@ async function runTool(
         label: parsed.data.entity_label,
         detail: "sealed",
         fieldId: capture.fieldId,
+        entityId: capture.entityId,
+        attributes: null,
         text: null,
       });
       return { result: "Recorded, and sealed.", failed: false };
@@ -249,6 +257,8 @@ async function runTool(
         label: labelOf(field_id),
         detail: who_would_know,
         fieldId: field_id,
+        entityId: null,
+        attributes: null,
         text: note,
       });
       return { result: "Noted as unknown.", failed: false };
@@ -264,7 +274,16 @@ async function runTool(
         { label, value, familyAction: family_action, confidence },
         messageId,
       );
-      emit({ type: "saved", kind: "note", label, detail: null, fieldId: null, text: value });
+      emit({
+        type: "saved",
+        kind: "note",
+        label,
+        detail: null,
+        fieldId: null,
+        entityId: null,
+        attributes: null,
+        text: value,
+      });
       return { result: "Kept.", failed: false };
     }
 

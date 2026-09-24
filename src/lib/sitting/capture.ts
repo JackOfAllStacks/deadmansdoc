@@ -73,6 +73,38 @@ export async function saveEntity(recordId: string, capture: EntityCapture, messa
   return entityId;
 }
 
+// A direct correction to an entry that already exists: unlike saveEntity,
+// this targets a specific row by id rather than upserting by label, so
+// renaming "Jordon" to "Jordan" fixes the entry in place instead of quietly
+// creating a second one. Attributes merge the same way saveEntity's do; an
+// edit that leaves a key out doesn't clear it.
+export async function updateEntity(
+  recordId: string,
+  entityId: string,
+  capture: EntityCapture,
+  messageId: string | null,
+): Promise<void> {
+  await db()`
+    update entity_instances
+    set label = ${capture.label}, data = data || ${JSON.stringify(capture.data)}::jsonb
+    where id = ${entityId} and record_id = ${recordId}`;
+
+  await db()`
+    update field_values
+    set confidence = ${capture.confidence},
+        family_action = coalesce(${capture.familyAction}, family_action),
+        source_message_id = ${messageId},
+        updated_at = now()
+    where record_id = ${recordId} and field_id = ${capture.fieldId} and entity_instance_id = ${entityId}`;
+}
+
+/** The merged attributes an entity holds right now, for handing back to an editor. */
+export async function entityData(recordId: string, entityId: string): Promise<Record<string, string>> {
+  const rows = await db()`
+    select data from entity_instances where id = ${entityId} and record_id = ${recordId}`;
+  return (rows[0] as { data: Record<string, string> } | undefined)?.data ?? {};
+}
+
 export async function saveAmount(recordId: string, capture: AmountCapture, messageId: string | null): Promise<void> {
   await db()`
     insert into field_values
@@ -148,8 +180,12 @@ export interface CapturedItem {
   detail: string | null;
   /** Which document field this belongs under; null for a free-form note. */
   fieldId: string | null;
+  /** The entity this entry is, or is about; null for a plain field, gap or note. */
+  entityId: string | null;
   /** The substantive content, formatted for display. Never set for a sealed amount. */
   text: string | null;
+  /** An entity's raw attributes, for prefilling an edit form. Set only for kind "entity". */
+  attributes: Record<string, string> | null;
 }
 
 // What this sitting has written down, for the panel beside the conversation
@@ -168,24 +204,30 @@ export async function capturedIn(sittingId: string): Promise<CapturedItem[]> {
       coalesce(fv.who_would_know, fv.family_action)   as detail,
       fv.field_id                                     as field_id,
       fv.value                                        as value,
+      ei.id                                            as entity_id,
       ei.data                                         as entity_data,
+      -- An entry keeps the place it was first recorded in. Ordering by the
+      -- message alone would shuffle the document every time something was
+      -- corrected, because a correction points the row at a newer message.
+      coalesce(ei.created_at, m.created_at)           as sort_at,
       m.position                                      as position
     from field_values fv
     join messages m on m.id = fv.source_message_id
     left join entity_instances ei on ei.id = fv.entity_instance_id
     where m.sitting_id = ${sittingId}
     union all
-    select 'note', n.label, n.family_action, null, to_jsonb(n.value), null, m.position
+    select 'note', n.label, n.family_action, null, to_jsonb(n.value), null, null, m.created_at, m.position
     from overflow_notes n
     join messages m on m.id = n.source_message_id
     where m.sitting_id = ${sittingId}
-    order by position`;
+    order by sort_at, position`;
   type Row = {
     kind: CapturedItem["kind"];
     label: string;
     detail: string | null;
     field_id: string | null;
     value: unknown;
+    entity_id: string | null;
     entity_data: Record<string, string> | null;
   };
   return (rows as Row[]).map((r) => ({
@@ -197,6 +239,8 @@ export async function capturedIn(sittingId: string): Promise<CapturedItem[]> {
       : r.label,
     detail: r.detail,
     fieldId: r.field_id,
+    entityId: r.entity_id,
+    attributes: r.kind === "entity" ? (r.entity_data ?? {}) : null,
     text:
       r.kind === "amount"
         ? null
