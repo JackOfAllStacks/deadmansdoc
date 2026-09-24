@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logFailure } from "@/lib/errors";
 import { MAX_MESSAGE_LENGTH, runIntakeTurn, type IntakeEvent } from "@/lib/intake/agent";
 import { acquireIntakeLock, getRecordForUser, releaseIntakeLock, speakersFor } from "@/lib/records";
 import { getSession } from "@/lib/session";
@@ -44,7 +45,12 @@ export async function POST(request: Request) {
       try {
         await runIntakeTurn(record, body.data.speaker, body.data.text, emit);
       } catch (err) {
-        console.error("intake: request failed", err);
+        await logFailure({
+          context: "intake:request",
+          error: err,
+          recordId: record.id,
+          userId: session.user.id,
+        });
         emit({ type: "error", message: "Something went wrong on our side. Please send that again.", kept: false });
       } finally {
         await releaseIntakeLock(record.id);
