@@ -258,35 +258,95 @@ What's being carried across, translated rather than copied:
 
 Its question bank is the same 167 these 63 were narrowed from, so nothing is owed there. Its credentials questions — where passwords and recovery codes are kept — stay out as written: the answer is the **Pointer** disclosure level, recording where something is without ever collecting the secret itself.
 
-## Roadmap
+## Where this is up to
 
-**Done**
+The spine is built and walkable end to end: someone signs up, talks to the opening conversation, gets a plan of sittings, runs a sitting, and what they said comes out as a Guide and a Sealed Envelope that follow the disclosure rules.
+
+**Built**
 
 - [Artifact template](docs/Artifact%20Template.md) — all 14 sections mapped; **Sections 1, 2, 3 and 5 are the v1 build scope**.
-- [Artifact fields](data/artifact-fields.yaml) and [question bank](data/question-bank.yaml) — v1 fields given stable ids, and the bank narrowed and mapped onto them.
-- [Schema](db/migrations/001_init.sql) — records, sittings, messages, entities and field values.
-- Next.js app, content loader validating `data/`, database client and health check, deployed to Netlify.
-- Accounts: sign-up with an access code, sign-in, sign-out, and protected pages.
-- The opening conversation and the plan of sittings.
-- Account menu, account page with deletion, admin role, and the failure log.
-- The conversation for each sitting: the real interview, filling the artifact fields, started from the plan whenever suits.
+- [Artifact fields](data/artifact-fields.yaml) and [question bank](data/question-bank.yaml) — v1 fields given stable ids, and the bank narrowed onto them. Cross-checked at build time.
+- [Schema](db/migrations) — records, sittings, messages, entities, field values, overflow, failures.
+- Next.js app on Netlify, Neon with a `dev` branch, health check.
+- Accounts: access-code sign-up, sign-in, deletion, admin roles granted from inside the app.
+- The opening conversation, and the plan of sittings built from it in code.
+- The sitting interview: typed capture into the artifact fields, startable from the plan whenever suits.
+- The Guide and the Sealed Envelope, rendered from data rather than written by a model.
+- The completeness check, and the admin view of a record.
 
-- The admin view of a record: what was captured, both documents, and the completeness check.
+**Not built: most of what a person sees.** One shared component file and 26 lines of CSS, with Tailwind utilities written inline page by page. There is no typography scale, no spacing rhythm, no component vocabulary. The product logic runs several layers deep; the surface is a prototype, and looks it. That is what the next few branches are for.
 
-**Next**
+### The problem the front end has to solve
 
-- Printing the Guide and the Sealed Envelope properly — the Markdown is there; the paper isn't.
+Shown to the client, the feedback was not about the capture or the documents — it was about being dropped into a chat box.
 
-**Later**
+An open text field asks the person to know what's worth saying. A form of the old kind asked a question and gave you somewhere to put the answer; a conversation asks you to produce the material yourself, from your own head, about your own death. That is a harder thing to do, and the interface currently offers almost no help with it.
 
-- **Split-screen live artifact view** — chat on one side, the document updating in real time on the other. A core centrepiece of the intended UX, but dependent on the template being fixed first.
-- **Synthetic personas and DB seeding** — we generate our own rather than waiting on the client, and demo against them. No real personal data enters the prototype.
-- Richer progress feedback and gamification.
-- Designed, styled PDF output.
+So the work is not decoration. It is **scaffolding**: showing what ground is being covered, what's been got so far, what's still to come, and what sort of thing a useful answer looks like — enough structure that someone can lean on it, without collapsing back into a form and losing what the conversation is for.
+
+## What's next, in order
+
+Each of these is a branch. The order is deliberate: the visual language comes first so the rest is built in it rather than retrofitted.
+
+### 1. The front end — a real home, signposting, and a visual language
+
+The largest piece, and the one the client would notice.
+
+- **A home worth landing on.** `/home` is currently a redirect that computes where you're up to and sends you there. It should be a place: the record, progress across the sittings, what's next, what's been captured, what's still unknown.
+- **Navigation.** Today the app is one linear corridor — after the opening conversation creates the plan, there is no way back to it. A header nav and a sense of place, so every page is reachable.
+- **Context before the conversation**, not after. What this is, how long it takes, who it's for, what happens to what you say.
+- **Scaffolding during the interview** — cards or similar showing the areas being covered, so the empty box stops being empty. This is the client's specific request.
+- **A component vocabulary** extracted from what's already there, so the next feature doesn't add a fourteenth variation on a card.
+
+**Open question to settle in this branch.** The opening conversation currently locks once it has enough to build a plan. Reaching it again means deciding what happens when someone adds to it: does the plan rebuild, and what becomes of sittings already done against the old one? Worth answering deliberately rather than by accident.
+
+### 2. The Guide, readable by the person it's about
+
+Only admins can read the Guide today. The person whose record it is cannot see what they've said — in a product built on trust, about their own death, that is the wrong way round. It is also the most reassuring screen in the product, currently invisible to the people it's for.
+
+Ordered before the split screen on purpose: this is the same renderer, on its own page. Doing it first makes the next branch mostly wiring rather than a second implementation.
+
+### 3. The split-screen live artifact
+
+Chat on one side, the document filling in on the other — named from the start as a centrepiece of the intended experience, and the clearest way to show someone that talking is producing something. The capture panel beside a sitting is a first sketch of it; this is the real thing, using the renderer from the branch above.
+
+### 4. Synthetic personas and seeding
+
+Demos currently mean improvising answers live, or pasting a script, and paying for model calls to show what the product already knows how to do.
+
+Two different needs, worth building as two things:
+
+- **Seeded records** written straight into the database — finished and half-finished, several personas. Instant, free, repeatable, and what you want when showing the *output*: the plan, the captured record, the Guide, the envelope.
+- **A scripted run** through the real agents, for when the point is the *experience* rather than the result. Slower and costs credit, so it stays a deliberate choice rather than the only option.
+
+No real personal data, ever — these are written by us.
+
+### 5. Gamification
+
+Its own piece of work rather than a note at the end of a list. The discovery brief asked for a large, intimidating task made to feel finite; what exists is a progress bar and minute estimates. Worth designing properly once there is a visual language to design in.
+
+### 6. Printing, and the styled PDF
+
+The Markdown is there; the paper isn't. Low priority until the rest is real, and it overlaps almost entirely with the styled PDF, so the two are one branch. Deliberately last: styling the artifact before the app has a look means doing it twice.
+
+### Later, unordered
+
+- Sections 4 and 6–14 of the template.
 - Password reset and email verification (needs an email provider).
-- Second participant on their own device.
+- A second participant on their own device.
 - Genuinely secure asymmetric disclosure.
 - Jurisdictions beyond Victoria.
+
+## Known debts
+
+Things that are true about the code today, recorded so they are chosen rather than discovered.
+
+| | |
+|---|---|
+| **Sittings cost more than they should** | A nine-message sitting took 25 model calls — about 2.8 a message, where the opening conversation averages one. Something in the turn loop is going round more often than it needs to. Not urgent, not understood yet, worth an hour with the logs. |
+| **Sonnet files less tidily than Opus** | Same script, same persona: a phone number went to an overflow note instead of onto the person, and a "don't ring him yet" landed in an entry's notes rather than the field for things not to do yet. Sonnet is the right call for now on cost. Judge any change with `scripts/e2e-sitting.mjs`, not by feel. |
+| **Admins can read every transcript** | Accepted, deliberately. It is the tool for tuning the interview, and the data is synthetic. It needs an answer before anyone's real life goes in, and not before. |
+| **The split into parts never happens** | The planner splits a sitting over 30 minutes into parts, but no sitting can reach 30 under the current rules, so that path is unreachable from real data. Built and tested; don't promise it in a demo. |
 
 ## Guardrails
 
