@@ -7,6 +7,7 @@ import { sessionTemplate } from "@/lib/content";
 import { addDays, buildPlan, isIsoDate, RHYTHMS, type Rhythm } from "@/lib/plan/build-plan";
 import { createRecord, getRecordForUser, rescheduleSitting, savePlan } from "@/lib/records";
 import { requireSession } from "@/lib/session";
+import { openSitting, startSitting } from "@/lib/sitting/store";
 import { todayInMelbourne } from "@/lib/today";
 
 export type FormState = { error?: string; ok?: boolean };
@@ -67,6 +68,28 @@ export async function confirmPlan(_prev: FormState, form: FormData): Promise<For
   const plan = buildPlan(record.intake, sessionTemplate, { startDate, rhythm: rhythm as Rhythm });
   await savePlan(record.id, plan);
   redirect("/plan");
+}
+
+// Dates on the plan are a suggestion, not a gate: any planned sitting can be
+// started whenever suits. Only one runs at a time, which startSitting enforces.
+export async function beginSitting(_prev: FormState, form: FormData): Promise<FormState> {
+  const { user } = await requireSession();
+  const record = await getRecordForUser(user.id);
+  if (!record) redirect("/home");
+
+  const sittingId = z.uuid().safeParse(form.get("sittingId"));
+  if (!sittingId.success) return { error: "Something went wrong. Please reload the page." };
+
+  const started = await startSitting(record.id, sittingId.data, record.present);
+  if (!started) {
+    const open = await openSitting(record.id);
+    return {
+      error: open
+        ? `“${open.title}” is still open. Carry on with that one first.`
+        : "That sitting can't be started now.",
+    };
+  }
+  redirect("/sitting");
 }
 
 export async function moveSitting(_prev: FormState, form: FormData): Promise<FormState> {
