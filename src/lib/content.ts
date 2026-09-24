@@ -72,6 +72,26 @@ export function sectionFields(section: Section): Field[] {
   ];
 }
 
+// A sitting's `covers` may name a section, a group or a single field. This
+// turns any mix of those into the field ids they stand for.
+export function expandCovers(refs: string[]): string[] {
+  const out: string[] = [];
+  for (const ref of refs) {
+    const section = artifact.sections.find((s) => s.id === ref);
+    if (section) {
+      out.push(...sectionFields(section).map((f) => f.id));
+      continue;
+    }
+    const group = artifact.sections.flatMap((s) => s.groups ?? []).find((g) => g.id === ref);
+    if (group) {
+      out.push(...group.fields.map((f) => f.id));
+      continue;
+    }
+    if (fieldsById.has(ref)) out.push(ref);
+  }
+  return [...new Set(out)];
+}
+
 // The database stores field and question ids as plain text, so nothing
 // downstream can catch a typo in these files. Checked at load — which, because
 // this runs at module scope, means failing the build.
