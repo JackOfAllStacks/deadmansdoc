@@ -1,7 +1,64 @@
 import { db } from "@/lib/db";
 
-// Read-only queries behind /admin. Everything here crosses account
-// boundaries, so every caller must go through requireAdmin() first.
+// Queries behind /admin. Everything here crosses account boundaries, so
+// every caller must go through requireAdmin() first.
+
+export type Role = "user" | "admin";
+
+export interface Account {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  createdAt: string;
+  records: number;
+}
+
+export async function listAccounts(): Promise<Account[]> {
+  const rows = await db()`
+    select u.id, u.name, u.email, u.role, u."createdAt",
+           (select count(*) from records r where r.owner_user_id = u.id)::int as records
+    from "user" u
+    order by u."createdAt"`;
+  return rows as Account[];
+}
+
+export type RoleChange = { ok: true; email: string; role: Role } | { ok: false; reason: string };
+
+/**
+ * Grants or removes admin. Two things it won't do: change the role of whoever
+ * is asking, and remove the last admin — either would leave a page nobody can
+ * reach, since only an admin can grant admin.
+ *
+ * The last-admin check and the update are one statement, which is as close to
+ * atomic as the HTTP driver gets. Two admins demoting each other in the same
+ * instant could in theory both pass; `npm run make-admin` is the way back in.
+ */
+export async function setRole(actorId: string, userId: string, role: Role): Promise<RoleChange> {
+  if (actorId === userId) {
+    return { ok: false, reason: "You can't change your own access. Ask another admin." };
+  }
+
+  const rows =
+    role === "admin"
+      ? await db()`update "user" set role = 'admin' where id = ${userId} returning email, role`
+      : await db()`
+          update "user" set role = 'user'
+          where id = ${userId}
+            and exists (select 1 from "user" other where other.role = 'admin' and other.id <> ${userId})
+          returning email, role`;
+
+  if (rows.length === 1) {
+    const row = rows[0] as { email: string; role: Role };
+    // Who changed whose access is worth being able to account for afterwards.
+    console.log(JSON.stringify({ event: "role_changed", by: actorId, user: userId, to: row.role }));
+    return { ok: true, email: row.email, role: row.role };
+  }
+
+  const exists = await db()`select role from "user" where id = ${userId}`;
+  if (!exists.length) return { ok: false, reason: "That account no longer exists." };
+  return { ok: false, reason: "That's the last admin. Make someone else an admin first." };
+}
 
 export interface ErrorRow {
   id: string;
