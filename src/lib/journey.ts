@@ -4,6 +4,11 @@ import { getRecordForUser, listSittings, type RecordRow, type SittingRow } from 
 import { openSitting } from "@/lib/sitting/store";
 import type { SittingDetail } from "@/lib/sitting/store";
 
+// They sit next to RecordRow now, so the sitting agent can say whose family a
+// milestone is about without pulling the whole journey in. Re-exported because
+// every page already reaches for them here.
+export { possessive, possessiveLower } from "@/lib/records";
+
 /*
  * Where someone is up to.
  *
@@ -60,12 +65,3 @@ export const journeyFor = cache(async (userId: string): Promise<Journey> => {
 
   return { record, sittings, open, next, done, gaps, stage };
 });
-
-/** How the subject is referred to: "Your plan" versus "John's plan". */
-export function possessive(record: RecordRow): string {
-  return record.subject_relationship === "self" ? "Your" : `${record.subject_name}'s`;
-}
-
-export function possessiveLower(record: RecordRow): string {
-  return record.subject_relationship === "self" ? "your" : `${record.subject_name}'s`;
-}

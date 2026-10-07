@@ -4,7 +4,9 @@ import { ButtonLink, Card, Note, Page, PageHeader } from "@/components/ui";
 import { collectRecord } from "@/lib/artifact/collect";
 import { guideDoc, hasSealedContent } from "@/lib/artifact/render";
 import { renderGuide } from "@/lib/artifact/render";
-import { journeyFor, possessiveLower } from "@/lib/journey";
+import { journeyFor, possessive, possessiveLower } from "@/lib/journey";
+import { progressFor } from "@/lib/progress";
+import { filledFields } from "@/lib/sitting/capture";
 import { requireSession } from "@/lib/session";
 import { todayInMelbourne } from "@/lib/today";
 import { DocumentActions } from "./document-actions";
@@ -33,6 +35,7 @@ export default async function MyGuidePage() {
   const markdown = renderGuide(data, meta);
   const recorded = data.values.filter((v) => v.status === "answered").length;
   const whose = possessiveLower(journey.record);
+  const progress = progressFor(await filledFields(journey.record.id), possessive(journey.record));
 
   return (
     <Page width="wide">
@@ -46,7 +49,19 @@ export default async function MyGuidePage() {
               : `This is what the sittings are building. It fills in as you go.`
           }
         />
-        {recorded > 0 && <DocumentActions markdown={markdown} filename={`guide-${data.header.subject_name.toLowerCase()}.md`} />}
+        {/* How much of it exists, said where the document itself is, so the
+            measure is the thing being made rather than a count of
+            conversations had about it. */}
+        {recorded > 0 && (
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <DocumentActions markdown={markdown} filename={`guide-${data.header.subject_name.toLowerCase()}.md`} />
+            <p className="text-sm text-muted">
+              {progress.answered + progress.gaps} of {progress.total} parts covered
+              {progress.met.length > 0 &&
+                ` · ${progress.met.length} of ${progress.milestones.length} things ${whose} family would know`}
+            </p>
+          </div>
+        )}
       </div>
 
       {recorded === 0 ? (

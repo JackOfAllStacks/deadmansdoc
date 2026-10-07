@@ -2,8 +2,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import { fieldsById, questionBank } from "@/lib/content";
 import { logFailure } from "@/lib/errors";
 import { MODEL } from "@/lib/model";
-import { speakersFor, type MessageRow, type RecordRow } from "@/lib/records";
+import { possessive, speakersFor, type MessageRow, type RecordRow } from "@/lib/records";
+import { harvestOf, progressFor, type SittingHarvest } from "@/lib/progress";
 import {
+  capturedIn,
   filledFields,
   knownEntities,
   saveAmount,
@@ -69,7 +71,20 @@ export type SittingEvent =
   // Recomputed on the server rather than tallied in the browser, so neither
   // the document nor the areas beside it can drift from what is stored.
   | { type: "progress"; answered: number; gaps: number; total: number; topics: TopicProgress[] }
-  | { type: "done"; summary: string }
+  /**
+   * The end of a sitting is the one moment somebody has just done something
+   * hard, so it carries what the sitting actually got rather than only that it
+   * ended. All of it is counted from what was stored.
+   */
+  | {
+      type: "done";
+      summary: string;
+      harvest: SittingHarvest;
+      /** Topics of this sitting that are now settled and weren't before. */
+      settled: string[];
+      /** Claims about the record that became true during it. */
+      unlocked: string[];
+    }
   | { type: "end" }
   | { type: "error"; message: string; kept: boolean };
 
@@ -495,7 +510,31 @@ export async function runSittingTurn(
   if (finished !== undefined || lastTurn) {
     const summary = finished || "Ended without a summary.";
     await completeSitting(record.id, sitting.id, summary);
-    emit({ type: "done", summary });
+
+    // What this sitting got. filledBefore is already loaded for the question
+    // asks, so the difference across the sitting costs nothing extra -- and a
+    // difference is the only honest way to say what *this* conversation did.
+    const [captured, after] = await Promise.all([capturedIn(sitting.id), filledFields(record.id)]);
+    const whose = possessive(record);
+    const was = new Set(progressFor(filledBefore, whose).met.map((m) => m.id));
+    const topics = topicsFor(sitting.sitting_key);
+    const settledBefore = new Set(
+      topicProgress(topics, filledBefore)
+        .filter((t) => t.done)
+        .map((t) => t.label),
+    );
+
+    emit({
+      type: "done",
+      summary,
+      harvest: harvestOf(captured),
+      settled: topicProgress(topics, after)
+        .filter((t) => t.done && !settledBefore.has(t.label))
+        .map((t) => t.label),
+      unlocked: progressFor(after, whose)
+        .met.filter((m) => !was.has(m.id))
+        .map((m) => m.says),
+    });
   } else {
     emit({ type: "end" });
   }

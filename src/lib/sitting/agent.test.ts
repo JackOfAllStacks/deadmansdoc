@@ -19,6 +19,11 @@ const state = vi.hoisted(() => ({
   known: [] as { id: string; entityType: string; label: string }[],
   gapApplies: true,
   filled: [] as { field_id: string; status: string }[],
+  // What the record looks like after the turn, when a test needs the two to
+  // differ -- which is the only way to check what *this* sitting changed.
+  filledAfter: null as { field_id: string; status: string }[] | null,
+  filledReads: 0,
+  captured: [] as unknown[],
   failures: [] as unknown[],
 }));
 
@@ -78,7 +83,11 @@ vi.mock("@/lib/sitting/store", () => ({
 
 vi.mock("@/lib/sitting/capture", () => ({
   knownEntities: async () => structuredClone(state.known),
-  filledFields: async () => structuredClone(state.filled),
+  filledFields: async () => {
+    const rows = state.filledReads > 0 && state.filledAfter ? state.filledAfter : state.filled;
+    state.filledReads += 1;
+    return structuredClone(rows);
+  },
   saveFieldValue: async (_r: string, c: unknown) => void state.fields.push(c),
   saveEntity: async (_r: string, c: { label: string; entityType: string }) => {
     state.entities.push(c);
@@ -90,6 +99,8 @@ vi.mock("@/lib/sitting/capture", () => ({
     return state.gapApplies;
   },
   saveNote: async (_r: string, _s: string, c: unknown) => void state.notes.push(c),
+  // Only read when a sitting ends, to say what it got.
+  capturedIn: async () => structuredClone(state.captured),
 }));
 
 vi.mock("@/lib/errors", () => ({
@@ -146,6 +157,9 @@ beforeEach(() => {
     asks: [],
     known: [],
     filled: [],
+    filledAfter: null,
+    filledReads: 0,
+    captured: [],
     failures: [],
     gapApplies: true,
   });
@@ -368,6 +382,57 @@ describe("ending", () => {
     const events = await turn();
     expect(state.completed).toHaveLength(1);
     expect(events.at(-1)).toMatchObject({ type: "done" });
+  });
+
+  it("says what the sitting got, counted from what was stored", async () => {
+    state.captured = [
+      { kind: "entity", fieldId: "s3.key_people", entityId: "p1", label: "Robyn" },
+      { kind: "entity", fieldId: "s3.household", entityId: "p1", label: "Robyn" },
+      { kind: "field", fieldId: "s3.responsibilities", entityId: null, label: "x" },
+      { kind: "gap", fieldId: "s3.advisers", entityId: null, label: "x" },
+      { kind: "note", fieldId: null, entityId: null, label: "x" },
+    ];
+    state.replies = [{ text: "Done.", tools: [{ name: "finish_sitting", input: { summary: "Covered." } }] }];
+    const done = (await turn()).at(-1) as { harvest: { people: number; gaps: number; notes: number } };
+    // Robyn under two fields is one person and two things recorded.
+    expect(done.harvest).toMatchObject({ people: 1, entries: 0, recorded: 3, gaps: 1, notes: 1 });
+  });
+
+  it("only claims what this sitting made true, not what already was", async () => {
+    // Everything who-to-ring needs is already answered before the turn runs.
+    state.filled = [
+      { field_id: "s1.first_calls", status: "answered" },
+      { field_id: "s1.fallback_contact", status: "answered" },
+    ];
+    state.replies = [{ text: "Done.", tools: [{ name: "finish_sitting", input: { summary: "Covered." } }] }];
+    const done = (await turn()).at(-1) as { unlocked: string[] };
+    expect(done.unlocked).toEqual([]);
+  });
+
+  it("names a claim this sitting made true", async () => {
+    state.filled = [{ field_id: "s1.first_calls", status: "answered" }];
+    state.filledAfter = [
+      { field_id: "s1.first_calls", status: "answered" },
+      { field_id: "s1.fallback_contact", status: "answered" },
+    ];
+    state.replies = [{ text: "Done.", tools: [{ name: "finish_sitting", input: { summary: "Covered." } }] }];
+    const done = (await turn()).at(-1) as { unlocked: string[] };
+    expect(done.unlocked).toHaveLength(1);
+    expect(done.unlocked[0]).toMatch(/would know who to ring first/);
+    // Whose family it is comes from the record, not from a hard-coded "Your".
+    expect(done.unlocked[0]).toMatch(/^John's family/);
+  });
+
+  it("will not claim a family would know something off a recorded gap", async () => {
+    // The mistake that would matter: everything the claim names is on record,
+    // and all of it says nobody knows.
+    state.filled = [
+      { field_id: "s1.first_calls", status: "unknown" },
+      { field_id: "s1.fallback_contact", status: "unknown" },
+    ];
+    state.replies = [{ text: "Done.", tools: [{ name: "finish_sitting", input: { summary: "Covered." } }] }];
+    const done = (await turn()).at(-1) as { unlocked: string[] };
+    expect(done.unlocked).toEqual([]);
   });
 
   it("says 'end' and stays open while there's more to do", async () => {
