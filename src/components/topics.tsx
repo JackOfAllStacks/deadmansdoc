@@ -102,3 +102,35 @@ export function TopicChecklist({ topics }: { topics: TopicProgress[] }) {
     </Card>
   );
 }
+
+/**
+ * A one-line version for the top of the live document, where the document
+ * itself is already showing the detail. Plain-language areas keep their place
+ * beside it: the document lists field labels, which say what is being asked
+ * but not what ground is being covered.
+ */
+export function TopicStrip({ topics }: { topics: TopicProgress[] }) {
+  if (!topics.length) return null;
+  const finished = topics.filter((t) => t.done).length;
+  const tone = (t: TopicProgress) => (t.done ? "recorded" : t.started ? "unknown" : "neutral");
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="font-sans text-xs font-medium tracking-wide text-faint uppercase">What we&apos;re covering</h3>
+        <span className="text-xs text-muted">
+          {finished} of {topics.length}
+        </span>
+      </div>
+      <ul className="flex flex-wrap gap-1.5">
+        {topics.map((topic) => (
+          <li key={topic.label} title={topic.blurb}>
+            <Badge tone={tone(topic)}>
+              {topic.done && <span aria-hidden>✓</span>}
+              {topic.label}
+            </Badge>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

@@ -13,7 +13,14 @@ import {
   saveNote,
   type FilledField,
 } from "@/lib/sitting/capture";
-import { coverageOf, remainingQuestions, topicProgress, topicsFor, type TopicProgress } from "@/lib/sitting/coverage";
+import {
+  coverageOf,
+  remainingQuestions,
+  topicProgress,
+  topicsFor,
+  type TopicProgress,
+} from "@/lib/sitting/coverage";
+import { formatEntityText, formatFieldText } from "@/lib/sitting/format";
 import { contextBlock, LAST_TURN, stateBlock, SYSTEM_PROMPT, WRAP_UP } from "@/lib/sitting/prompt";
 import {
   finishSittingSchema,
@@ -49,9 +56,18 @@ export type SittingEvent =
   | { type: "text"; text: string }
   | { type: "reset" }
   // Something was written down; the panel beside the conversation shows these.
-  | { type: "saved"; kind: "field" | "entity" | "amount" | "gap" | "note"; label: string; detail: string | null }
-  // Recomputed on the server rather than tallied in the browser, so the panel
-  // beside the conversation can't drift from what is actually stored.
+  | {
+      type: "saved";
+      kind: "field" | "entity" | "amount" | "gap" | "note";
+      label: string;
+      detail: string | null;
+      fieldId: string | null;
+      entityId: string | null;
+      text: string | null;
+      attributes: Record<string, string> | null;
+    }
+  // Recomputed on the server rather than tallied in the browser, so neither
+  // the document nor the areas beside it can drift from what is stored.
   | { type: "progress"; answered: number; gaps: number; total: number; topics: TopicProgress[] }
   | { type: "done"; summary: string }
   | { type: "end" }
@@ -168,7 +184,16 @@ async function runTool(
       if (typeof capture === "string") return { result: capture, failed: true };
       await saveFieldValue(record.id, capture, messageId);
       state.touched.add(capture.fieldId);
-      emit({ type: "saved", kind: "field", label: labelOf(capture.fieldId), detail: capture.familyAction });
+      emit({
+        type: "saved",
+        kind: "field",
+        label: labelOf(capture.fieldId),
+        detail: capture.familyAction,
+        fieldId: capture.fieldId,
+        entityId: null,
+        attributes: null,
+        text: formatFieldText(capture.value),
+      });
       return { result: "Recorded.", failed: false };
     }
 
@@ -182,7 +207,19 @@ async function runTool(
       if (!state.known.some((k) => k.id === id)) {
         state.known.push({ id, entityType: capture.entityType, label: capture.label });
       }
-      emit({ type: "saved", kind: "entity", label: capture.label, detail: labelOf(capture.fieldId) });
+      emit({
+        type: "saved",
+        kind: "entity",
+        label: capture.label,
+        // What the family has to do, the same thing capturedIn() returns for
+        // this entry -- not which list it went into, which the document shows
+        // as its own heading anyway.
+        detail: capture.familyAction,
+        fieldId: capture.fieldId,
+        entityId: id,
+        attributes: capture.data,
+        text: formatEntityText(capture.data),
+      });
       return { result: `Recorded ${capture.label}.`, failed: false };
     }
 
@@ -193,7 +230,16 @@ async function runTool(
       if (typeof capture === "string") return { result: capture, failed: true };
       await saveAmount(record.id, capture, messageId);
       state.touched.add(capture.fieldId);
-      emit({ type: "saved", kind: "amount", label: parsed.data.entity_label, detail: "sealed" });
+      emit({
+        type: "saved",
+        kind: "amount",
+        label: parsed.data.entity_label,
+        detail: null,
+        fieldId: capture.fieldId,
+        entityId: capture.entityId,
+        attributes: null,
+        text: null,
+      });
       return { result: "Recorded, and sealed.", failed: false };
     }
 
@@ -216,7 +262,16 @@ async function runTool(
         };
       }
       state.touched.add(field_id);
-      emit({ type: "saved", kind: "gap", label: labelOf(field_id), detail: who_would_know });
+      emit({
+        type: "saved",
+        kind: "gap",
+        label: labelOf(field_id),
+        detail: who_would_know,
+        fieldId: field_id,
+        entityId: null,
+        attributes: null,
+        text: note,
+      });
       return { result: "Noted as unknown.", failed: false };
     }
 
@@ -230,7 +285,16 @@ async function runTool(
         { label, value, familyAction: family_action, confidence },
         messageId,
       );
-      emit({ type: "saved", kind: "note", label, detail: null });
+      emit({
+        type: "saved",
+        kind: "note",
+        label,
+        detail: null,
+        fieldId: null,
+        entityId: null,
+        attributes: null,
+        text: value,
+      });
       return { result: "Kept.", failed: false };
     }
 

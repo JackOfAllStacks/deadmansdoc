@@ -1,5 +1,6 @@
 import { fieldsById } from "@/lib/content";
 import { db } from "@/lib/db";
+import { formatEntityText, formatFieldText } from "@/lib/sitting/format";
 import type { AmountCapture, EntityCapture, FieldCapture, KnownEntity } from "@/lib/sitting/validate";
 
 // Writing down what a sitting captured.
@@ -72,6 +73,37 @@ export async function saveEntity(recordId: string, capture: EntityCapture, messa
   return entityId;
 }
 
+// Editing the document means a line someone deletes has to actually go. Both
+// of these are only reachable from a hand edit: the model can record and
+// correct, but it never removes anything somebody said.
+
+/** Clears a plain field's answer or gap, putting it back to "not yet covered". */
+export async function clearField(recordId: string, fieldId: string): Promise<void> {
+  await db()`
+    delete from field_values
+    where record_id = ${recordId} and field_id = ${fieldId} and entity_instance_id is null`;
+}
+
+/**
+ * Drops any entry under this field that the edit no longer lists, and with it
+ * any entity left belonging to nothing at all. An entity named by another
+ * field as well stays: it was only removed from this list.
+ */
+export async function keepOnlyEntities(recordId: string, fieldId: string, keep: string[]): Promise<void> {
+  const keepIds = keep.length ? keep : ["00000000-0000-0000-0000-000000000000"];
+  await db()`
+    delete from field_values
+    where record_id = ${recordId}
+      and field_id = ${fieldId}
+      and entity_instance_id is not null
+      and entity_instance_id <> all(${keepIds}::uuid[])`;
+
+  await db()`
+    delete from entity_instances ei
+    where ei.record_id = ${recordId}
+      and not exists (select 1 from field_values fv where fv.entity_instance_id = ei.id)`;
+}
+
 export async function saveAmount(recordId: string, capture: AmountCapture, messageId: string | null): Promise<void> {
   await db()`
     insert into field_values
@@ -136,6 +168,10 @@ export async function saveNote(
       updated_at = now()`;
 }
 
+export async function deleteNote(recordId: string, label: string): Promise<void> {
+  await db()`delete from overflow_notes where record_id = ${recordId} and label = ${label}`;
+}
+
 export interface FilledField {
   field_id: string;
   status: "answered" | "unknown" | "skipped";
@@ -145,6 +181,14 @@ export interface CapturedItem {
   kind: "field" | "entity" | "amount" | "gap" | "note";
   label: string;
   detail: string | null;
+  /** Which document field this belongs under; null for a free-form note. */
+  fieldId: string | null;
+  /** The entity this entry is, or is about; null for a plain field, gap or note. */
+  entityId: string | null;
+  /** The substantive content, formatted for display. Never set for a sealed amount. */
+  text: string | null;
+  /** An entity's raw attributes, for prefilling an edit form. Set only for kind "entity". */
+  attributes: Record<string, string> | null;
 }
 
 // What this sitting has written down, for the panel beside the conversation
@@ -162,18 +206,34 @@ export async function capturedIn(sittingId: string): Promise<CapturedItem[]> {
       coalesce(ei.label, fv.field_id)                 as label,
       coalesce(fv.who_would_know, fv.family_action)   as detail,
       fv.field_id                                     as field_id,
+      fv.value                                        as value,
+      ei.id                                            as entity_id,
+      ei.data                                         as entity_data,
+      -- An entry keeps the place it was first recorded in. Ordering by the
+      -- message alone would shuffle the document every time something was
+      -- corrected, because a correction points the row at a newer message.
+      coalesce(ei.created_at, m.created_at)           as sort_at,
       m.position                                      as position
     from field_values fv
     join messages m on m.id = fv.source_message_id
     left join entity_instances ei on ei.id = fv.entity_instance_id
     where m.sitting_id = ${sittingId}
     union all
-    select 'note', n.label, n.family_action, null, m.position
+    select 'note', n.label, n.family_action, null, to_jsonb(n.value), null, null, m.created_at, m.position
     from overflow_notes n
     join messages m on m.id = n.source_message_id
     where m.sitting_id = ${sittingId}
-    order by position`;
-  return (rows as (CapturedItem & { field_id: string | null })[]).map((r) => ({
+    order by sort_at, position`;
+  type Row = {
+    kind: CapturedItem["kind"];
+    label: string;
+    detail: string | null;
+    field_id: string | null;
+    value: unknown;
+    entity_id: string | null;
+    entity_data: Record<string, string> | null;
+  };
+  return (rows as Row[]).map((r) => ({
     kind: r.kind,
     // Entities carry their own name; everything else is shown by what the
     // field is called, not its id.
@@ -181,6 +241,19 @@ export async function capturedIn(sittingId: string): Promise<CapturedItem[]> {
       ? (fieldsById.get(r.field_id)?.label ?? r.label)
       : r.label,
     detail: r.detail,
+    fieldId: r.field_id,
+    entityId: r.entity_id,
+    attributes: r.kind === "entity" ? (r.entity_data ?? {}) : null,
+    text:
+      r.kind === "amount"
+        ? null
+        : r.kind === "entity"
+          ? formatEntityText(r.entity_data)
+          : r.kind === "note"
+            ? formatFieldText(r.value)
+            : r.kind === "field"
+              ? formatFieldText(r.value)
+              : null,
   }));
 }
 
