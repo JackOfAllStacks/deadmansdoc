@@ -11,9 +11,7 @@ const known: KnownEntity[] = [
 
 const field = (over: Partial<Parameters<typeof validateSaveField>[0]> = {}) => ({
   field_id: "s3.interrelationships",
-  text: null,
-  items: null,
-  people: null,
+  value: [] as string[],
   family_action: null,
   confidence: "stated" as const,
   disclosure: null,
@@ -44,63 +42,87 @@ describe("the tools built from the content files", () => {
 });
 
 describe("validateSaveField", () => {
+  // There is one argument now, whatever the field holds, and the field's own
+  // declared type decides what happens to it. The two things this used to
+  // reject -- the wrong slot, and two slots at once -- can no longer be said.
   it("takes prose for a text field", () => {
-    const out = validateSaveField(field({ text: "  They have never met.  " }), known);
+    const out = validateSaveField(field({ value: ["  They have never met.  "] }), known);
     expect(out).toMatchObject({ fieldId: "s3.interrelationships", value: "They have never met." });
   });
 
-  it("refuses a list where prose belongs, and says which to use", () => {
-    const out = validateSaveField(field({ items: ["one"] }), known);
-    expect(out).toBe("s3.interrelationships is written as prose. Use text, not items.");
+  it("reads more than one entry on a prose field as paragraphs, not as a mistake", () => {
+    const out = validateSaveField(field({ value: ["They have never met.", "Priya would know why."] }), known);
+    expect(out).toMatchObject({ value: "They have never met.\nPriya would know why." });
   });
 
   it("keeps the order of an ordered field", () => {
     const out = validateSaveField(
-      field({ field_id: "s2.first_72h", items: ["Call Priya", "Ring the funeral home", "Find the will"] }),
+      field({ field_id: "s2.first_72h", value: ["Call Priya", "Ring the funeral home", "Find the will"] }),
       known,
     );
     expect(out).toMatchObject({ value: ["Call Priya", "Ring the funeral home", "Find the will"] });
   });
 
-  it("drops blank items but keeps the rest", () => {
-    const out = validateSaveField(field({ field_id: "s2.deadlines", items: ["Probate", "  ", ""] }), known);
+  it("drops blank entries but keeps the rest", () => {
+    const out = validateSaveField(field({ field_id: "s2.deadlines", value: ["Probate", "  ", ""] }), known);
     expect(out).toMatchObject({ value: ["Probate"] });
   });
 
   it("refuses a value that is only blanks", () => {
-    expect(validateSaveField(field({ field_id: "s2.deadlines", items: ["  "] }), known)).toBe(
-      "s2.deadlines needs at least one item.",
+    expect(validateSaveField(field({ field_id: "s2.deadlines", value: ["  "] }), known)).toBe(
+      "s2.deadlines needs a value. Nothing was sent.",
     );
-  });
-
-  it("refuses two shapes at once", () => {
-    const out = validateSaveField(field({ text: "a", items: ["b"] }), known);
-    expect(out).toBe("Send only one of text, items or people. This had text and items.");
   });
 
   it("refuses an empty call", () => {
     expect(validateSaveField(field(), known)).toBe("s3.interrelationships needs a value. Nothing was sent.");
   });
 
+  it("takes a single entry for a list, which is the common case", () => {
+    expect(validateSaveField(field({ field_id: "s2.deadlines", value: ["Probate"] }), known)).toMatchObject({
+      value: ["Probate"],
+    });
+  });
+
   it("resolves people by name, whatever the casing", () => {
-    const out = validateSaveField(field({ field_id: "s3.financial_knower", people: ["priya"] }), known);
+    const out = validateSaveField(field({ field_id: "s3.financial_knower", value: ["priya"] }), known);
     expect(out).toMatchObject({ references: ["p1"], value: ["Priya"] });
   });
 
   it("refuses a person who hasn't been recorded, and lists who has", () => {
-    const out = validateSaveField(field({ field_id: "s3.financial_knower", people: ["Dev"] }), known);
+    const out = validateSaveField(field({ field_id: "s3.financial_knower", value: ["Dev"] }), known);
     expect(out).toContain('Nobody called "Dev" has been recorded yet');
     expect(out).toContain("Priya, Michael");
   });
 
   it("takes the field's own disclosure unless told otherwise", () => {
-    expect(validateSaveField(field({ text: "x" }), known)).toMatchObject({ disclosure: "open" });
-    expect(validateSaveField(field({ field_id: "s3.anticipated_disagreement", text: "x" }), known)).toMatchObject({
+    expect(validateSaveField(field({ value: ["x"] }), known)).toMatchObject({ disclosure: "open" });
+    expect(
+      validateSaveField(field({ field_id: "s3.anticipated_disagreement", value: ["x"] }), known),
+    ).toMatchObject({ disclosure: "sealed" });
+    expect(validateSaveField(field({ value: ["x"], disclosure: "sealed" }), known)).toMatchObject({
       disclosure: "sealed",
     });
-    expect(validateSaveField(field({ text: "x", disclosure: "sealed" }), known)).toMatchObject({
-      disclosure: "sealed",
-    });
+  });
+});
+
+describe("the save_field schema itself", () => {
+  it("offers one way to send a value, so there is no wrong one to pick", () => {
+    const tool = toolsFor().find((t) => t.name === "save_field")!;
+    const props = (tool.input_schema as { properties: Record<string, unknown> }).properties;
+    expect(Object.keys(props)).toContain("value");
+    // The three it replaced. Each was a way to be wrong that cost a whole
+    // extra model call, and neither can be sent now.
+    expect(Object.keys(props)).not.toContain("text");
+    expect(Object.keys(props)).not.toContain("items");
+    expect(Object.keys(props)).not.toContain("people");
+  });
+
+  it("does not make the model choose between a string and a list either", () => {
+    const tool = toolsFor().find((t) => t.name === "save_field")!;
+    const value = (tool.input_schema as { properties: { value: object } }).properties.value;
+    expect(JSON.stringify(value)).not.toContain("anyOf");
+    expect(JSON.stringify(value)).not.toContain("oneOf");
   });
 });
 

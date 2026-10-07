@@ -44,15 +44,18 @@ const ALL_ATTRIBUTE_KEYS = [...new Set(Object.values(artifact.entities).flat())]
 export const saveFieldSchema = z
   .object({
     field_id: enumOf(ids(PLAIN_FIELDS)).describe("Which field this answer fills."),
-    text: z.string().nullable().describe("For a prose field. Null otherwise."),
-    items: z
+    // One argument, whatever the field holds. This used to be three nullable
+    // slots -- text, items, people -- and choosing between them was measured
+    // as the single biggest source of rejected tool calls, each one costing a
+    // whole extra model call to put right. There is nothing to choose now:
+    // the field's own type decides what happens to what arrives here.
+    value: z
       .array(z.string())
-      .nullable()
-      .describe("For a list or an ordered sequence. In order where the order matters. Null otherwise."),
-    people: z
-      .array(z.string())
-      .nullable()
-      .describe("For a field that points at people: their names exactly as already recorded. Null otherwise."),
+      .describe(
+        "The answer. One entry for a field written as prose; one entry per item for a list or an ordered " +
+          "sequence, in order where the order matters; one entry per name for a field that points at people, " +
+          "named exactly as already recorded.",
+      ),
     family_action: z
       .string()
       .nullable()
@@ -146,13 +149,12 @@ const DESCRIPTIONS: Record<ToolName, string> = {
   save_field:
     "Record one answer against one field. Call it as soon as you have something worth keeping, in the same turn you " +
     "learn it -- never batched up at the end. Calling it again for the same field replaces what's there, so only do " +
-    "that when you have something better. " +
-    // Measured: wrong-slot and more-than-one-slot calls were most of the
-    // rejected tool calls in a sitting, and every rejection costs a whole
-    // extra model call to put right.
-    "Send exactly one of text, items or people -- never two of them in the same call. Which one is not a choice: " +
-    "it is fixed by the field, and the list of what's still worth covering says which each field wants. A field " +
-    "that takes entries is filled with save_entity, not this.",
+    "that when you have something better. A field that takes entries is filled with save_entity, not this. " +
+    // Measured: with the slots gone, the one thing left that the model gets
+    // wrong is writing a sentence into a field that takes names. Several of
+    // those read like questions you would answer in a sentence.
+    "Some fields hold names and nothing else -- the list of what is still worth covering says which, and those " +
+    "take the names of people already recorded, never a sentence about them.",
   save_entity:
     "Record one person, account, bill, debt, income stream or routing rule, or add newly learned details to one " +
     "already recorded. One call per entry.",

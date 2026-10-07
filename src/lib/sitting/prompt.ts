@@ -67,24 +67,30 @@ export function contextBlock(record: RecordRow, sitting: SittingRow, speakers: s
     .join("\n");
 }
 
-// Sent after the history each turn, so the cached prefix above never changes.
-// Which argument of save_field a given field wants. The server has always
-// known this and never said so, and the model guessing wrong was the single
-// biggest source of rejected tool calls -- each one costing a whole extra
-// model call to correct.
-const SLOT: Record<FieldType, string> = {
-  text: "text",
-  list: "items",
-  ordered: "items, in order",
-  people: "people, named from those already recorded",
+// What each field wants, said per question in the list of what is still worth
+// covering.
+//
+// An earlier version of this named the tool argument to use, and was written
+// off as a workaround for save_field's three slots. Deleting it along with
+// those slots was measured as a mistake: wrong-slot calls went to zero, and
+// prose written into a field that takes names went from none to six in one
+// run. The slots were the schema's problem; this is a different one. The
+// server has always known every field's type, and a label like "Who has been
+// told what is expected of them" reads like a question you answer in a
+// sentence, so nothing but saying so will do.
+const SHAPE: Record<FieldType, string> = {
+  text: "a sentence or two",
+  list: "a list",
+  ordered: "a list, in order",
+  people: "names only, exactly as already recorded -- never a sentence",
   entities: "save_entity",
 };
 
-function slotsFor(question: Question): string {
+function shapesFor(question: Question): string {
   const wants = question.fills
     .map((id) => fieldsById.get(id))
     .filter((f): f is Field => Boolean(f))
-    .map((f) => `${f.id}: ${SLOT[f.type]}`);
+    .map((f) => `${f.id}: ${SHAPE[f.type]}`);
   return wants.length ? `  (${wants.join(" · ")})` : "";
 }
 
@@ -101,7 +107,7 @@ export function stateBlock(coverage: Coverage, remaining: Question[], minutesLef
       "Still worth covering, most useful first. These are prompts for you, not a script —",
       "ask in your own words, in whatever order fits the conversation, and skip what plainly",
       "doesn't apply to this person:",
-      ...remaining.map((q) => `- ${q.ask}${slotsFor(q)}`),
+      ...remaining.map((q) => `- ${q.ask}${shapesFor(q)}`),
     );
   } else {
     lines.push("", "Everything this sitting set out to cover has been recorded or noted as unknown.");

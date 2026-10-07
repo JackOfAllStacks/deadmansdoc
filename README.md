@@ -211,9 +211,24 @@ A hand edit goes through **the same zod schemas and validators as a tool call**,
 
 They deliberately stop short of listing the questions themselves. Showing the whole checklist would turn the conversation back into a form, which is the thing it exists to avoid.
 
-**What a turn costs, and why.** Each turn logs a `sitting_turn` line: how many model calls it took, and why the loop went round again. That line is what turned "something in the turn loop is going round too often" into a number. Two identical scripted runs of [`e2e-sitting.mjs`](scripts/e2e-sitting.mjs) measured 2.12 calls a message, then 1.44 after one change — telling the model, per field, which argument `save_field` wants.
+**What a turn costs, and why.** Each turn logs a `sitting_turn` line: how many model calls it took, and why the loop went round again. That line is what turned "something in the turn loop is going round too often" into a number.
 
-The cause was never the loop. It was rejected tool calls: seven of the eight extra calls in the first run were `save_field` sent with the wrong slot for the field, or with two slots at once. The server has always known every field's type and never said so, so the list of what's still worth covering now carries it. Judge any change here the same way, with two runs of the same script, rather than by reasoning about it.
+The cause was never the loop. It was **rejected tool calls**, and each rejection costs a whole extra call. Measured with runs of [`e2e-sitting.mjs`](scripts/e2e-sitting.mjs), same persona, same script:
+
+| | calls a message | what the extra calls were |
+|---|---|---|
+| Before anything | 2.12 | 7 of 8 were `save_field` with the wrong slot for the field, or two slots at once |
+| Telling the model which slot each field wants | 1.44 | same cause, fewer of them |
+| One `value` argument, hint deleted | **1.778** | **worse.** 0 wrong-slot calls — and 6 new ones writing prose into a field that takes names |
+| One `value` argument, hint restored | 1.33, then 1.22 | 2 each: one empty call, and the rule that a name must be recorded before anything points at it |
+
+`save_field` takes **one argument**. `value` is a list of strings whatever the field holds, and the field's own declared type decides what happens to it — joined for prose, kept in order for an ordered sequence, resolved against the recorded people for a field that points at people. There is no slot to pick wrong and no second slot to send alongside it, so neither error can be expressed. Across every run since, neither has occurred.
+
+**The middle row is the lesson.** Deleting the per-field hint alongside the slots looked like removing a workaround, and the measurement said otherwise: wrong-slot calls went to zero exactly as intended, while prose written into a name-only field went from none to six. The hint was never propping up the schema — it was carrying type information the model has no other way to get, and a label like "Who has been told what is expected of them" reads like a question you answer in a sentence. The slots were the schema's problem; this is a different one, and it needed both fixes.
+
+Two alternatives were considered and rejected. A string-or-list union puts the choice straight back, with better odds. Splitting `save_field` into `save_text` and `save_list`, each with a `field_id` enum holding only its own fields, looked strongest — strict tools constrain decoding, so a list could not reach a prose field at all — until the failure mode: a model that picked the wrong tool would then be *constrained into picking a wrong field*, and a silently wrong field is worse than a rejected call.
+
+Judge any change here the same way, with runs of the same script, rather than by reasoning about it. This one was reasoned about, shipped, measured, and found to be half right.
 
 **Caching.** The system prompt is identical for every sitting and every person. What changes — who this is, what's recorded, what's left, how long is left — goes in a system message **after** the history, so the cached prefix stays valid.
 
@@ -411,7 +426,7 @@ Things that are true about the code today, recorded so they are chosen rather th
 
 | | |
 |---|---|
-| **Sittings still cost more than the opening conversation** | Measured, not guessed: 2.12 model calls a message before, 1.44 after telling the model which argument each field wants. What's left is the same cause — `save_field` takes one of `text`, `items` or `people`, and the model still sometimes sends two or picks the wrong one. Each rejection costs a whole extra call. The fix that would end it is structural: one `value` argument, routed by the field's declared type, so a wrong slot stops being expressible. Worth doing, but it changes the tool schema, so it wants measuring against `scripts/e2e-sitting.mjs` rather than being dropped in. |
+| **Sittings still cost more than the opening conversation** | 2.12 model calls a message, then 1.44, now 1.22–1.33. What's left is a different cause: `save_entity` sent with an attribute key the entry doesn't hold — `"phone" isn't something s1.routing_map records` — which is the same shape of problem the slots were, one level down. The server knows every entry's keys; the model finds them out by being told no. Worth the same treatment, and worth measuring the same way. |
 | **Sonnet files less tidily than Opus** | Same script, same persona: a phone number went to an overflow note instead of onto the person, and a "don't ring him yet" landed in an entry's notes rather than the field for things not to do yet. Sonnet is the right call for now on cost. Judge any change with `scripts/e2e-sitting.mjs`, not by feel. |
 | **Admins can read every transcript** | Accepted, deliberately. It is the tool for tuning the interview, and the data is synthetic. It needs an answer before anyone's real life goes in, and not before. |
 | **The split into parts never happens** | The planner splits a sitting over 30 minutes into parts, but no sitting can reach 30 under the current rules, so that path is unreachable from real data. Built and tested; don't promise it in a demo. `reviseRemaining` declines to re-cut a plan containing one rather than guess at how the parts should be redrawn. |

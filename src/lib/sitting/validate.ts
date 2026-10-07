@@ -61,14 +61,11 @@ export function validateSaveField(
   const field = fieldsById.get(input.field_id);
   if (!field) return `There is no field called ${input.field_id}.`;
 
-  const filled = [
-    input.text !== null && input.text.trim() !== "" ? "text" : null,
-    input.items !== null && input.items.length ? "items" : null,
-    input.people !== null && input.people.length ? "people" : null,
-  ].filter(Boolean);
-
-  if (filled.length === 0) return `${field.id} needs a value. Nothing was sent.`;
-  if (filled.length > 1) return `Send only one of text, items or people. This had ${filled.join(" and ")}.`;
+  // One argument, routed by the field's own declared type. There is no slot to
+  // pick wrong and no two slots to send at once, so the two errors this used to
+  // reject -- and charge a whole extra model call for -- can't be expressed.
+  const entries = input.value.map((v) => v.trim()).filter(Boolean);
+  if (!entries.length) return `${field.id} needs a value. Nothing was sent.`;
 
   const base = {
     kind: "field" as const,
@@ -78,27 +75,19 @@ export function validateSaveField(
     familyAction: input.family_action,
   };
 
-  if (field.type === "text") {
-    if (filled[0] !== "text") return `${field.id} is written as prose. Use text, not ${filled[0]}.`;
-    return { ...base, value: input.text!.trim(), references: [] };
-  }
+  // Prose arrives as one entry, but more than one is a paragraph break rather
+  // than a mistake -- which is exactly how the hand-edit path reads it back.
+  if (field.type === "text") return { ...base, value: entries.join("\n"), references: [] };
 
   if (field.type === "list" || field.type === "ordered") {
-    if (filled[0] !== "items") {
-      const shape = field.type === "ordered" ? "an ordered sequence" : "a list";
-      return `${field.id} is ${shape}. Use items, not ${filled[0]}.`;
-    }
-    const items = input.items!.map((i) => i.trim()).filter(Boolean);
-    if (!items.length) return `${field.id} needs at least one item.`;
-    return { ...base, value: items, references: [] };
+    return { ...base, value: entries, references: [] };
   }
 
   // type "people": names must already exist, so the key-people list stays the
   // spine of the document rather than filling up with half-known names.
-  if (filled[0] !== "people") return `${field.id} points at people. Use people, not ${filled[0]}.`;
   const references: string[] = [];
   const names: string[] = [];
-  for (const name of input.people!) {
+  for (const name of entries) {
     const match = known.find((k) => k.entityType === "person" && k.label.toLowerCase() === name.trim().toLowerCase());
     if (!match) {
       return `Nobody called "${name}" has been recorded yet. Record them with save_entity first. So far: ${listKnown(known, "person")}.`;
@@ -106,7 +95,6 @@ export function validateSaveField(
     references.push(match.id);
     names.push(match.label);
   }
-  if (!references.length) return `${field.id} needs at least one person.`;
   return { ...base, value: names, references };
 }
 

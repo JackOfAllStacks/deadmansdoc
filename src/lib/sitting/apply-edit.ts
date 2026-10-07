@@ -72,12 +72,13 @@ export async function applyFieldEdit({ recordId, field, body, known, messageId }
   }
 
   if (parsed.kind === "value") {
+    // parseBlock was handed this field's own shape, so exactly one of these is
+    // set and it is the one the field wants. save_field takes a single list
+    // whatever the field holds, and the validator routes it by type.
     const capture = validateSaveField(
       {
         field_id: field.id,
-        text: parsed.text,
-        items: parsed.items,
-        people: parsed.people,
+        value: parsed.text !== null ? [parsed.text] : (parsed.items ?? parsed.people ?? []),
         family_action: parsed.familyAction,
         confidence: "stated",
         disclosure: null,

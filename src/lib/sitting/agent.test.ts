@@ -211,9 +211,7 @@ describe("recording what was said", () => {
             name: "save_field",
             input: {
               field_id: "s3.interrelationships",
-              text: "Dev lives in Perth and rarely visits.",
-              items: null,
-              people: null,
+              value: ["Dev lives in Perth and rarely visits."],
               family_action: "Ring Dev early; he's three hours away.",
               confidence: "stated",
               disclosure: null,
@@ -250,9 +248,7 @@ describe("recording what was said", () => {
             name: "save_field",
             input: {
               field_id: "s3.financial_knower",
-              text: null,
-              items: null,
-              people: ["Priya"],
+              value: ["Priya"],
               family_action: null,
               confidence: "stated",
               disclosure: null,
@@ -275,10 +271,11 @@ describe("recording what was said", () => {
           {
             name: "save_field",
             input: {
-              field_id: "s3.interrelationships",
-              text: null,
-              items: ["a list where prose belongs"],
-              people: null,
+              // A name nobody has recorded. The wrong-slot call this used to
+              // send can't be expressed any more -- save_field takes one
+              // argument, routed by the field's type.
+              field_id: "s3.financial_knower",
+              value: ["Dev"],
               family_action: null,
               confidence: "stated",
               disclosure: null,
@@ -291,7 +288,7 @@ describe("recording what was said", () => {
     const events = await turn();
     expect(state.fields).toHaveLength(0);
     const toolMessage = state.messages.find((m) => m.role === "tool");
-    expect(JSON.stringify(toolMessage!.blocks)).toContain("written as prose");
+    expect(JSON.stringify(toolMessage!.blocks)).toContain('Nobody called \\"Dev\\" has been recorded');
     // It went round again, and the person still got an answer.
     expect(events.filter((e) => e.type === "text").map((e) => e.text).join("")).toContain("differently");
   });
@@ -493,9 +490,7 @@ describe("when things go wrong", () => {
             name: "save_field",
             input: {
               field_id: "s3.interrelationships",
-              text: "They've never met.",
-              items: null,
-              people: null,
+              value: ["They've never met."],
               family_action: null,
               confidence: "stated",
               disclosure: null,

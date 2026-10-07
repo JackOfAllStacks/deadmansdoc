@@ -76,7 +76,14 @@ await page.getByLabel("Your answer").waitFor();
 
 // ── The opening conversation ──────────────────────────────────────────
 async function say(speaker, text, doneText) {
-  await page.getByLabel(speaker, { exact: true }).check();
+  // The segmented control's radio is sr-only and its label sits over it, so a
+  // real person clicks the label. Checking the input directly is what a person
+  // can't do, and Playwright rightly refuses it.
+  await page
+    .locator("label")
+    .filter({ has: page.locator('input[name="speaker"]') })
+    .filter({ hasText: new RegExp(`^${speaker}$`) })
+    .click();
   await page.getByLabel("Your answer").fill(text);
   // The button only enables once React has the typed value. Clicking before
   // that lands on unhydrated HTML and does nothing at all.
@@ -140,7 +147,7 @@ await page.locator("main ol > li").first().waitFor();
 
 const startButtons = await page.getByRole("button", { name: "Start now" }).count();
 check("every planned sitting can be started", startButtons >= 4, `${startButtons} buttons`);
-check("dates read as a suggestion", /suggested for/i.test(await page.locator("main").innerText()));
+check("dates read as a suggestion", /the order is a suggestion like the dates are/i.test(await page.locator("main").innerText()));
 await shot("1-plan");
 
 // ── The sitting ───────────────────────────────────────────────────────
@@ -195,7 +202,8 @@ if (sittingDone) {
   await page.getByRole("link", { name: "Back to your plan" }).click();
   await page.waitForURL(/\/plan$/, { timeout: 30_000, waitUntil: "commit" });
   const planText = await page.locator("main").innerText();
-  check("the plan shows it done", /1 of \d+ done/.test(planText), (planText.match(/\d+ of \d+ done/) ?? [""])[0]);
+  // The plan's summary reads "Done / 1 of 4" since the stats went in.
+  check("the plan shows it done", /Done\s+1 of \d+/i.test(planText), (planText.match(/Done\s+\d+ of \d+/i) ?? [""])[0]);
   await shot("4-plan-after");
 }
 
