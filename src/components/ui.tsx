@@ -20,6 +20,9 @@ const WIDTHS = {
   prose: "max-w-2xl",
   page: "max-w-3xl",
   wide: "max-w-5xl",
+  // For the split screen only: a conversation and the document it writes,
+  // side by side, both wide enough to read.
+  full: "max-w-[92rem]",
 } as const;
 
 export function Page({
