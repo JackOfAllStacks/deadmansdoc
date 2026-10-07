@@ -21,7 +21,7 @@ export function Nav({ links, children }: { links: NavLink[]; children: React.Rea
   const pathname = usePathname();
 
   return (
-    <header className="border-b border-line bg-surface">
+    <header className="app-chrome border-b border-line bg-surface">
       <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3 sm:px-6">
         <Link href="/home" className="font-serif text-lg tracking-tight">
           The Handover

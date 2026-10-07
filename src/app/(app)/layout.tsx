@@ -8,7 +8,12 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const journey = await journeyFor(user.id);
 
   const links: NavLink[] = [{ href: "/home", label: "Home" }];
-  if (journey.sittings.length) links.push({ href: "/plan", label: "Your plan" });
+  if (journey.sittings.length) {
+    links.push({ href: "/plan", label: "Your plan" });
+    // The point of the whole thing, so it sits in the header from the moment
+    // there is a plan -- not hidden until it happens to have something in it.
+    links.push({ href: "/guide", label: "The Guide" });
+  }
   // Readable from the moment it exists, not only while it's unfinished: it is
   // the only place that says why the plan came out the way it did.
   if (journey.record) links.push({ href: "/start/intake", label: "Opening conversation" });

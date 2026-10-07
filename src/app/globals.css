@@ -169,3 +169,46 @@ h3 {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Printing a document prints the document: no header, no navigation, and
+   black on white whatever the screen was set to. */
+@page {
+  margin: 18mm;
+}
+
+@media print {
+  :root {
+    --paper: #ffffff;
+    --surface: #ffffff;
+    --soft: #ffffff;
+    --ink: #000000;
+    --muted: #333333;
+    --faint: #555555;
+    --line: #cccccc;
+    --line-strong: #999999;
+  }
+
+  /* The app's own chrome only. A document has a <header> of its own -- its
+     title and front matter -- and that has to print. */
+  .app-chrome {
+    display: none !important;
+  }
+
+  main {
+    max-width: none;
+    padding: 0;
+  }
+
+  /* A heading shouldn't be the last thing on a page, and a list shouldn't be
+     cut in half by one. */
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  li,
+  p {
+    break-inside: avoid;
+  }
+}
