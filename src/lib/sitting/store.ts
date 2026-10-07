@@ -70,7 +70,7 @@ export async function startSitting(recordId: string, sittingId: string, present:
 
 export async function sittingMessages(sittingId: string): Promise<MessageRow[]> {
   const rows = await db()`
-    select role, content, blocks
+    select id, role, content, blocks
     from messages
     where sitting_id = ${sittingId} and phase = 'sitting'
     order by position`;

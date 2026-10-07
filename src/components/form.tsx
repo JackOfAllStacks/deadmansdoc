@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import { Wordmark } from "@/components/mark";
 import { Alert, Button, cx } from "@/components/ui";
 
 const CONTROL =
@@ -52,9 +53,9 @@ export function FormError({ message }: { message: string | null }) {
 export function AuthShell({ title, children, footer }: { title: string; children: ReactNode; footer: ReactNode }) {
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-8 px-6 py-16">
-      <header className="flex flex-col gap-2">
-        <Link href="/" className="text-sm text-muted">
-          The Handover
+      <header className="flex flex-col gap-4">
+        <Link href="/" aria-label="The Handover — home" className="self-start">
+          <Wordmark size="sm" />
         </Link>
         <h1 className="text-3xl">{title}</h1>
       </header>

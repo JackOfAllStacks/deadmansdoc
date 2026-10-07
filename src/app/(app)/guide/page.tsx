@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { DocumentPage } from "@/components/document";
+import { DocumentContents, DocumentPage } from "@/components/document";
 import { ButtonLink, Card, Note, Page, PageHeader } from "@/components/ui";
 import { collectRecord } from "@/lib/artifact/collect";
 import { guideDoc, hasSealedContent } from "@/lib/artifact/render";
@@ -35,7 +35,7 @@ export default async function MyGuidePage() {
   const whose = possessiveLower(journey.record);
 
   return (
-    <Page>
+    <Page width="wide">
       <div className="flex flex-col gap-4 print:hidden">
         <PageHeader
           eyebrow="What this is all for"
@@ -66,7 +66,16 @@ export default async function MyGuidePage() {
             more to your family than a blank.
           </Note>
 
-          <DocumentPage doc={doc} />
+          {/* Wide screens get the sections down the side: a finished record
+              runs to several screens, and a scroll bar is not navigation. */}
+          <div className="grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-12">
+            <aside className="hidden lg:block print:hidden">
+              <div className="sticky top-24">
+                <DocumentContents doc={doc} />
+              </div>
+            </aside>
+            <DocumentPage doc={doc} />
+          </div>
 
           {hasSealedContent(data) && (
             <Card tone="quiet" className="flex flex-col items-start gap-3 print:hidden">

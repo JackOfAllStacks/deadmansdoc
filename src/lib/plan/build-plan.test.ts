@@ -7,10 +7,12 @@ import {
   formatMinutes,
   isIsoDate,
   orderSittings,
+  reorderSlots,
   reviseRemaining,
   sittingMinutes,
   totalMinutes,
   type ExistingSitting,
+  type ReorderRow,
 } from "./build-plan";
 import type { SessionTemplate } from "./template";
 
@@ -268,5 +270,60 @@ describe("reviseRemaining", () => {
       ["b", 2, "money-out", "planned", "2026-10-08"],
     ]);
     expect(reviseRemaining(split, {}, template)).toEqual([]);
+  });
+});
+
+describe("reorderSlots", () => {
+  const rows = (
+    list: [id: string, seq: number, status: string, date: string][],
+  ): ReorderRow[] =>
+    list.map(([id, seq, status, scheduled_for]) => ({
+      id,
+      seq,
+      sitting_key: id,
+      status: status as ReorderRow["status"],
+      scheduled_for,
+      title: `Sitting ${id}`,
+      estimated_minutes: 15,
+    }));
+
+  const plan = rows([
+    ["a", 1, "done", "2026-10-01"],
+    ["b", 2, "planned", "2026-10-08"],
+    ["c", 3, "planned", "2026-10-15"],
+    ["d", 4, "planned", "2026-10-22"],
+  ]);
+
+  it("moves a sitting into the slot it was dropped on, dates and all", () => {
+    const moved = reorderSlots(plan, ["d", "b", "c"]);
+    expect(moved.map((r) => [r.id, r.seq, r.date])).toEqual([
+      ["d", 2, "2026-10-08"],
+      ["b", 3, "2026-10-15"],
+      ["c", 4, "2026-10-22"],
+    ]);
+  });
+
+  it("leaves what has been started where it is", () => {
+    expect(reorderSlots(plan, ["d", "b", "c"]).map((r) => r.id)).not.toContain("a");
+  });
+
+  it("keeps each sitting's own title and estimate", () => {
+    const moved = reorderSlots(plan, ["d", "b", "c"]);
+    expect(moved[0]).toMatchObject({ title: "Sitting d", minutes: 15 });
+  });
+
+  it("puts dates back in order even if one was moved out of it by hand", () => {
+    const shuffled = rows([
+      ["b", 2, "planned", "2026-11-30"],
+      ["c", 3, "planned", "2026-10-15"],
+    ]);
+    expect(reorderSlots(shuffled, ["b", "c"]).map((r) => r.date)).toEqual(["2026-10-15", "2026-11-30"]);
+  });
+
+  it("moves nothing when the order isn't the movable sittings exactly", () => {
+    expect(reorderSlots(plan, ["b", "c"])).toEqual([]);
+    expect(reorderSlots(plan, ["b", "c", "a"])).toEqual([]);
+    expect(reorderSlots(plan, ["b", "c", "c"])).toEqual([]);
+    expect(reorderSlots(plan, ["b", "c", "zzz"])).toEqual([]);
   });
 });

@@ -2,9 +2,11 @@ import { redirect } from "next/navigation";
 import { StartSitting } from "@/app/(app)/plan/start-sitting";
 import { TopicChips } from "@/components/topics";
 import {
+  areaOf,
   Badge,
   ButtonLink,
   Card,
+  cx,
   Note,
   Page,
   PageHeader,
@@ -41,7 +43,7 @@ export default async function HomePage() {
   const minutes = totalMinutes(sittings.map((s) => ({ minutes: s.estimated_minutes })));
 
   return (
-    <Page>
+    <Page width="wide">
       <PageHeader
         eyebrow={record.subject_relationship === "self" ? "Your handover" : `A handover for ${record.subject_name}`}
         title={stage === "complete" ? "Every sitting is done" : `Where ${possessiveLower(record)} handover is up to`}
@@ -63,14 +65,15 @@ export default async function HomePage() {
             </p>
             <Progress value={done} max={sittings.length} label="Sittings done" />
           </Card>
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {sittings.map((s) => {
               const topics = sessionTemplate.sittings.find((t) => t.key === s.sitting_key)?.topics ?? [];
+              const area = areaOf(s.sitting_key);
               return (
                 <li key={s.id}>
-                  <Card tone="plain" className="flex h-full flex-col gap-2">
+                  <Card tone="plain" className={cx("flex h-full flex-col gap-2 border-l-4", area.edge)}>
                     <div className="flex items-start justify-between gap-3">
-                      <h3 className="text-base leading-snug">{s.title}</h3>
+                      <h3 className={cx("text-base leading-snug", area.text)}>{s.title}</h3>
                       <SittingBadge status={s.status} />
                     </div>
                     <p className="text-sm text-muted">
@@ -208,16 +211,16 @@ async function RecordedSoFar({ recordId }: { recordId: string }) {
     <section className="flex flex-col gap-3">
       <SectionHeading>What&apos;s in the record</SectionHeading>
       <div className="grid gap-3 sm:grid-cols-3">
-        <Card tone="quiet">
-          <p className="font-serif text-2xl">{answered}</p>
+        <Card tone="quiet" className="flex flex-col gap-1">
+          <p className="font-serif text-3xl text-recorded">{answered}</p>
           <p className="text-sm text-muted">things recorded</p>
         </Card>
-        <Card tone="quiet">
-          <p className="font-serif text-2xl">{gaps}</p>
+        <Card tone="quiet" className="flex flex-col gap-1">
+          <p className="font-serif text-3xl text-unknown">{gaps}</p>
           <p className="text-sm text-muted">noted as nobody knows yet</p>
         </Card>
-        <Card tone="quiet">
-          <p className="font-serif text-2xl">{Math.max(0, everything - answered - gaps)}</p>
+        <Card tone="quiet" className="flex flex-col gap-1">
+          <p className="font-serif text-3xl text-faint">{Math.max(0, everything - answered - gaps)}</p>
           <p className="text-sm text-muted">still to come</p>
         </Card>
       </div>

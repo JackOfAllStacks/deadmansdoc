@@ -71,9 +71,13 @@ function EntryBlock({ entry }: { entry: Entry }) {
   );
 }
 
+/** A stable id per section, so the contents can link to it. */
+export const sectionId = (heading: string) =>
+  "s-" + heading.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
 function Section({ section }: { section: DocSection }) {
   return (
-    <section className="flex flex-col gap-5">
+    <section id={sectionId(section.heading)} className="flex scroll-mt-24 flex-col gap-5">
       <h2 className="border-b border-line pb-2 text-xl">{section.heading}</h2>
       {section.parts.map((part, i) => (
         <div key={i} className="flex flex-col gap-2">
@@ -87,6 +91,30 @@ function Section({ section }: { section: DocSection }) {
       ))}
       {section.note && <p className="leading-relaxed text-muted">{inline(section.note)}</p>}
     </section>
+  );
+}
+
+/**
+ * The sections, down the side. A finished record runs to five screens, and
+ * without this the only way through it is the scroll bar.
+ */
+export function DocumentContents({ doc }: { doc: Doc }) {
+  return (
+    <nav aria-label="Sections of this document" className="flex flex-col gap-2 text-sm">
+      <p className="font-sans text-xs font-medium tracking-wide text-faint uppercase">In this document</p>
+      <ol className="flex flex-col">
+        {doc.sections.map((section) => (
+          <li key={section.heading}>
+            <a
+              href={`#${sectionId(section.heading)}`}
+              className="block rounded-md px-2 py-1.5 leading-snug text-muted transition-colors hover:bg-soft hover:text-ink"
+            >
+              {section.heading}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
   );
 }
 

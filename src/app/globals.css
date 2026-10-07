@@ -43,8 +43,25 @@
   --outstanding: #6b6259;
   --outstanding-soft: #efeae3;
 
+  /* A warm second accent, for the places the green would feel cold: the
+     landing page, and anything being celebrated rather than instructed. */
+  --warm: #a8542f;
+  --warm-soft: #f7ebe3;
+
   --danger: #9a3125;
   --danger-soft: #f7e7e4;
+
+  /* One colour per sitting. These carry meaning -- the same colour marks a
+     sitting on the plan, its chips, its card on the home page and its heading
+     in the document -- so they are part of the information, not decoration. */
+  --area-people: #2f514a;
+  --area-people-soft: #e4eeec;
+  --area-first-days: #8a5a1f;
+  --area-first-days-soft: #f6ecdd;
+  --area-money-out: #3c5578;
+  --area-money-out-soft: #e6ebf4;
+  --area-money-in-owed: #6b4273;
+  --area-money-in-owed-soft: #f0e8f3;
 
   --radius: 0.625rem;
   --radius-lg: 0.875rem;
@@ -77,8 +94,20 @@
     --outstanding: #a49c92;
     --outstanding-soft: #262320;
 
+    --warm: #d9926a;
+    --warm-soft: #2b1f18;
+
     --danger: #e08a7d;
     --danger-soft: #2c1d1a;
+
+    --area-people: #7fb3a6;
+    --area-people-soft: #1d2b28;
+    --area-first-days: #d4a568;
+    --area-first-days-soft: #2c2318;
+    --area-money-out: #90a8cf;
+    --area-money-out-soft: #1d2430;
+    --area-money-in-owed: #bb9ac4;
+    --area-money-in-owed-soft: #271e2b;
 
     --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.25);
     --shadow-menu: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 10px 20px -5px rgb(0 0 0 / 0.5);
@@ -109,8 +138,20 @@
   --color-outstanding: var(--outstanding);
   --color-outstanding-soft: var(--outstanding-soft);
 
+  --color-warm: var(--warm);
+  --color-warm-soft: var(--warm-soft);
+
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+
+  --color-area-people: var(--area-people);
+  --color-area-people-soft: var(--area-people-soft);
+  --color-area-first-days: var(--area-first-days);
+  --color-area-first-days-soft: var(--area-first-days-soft);
+  --color-area-money-out: var(--area-money-out);
+  --color-area-money-out-soft: var(--area-money-out-soft);
+  --color-area-money-in-owed: var(--area-money-in-owed);
+  --color-area-money-in-owed-soft: var(--area-money-in-owed-soft);
 
   /* Kept so anything not yet converted still renders in the new palette
      rather than falling back to Tailwind's defaults. */

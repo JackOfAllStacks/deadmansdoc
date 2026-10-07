@@ -29,13 +29,20 @@ export function TopicPreview({ topics }: { topics: SittingTopic[] }) {
   );
 }
 
-/** A compact row of area names, for a plan card where space is short. */
+/**
+ * A compact row of area names, for a card where space is short. These wrap
+ * where a Badge doesn't: some topic labels run to five words, and in a
+ * four-across grid a chip that refuses to break just leaves the card.
+ */
 export function TopicChips({ topics }: { topics: SittingTopic[] }) {
   return (
     <ul className="flex flex-wrap gap-1.5">
       {topics.map((topic) => (
-        <li key={topic.label}>
-          <Badge>{topic.label}</Badge>
+        <li
+          key={topic.label}
+          className="rounded-full bg-soft px-2.5 py-0.5 text-xs leading-snug font-medium text-muted"
+        >
+          {topic.label}
         </li>
       ))}
     </ul>

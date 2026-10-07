@@ -162,6 +162,10 @@ A new account goes `/start` → `/start/intake` → `/plan/new` → `/plan`. `/h
 - A person's message is only saved once the model has replied, so a failed call leaves nothing behind and can simply be sent again.
 - Every model call logs its token usage as `intake_model_call`.
 
+**The plan can be rearranged.** Sittings nobody has started can be put in any order, by dragging a card or by the arrows on it. Dragging alone would be the wrong thing to build here: the person this is for may be in their eighties, on a touch screen, with an unsteady hand — so the arrows are the mechanism and dragging is the extra.
+
+The slots stay put and the sittings move between them (`reorderSlots`), the same rule the opening conversation's re-cut follows: a plan's dates are something people arrange their month around, so moving the money sitting to the front gives it the date that was already first rather than dragging its own date along and leaving a hole. Dates are sorted before they're handed out, so they always run forwards down the plan even if one was moved out of order by hand.
+
 **Going back to it.** The opening conversation stays readable after it finishes — it is the only thing that explains why the plan came out as it did — and it can be reopened to add something. Finishing it a second time re-cuts **only the sittings nobody has started**: they're re-estimated and re-ordered from the fuller picture, while anything done or in progress is left exactly as it was, because what was said in it is already in the record. The untouched sittings also keep their own dates and positions — the slots they already occupy are handed out again in the new order, so remembering something doesn't rearrange someone's month. Reopening is refused outright while a sitting is open. See `reviseRemaining` in [`build-plan.ts`](src/lib/plan/build-plan.ts).
 
 **The plan** ([`src/lib/plan/build-plan.ts`](src/lib/plan/build-plan.ts)) is worked out in code, not by the model. [`data/session-template.yaml`](data/session-template.yaml) holds the sittings, their base minutes and the rules that adjust them; tune it there rather than in code. Order follows whatever was raised unprompted, then the template's own order. Sittings over 30 minutes split into parts. The build fails unless every v1 field is covered by exactly one sitting.
@@ -190,6 +194,10 @@ Three rules do most of the work:
 Every value carries **`family_action`** (what someone who has never touched this will have to do — "nothing, it runs on its own" counts), **`confidence`** (stated / uncertain / inferred), and a disclosure, defaulting to the field's own.
 
 **The question bank is a checklist, not a script** ([`coverage.ts`](src/lib/sitting/coverage.ts)). Each turn the server works out which questions still fill something this sitting covers and hasn't settled, ranked by priority then irreplaceability, and passes a few to the model, which writes its own questions. A field counts as settled once it holds an answer **or a recorded gap**, so nobody is asked twice about something they've already said they don't know. `question_asks` is written by the server from what the tools did — the model is never asked to keep track.
+
+**Whose answer it is.** Two people share one keyboard, so every message is filed under somebody. That used to be a row of small radio buttons above the box, and in testing one person started typing while it was still set to the other — the whole exchange went under the wrong name, and the only reason anyone noticed was that the model worked out the truth from the first and third person and carried on regardless.
+
+Silent is the problem, so the fix is to make it visible rather than to guess better: the control is a segmented one that says *Answering as*, every message carries the name it went under, and clicking that name hands the message to the next person along. The correction moves the stored role **and** the name in the block the model reads, so the transcript and the record can't disagree. Model-side inference was the other option and is still open, but it would be silent too — and it would be wrong with no way to put it right.
 
 **The document is written in front of you.** A sitting is a split screen: the conversation on one side, and on the other the part of the Guide it is filling in, grouped the way the finished document groups it. Every field starts empty and fills in as the conversation goes. Empty stays empty — room waiting to be written in, not a line of filler saying there is nothing there.
 
@@ -261,9 +269,13 @@ What this does *not* do is show the product being used. For that the conversatio
 
 ## The look of it
 
+**The mark** ([`mark.tsx`](src/components/mark.tsx)) is two cupped hands under a folded letter. Not a bird, which reads as afterlife imagery and is exactly the glib register this can't afford; not a handshake, which is a business transaction. It is about custody — something held carefully, and passed on — and the envelope is already a real object here, so the letter is a thing rather than a metaphor. The hands stop short of meeting: an earlier version closed that gap and the whole thing read as a teacup.
+
 Everything visual is a token in [`globals.css`](src/app/globals.css): surfaces, text, lines, one accent, and the three states anything in the record can be in (**recorded**, **not known**, **still to come**). Pages use the names — `bg-surface`, `text-muted`, `border-line` — and never a raw colour or an opacity-on-black trick, so the whole product can be re-toned from that one file. The palette is warm rather than clinical on purpose: this is a product about dying, used by people who are frightened or grieving, and stark monochrome reads as a hospital form.
 
 Headings are set in a serif and body text in a grotesque, because what this makes is a **document**, and it should look like one from the first screen while the interface itself stays out of the way.
+
+**Each sitting has a colour**, carried wherever that sitting appears: its card on the plan and on home, its chips, and the landing page. The colour is doing work — it says which part of the record you're looking at before you've read anything — so it belongs with the information rather than on top of it. A second, warmer accent exists for the places the green would feel cold.
 
 [`src/components/ui.tsx`](src/components/ui.tsx) is the vocabulary every page is built from — `Page`, `PageHeader`, `Card`, `Button`, `Badge`, `Progress`, `Note`, `Alert`. [`chat.tsx`](src/components/chat.tsx) holds the conversation itself, shared by the opening conversation and the sittings, which had a copy each until this branch. [`topics.tsx`](src/components/topics.tsx) is the scaffolding. The rule is that a page composes these: if something doesn't fit, it earns a variant there rather than a private copy in the page.
 

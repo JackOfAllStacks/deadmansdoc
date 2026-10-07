@@ -247,3 +247,45 @@ export function Stat({ label, children }: { label: string; children: ReactNode }
 export function EmptyState({ children }: { children: ReactNode }) {
   return <p className="rounded-md border border-dashed border-line-strong px-4 py-6 text-center text-sm text-muted">{children}</p>;
 }
+
+// ── The sittings, by colour ───────────────────────────────────────────────
+
+/**
+ * One colour per sitting, carried everywhere that sitting appears: its card on
+ * the plan and on home, its chips, and its headings in the document. The
+ * colour is doing work — it tells you which part of the record you are looking
+ * at before you have read anything — so these are written out in full rather
+ * than built from a string, because Tailwind only sees class names it can read.
+ */
+export const AREA = {
+  people: {
+    text: "text-area-people",
+    soft: "bg-area-people-soft",
+    dot: "bg-area-people",
+    edge: "border-l-area-people",
+  },
+  "first-days": {
+    text: "text-area-first-days",
+    soft: "bg-area-first-days-soft",
+    dot: "bg-area-first-days",
+    edge: "border-l-area-first-days",
+  },
+  "money-out": {
+    text: "text-area-money-out",
+    soft: "bg-area-money-out-soft",
+    dot: "bg-area-money-out",
+    edge: "border-l-area-money-out",
+  },
+  "money-in-owed": {
+    text: "text-area-money-in-owed",
+    soft: "bg-area-money-in-owed-soft",
+    dot: "bg-area-money-in-owed",
+    edge: "border-l-area-money-in-owed",
+  },
+} as const;
+
+export type AreaStyle = (typeof AREA)[keyof typeof AREA];
+
+export function areaOf(key: string): AreaStyle {
+  return AREA[key as keyof typeof AREA] ?? AREA.people;
+}
