@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { countGaps } from "@/lib/artifact/gaps";
 import { getRecordForUser, listSittings, type RecordRow, type SittingRow } from "@/lib/records";
 import { openSitting } from "@/lib/sitting/store";
 import type { SittingDetail } from "@/lib/sitting/store";
@@ -32,16 +33,23 @@ export interface Journey {
   /** The next sitting to do, which is the earliest one still planned. */
   next: SittingRow | null;
   done: number;
+  /** Things flagged as nobody knowing yet. Counted here so the header and the
+   *  dashboard don't each have to ask. */
+  gaps: number;
   stage: Stage;
 }
 
 export const journeyFor = cache(async (userId: string): Promise<Journey> => {
   const record = await getRecordForUser(userId);
   if (!record) {
-    return { record: null, sittings: [], open: null, next: null, done: 0, stage: "no-record" };
+    return { record: null, sittings: [], open: null, next: null, done: 0, gaps: 0, stage: "no-record" };
   }
 
-  const [sittings, open] = await Promise.all([listSittings(record.id), openSitting(record.id)]);
+  const [sittings, open, gaps] = await Promise.all([
+    listSittings(record.id),
+    openSitting(record.id),
+    countGaps(record.id),
+  ]);
   const done = sittings.filter((s) => s.status === "done").length;
   const next = sittings.find((s) => s.status === "planned") ?? null;
 
@@ -50,7 +58,7 @@ export const journeyFor = cache(async (userId: string): Promise<Journey> => {
   else if (!sittings.length) stage = "planning";
   else if (!next && !open) stage = "complete";
 
-  return { record, sittings, open, next, done, stage };
+  return { record, sittings, open, next, done, gaps, stage };
 });
 
 /** How the subject is referred to: "Your plan" versus "John's plan". */

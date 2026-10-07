@@ -144,6 +144,19 @@ export async function saveGap(recordId: string, gap: GapCapture, messageId: stri
   return rows.length === 1;
 }
 
+/**
+ * Names who might know about a gap. Only ever touches a gap: a field that has
+ * since been answered has nothing left to ask anybody about, and an answer
+ * must not be quietly re-routed into a question.
+ */
+export async function routeGap(recordId: string, fieldId: string, who: string): Promise<boolean> {
+  const rows = await db()`
+    update field_values set who_would_know = ${who}, updated_at = now()
+    where record_id = ${recordId} and field_id = ${fieldId} and status = 'unknown'
+    returning id`;
+  return rows.length === 1;
+}
+
 export interface NoteCapture {
   label: string;
   value: string;

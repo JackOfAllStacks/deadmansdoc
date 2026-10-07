@@ -113,6 +113,13 @@ record:
   - field: s5.balances
     entity: Everyday account
     amount: about $6,000
+  # The two states a gap can be in, so a demo shows both: one with somebody
+  # to ask who isn't in the key people list, and one with nobody at all.
+  - field: s5.undisclosed_arrangements
+    unknown: the accountant at Fenwick & Co
+  - field: s5.financial_docs_location
+    unknown: true
+    priority: high
 
 notes:
   - label: The password book

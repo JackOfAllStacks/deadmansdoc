@@ -6,6 +6,7 @@ import {
   Badge,
   ButtonLink,
   Card,
+  CardLink,
   cx,
   Note,
   Page,
@@ -215,10 +216,20 @@ async function RecordedSoFar({ recordId }: { recordId: string }) {
           <p className="font-serif text-3xl text-recorded">{answered}</p>
           <p className="text-sm text-muted">things recorded</p>
         </Card>
-        <Card tone="quiet" className="flex flex-col gap-1">
-          <p className="font-serif text-3xl text-unknown">{gaps}</p>
-          <p className="text-sm text-muted">noted as nobody knows yet</p>
-        </Card>
+        {/* A gap is the one thing in the record that asks something of the
+            person afterwards, so this number is a way through rather than a
+            tally. With none of them there's nowhere worth going. */}
+        {gaps > 0 ? (
+          <CardLink href="/loose-ends" className="flex flex-col gap-1">
+            <p className="font-serif text-3xl text-unknown">{gaps}</p>
+            <p className="text-sm text-muted">noted as nobody knows yet — see what&apos;s left to find out</p>
+          </CardLink>
+        ) : (
+          <Card tone="quiet" className="flex flex-col gap-1">
+            <p className="font-serif text-3xl text-unknown">{gaps}</p>
+            <p className="text-sm text-muted">noted as nobody knows yet</p>
+          </Card>
+        )}
         <Card tone="quiet" className="flex flex-col gap-1">
           <p className="font-serif text-3xl text-faint">{Math.max(0, everything - answered - gaps)}</p>
           <p className="text-sm text-muted">still to come</p>

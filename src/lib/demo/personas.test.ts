@@ -29,6 +29,12 @@ describe("the personas we ship", () => {
     }
   });
 
+  it("shows both kinds of gap, since a demo should cover the one nobody can answer", () => {
+    const gaps = personas.flatMap((p) => (p.record ?? []).filter((r) => r.unknown !== undefined));
+    expect(gaps.some((r) => typeof r.unknown === "string")).toBe(true);
+    expect(gaps.some((r) => r.unknown === true)).toBe(true);
+  });
+
   it("offers at least one finished record and one still in progress", () => {
     const statuses = personas.map((p) => p.sittings.map((s) => s.status));
     expect(statuses.some((s) => s.every((x) => x === "done"))).toBe(true);
@@ -41,6 +47,18 @@ describe("personaProblems", () => {
     const p = base();
     p.record = [{ field: "s9.invented", value: "x" }];
     expect(personaProblems(p).join()).toContain("records unknown field s9.invented");
+  });
+
+  it("accepts a gap nobody has been named for, with a priority on it", () => {
+    const p = base();
+    p.record = [{ field: "s3.advisers", unknown: true, priority: "high" }];
+    expect(personaProblems(p)).toEqual([]);
+  });
+
+  it("catches a gap whose name is blank, which is neither one thing nor the other", () => {
+    const p = base();
+    p.record = [{ field: "s3.advisers", unknown: "" }];
+    expect(personaProblems(p).join()).toContain("empty name against its gap");
   });
 
   it("catches a figure on a field that isn't sealed, which would leak it", () => {

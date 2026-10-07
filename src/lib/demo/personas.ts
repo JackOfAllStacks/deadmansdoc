@@ -30,8 +30,12 @@ export interface PersonaValue {
   entity?: string;
   /** A sealed figure. Only ever on a field whose disclosure is sealed. */
   amount?: string;
-  /** Who would know. Its presence is what makes this a recorded gap. */
-  unknown?: string;
+  /**
+   * A recorded gap. A name is who might know; `true` is a gap nobody has been
+   * named for, which is a real state the model can produce and the worst kind
+   * to have -- so a persona has to be able to show one.
+   */
+  unknown?: string | true;
   /** How much worse the gap gets if nobody closes it. */
   priority?: "high" | "medium" | "low";
   action?: string;
@@ -110,18 +114,19 @@ export function personaProblems(persona: Persona): string[] {
     if (row.amount && field.disclosure !== "sealed") {
       say(`puts a figure on ${row.field}, which isn't sealed — it would print in the Guide`);
     }
-    if (field.type === "entities" && !row.entity && !row.unknown) {
+    if (row.unknown === "") say(`${row.field} has an empty name against its gap`);
+    if (field.type === "entities" && !row.entity && row.unknown === undefined) {
       say(`${row.field} holds entries, so it needs an entity or a gap`);
     }
     // Naming an entity is itself the content: "key people: Priya" records
     // Priya under that field without needing a value beside her.
-    if (row.priority && !row.unknown) {
+    if (row.priority && row.unknown === undefined) {
       say(`${row.field} has a gap priority but isn't a gap`);
     }
     if (row.priority && !["high", "medium", "low"].includes(row.priority)) {
       say(`${row.field} has an unknown gap priority "${row.priority}"`);
     }
-    if (!row.value && !row.amount && !row.unknown && !row.entity) {
+    if (!row.value && !row.amount && row.unknown === undefined && !row.entity) {
       say(`${row.field} has nothing recorded against it`);
     }
   }
