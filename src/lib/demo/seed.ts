@@ -151,10 +151,13 @@ async function write(userId: string, persona: Persona): Promise<SeedResult> {
     const messageId = messageForField(row.field);
     const entityId = row.entity ? (entityIds.get(row.entity) ?? null) : null;
 
-    if (row.unknown) {
+    if (row.unknown !== undefined) {
+      // `true` is a gap with nobody named for it, which is stored as a null
+      // rather than as the word "true".
+      const whoWouldKnow = row.unknown === true ? null : row.unknown;
       await sql`
         insert into field_values (record_id, field_id, status, disclosure, who_would_know, gap_priority, source_message_id)
-        values (${recordId}, ${row.field}, 'unknown', ${disclosureOf(row.field)}, ${row.unknown}, ${row.priority ?? 'medium'}, ${messageId})
+        values (${recordId}, ${row.field}, 'unknown', ${disclosureOf(row.field)}, ${whoWouldKnow}, ${row.priority ?? 'medium'}, ${messageId})
         on conflict do nothing`;
       values += 1;
       continue;

@@ -102,6 +102,7 @@ scripts/e2e-auth.sh           # auth checks against a running server
 node scripts/e2e-intake.mjs   # opening conversation and plan (spends API credit)
 node scripts/e2e-sitting.mjs  # the whole journey, including a sitting (spends more)
 node scripts/e2e-admin-record.mjs  # the admin view of a record it left behind
+node scripts/e2e-loose-ends.mjs    # the gaps page, from a seeded record (free)
 ```
 
 `GET /api/health` reports whether the database is reachable and which content version is loaded.
@@ -219,6 +220,22 @@ The cause was never the loop. It was rejected tool calls: seven of the eight ext
 
 **A reply outlives the browser.** If someone closes the tab or reloads mid-reply, the turn still finishes and saves server-side. A page opened while that's happening asks [`/api/sitting/state`](src/app/api/sitting/state/route.ts) and waits, rather than sending into a locked sitting.
 
+## What's still to find out
+
+A gap is the one thing in the record that asks something of the person afterwards, and until this branch nothing helped them do it. `flag_gap` has always stored the field, whoever might know, and how much it matters; three things read that and none of them was the person whose record it is — the Guide prints a line, `/home` shows a count, the admin view lists them.
+
+**[`/loose-ends`](src/app/(app)/loose-ends)** is grouped by **who would know**, because two questions for Peter are one errand and not two. Inside a group it reads by what matters, then in template order, so a group reads down the document rather than in whatever order things were said. Between groups the most pressing errand leads, then the biggest. The ones nobody has been named for always come last — not because they matter least but because they have nowhere to go, and they should be what the page leaves you looking at.
+
+Each one can be **answered in place** or **given a name**.
+
+Answering goes through [`apply-edit.ts`](src/lib/sitting/apply-edit.ts), which is the body of `/api/sitting/edit` lifted out. The whole value of the hand-edit path is that it runs the same schemas and validators a tool call runs, so a second copy of it would be a second set of rules. One thing that falls straight out of sharing it: answering a **sealed** field here writes a sealed value, because the disclosure comes from the field and not from where the answer was typed — so a figure cannot be smuggled into the open document through a new box.
+
+Naming who would know is deliberately **not** restricted to the people already recorded. The key-people list is the spine for fields that *point at* people, because those are references the document resolves; `who_would_know` is a note to whoever reads the Guide, and "the solicitor" is a perfectly good answer — as is a name the record has never heard. Where the name does match somebody recorded, their recorded spelling wins, so one person doesn't become two errands. The model has always been able to write a free name there; a stricter box would have been a second set of rules again.
+
+A field holding a **list of entries** gets no box, and says which sitting covers it instead. An account with a reference number and a location is not something to type into a one-liner, and the conversation that covers it asks the questions that go with it.
+
+Nothing has to be answered. A question with the right person's name on it is already worth more to a family than a blank, which is why putting a name to one counts as progress here.
+
 ## Getting around, and the admin view
 
 Every signed-in page shares a header: **Home**, **Your plan** once there is one, **Opening conversation** once there is a record, and an account menu with **Your account**, **Admin** for admins, and **Sign out**. Which links appear follows how far someone has got, worked out in [`journey.ts`](src/lib/journey.ts) — there's no use offering a plan to somebody who hasn't made one.
@@ -333,8 +350,9 @@ The spine is built and walkable end to end: someone signs up, talks to the openi
 - The split screen: the document written in front of you during a sitting, and correctable by hand.
 - The Guide and the Sealed Envelope, readable and printable by the person whose record it is.
 - Seeded demo records, so showing the product costs nothing and needs no improvising.
+- The gaps as something a person can act on: grouped by who would know, answerable in place.
 
-**Not built: the person's own view of their Guide.** Only an admin can read the document the whole product exists to make. That is the next branch, and it is the wrong way round until it lands.
+**Not built: a demo of the experience.** A seeded record shows what the product makes; nothing yet shows it being made. See what's next, below.
 
 ### The problem the front end had to solve
 
