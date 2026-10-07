@@ -191,7 +191,13 @@ Every value carries **`family_action`** (what someone who has never touched this
 
 **The question bank is a checklist, not a script** ([`coverage.ts`](src/lib/sitting/coverage.ts)). Each turn the server works out which questions still fill something this sitting covers and hasn't settled, ranked by priority then irreplaceability, and passes a few to the model, which writes its own questions. A field counts as settled once it holds an answer **or a recorded gap**, so nobody is asked twice about something they've already said they don't know. `question_asks` is written by the server from what the tools did — the model is never asked to keep track.
 
-**The person can see what's being covered.** Each sitting carries plain-language **topics** — "Who to ring first", "What must not stop" — written for someone who has never seen a field id. They live beside the sitting in [`session-template.yaml`](data/session-template.yaml), each naming the field ids it stands for, and the build fails unless every field a sitting covers belongs to exactly one of its topics. That constraint is the point: the topics are a promise about what a conversation will cover, so they can't quietly drift from what it actually does. They're shown as cards on the plan and as a checklist beside the conversation, ticking over as fields are settled — counted on the server from what is stored, never tallied in the browser.
+**The document is written in front of you.** A sitting is a split screen: the conversation on one side, and on the other the part of the Guide it is filling in, grouped the way the finished document groups it. Every field starts empty and fills in as the conversation goes. Empty stays empty — room waiting to be written in, not a line of filler saying there is nothing there.
+
+**And it can be corrected by hand.** Any part of it can be typed into. An edit sends that one field's body to [`/api/sitting/edit`](src/app/api/sitting/edit/route.ts) and gets the whole document back, read out of the database rather than assembled from what was just sent — so what stays on screen is what was really stored. [`block.ts`](src/lib/sitting/block.ts) renders a field to text and parses that same text back, which is what lets the thing you read be the thing you edit, with nothing reformatted under the cursor. The body is built as real DOM rather than rendered by React, so a re-render mid-reply can't land in the middle of a sentence and take the cursor with it.
+
+A hand edit goes through **the same zod schemas and validators as a tool call**, so nothing can be typed in that the model couldn't have recorded — a name that belongs to nobody is refused the same way. The refusal is rewritten for a person first: *"This part lists people by name, separated by commas — and only people already in the document: Robyn."* What they typed is left where it is, because the point of saying so is that it can be put right. Deleting a line is the one thing only a person can do; the model records and corrects but never removes.
+
+**The person can see what's being covered.** Each sitting carries plain-language **topics** — "Who to ring first", "What must not stop" — written for someone who has never seen a field id. They live beside the sitting in [`session-template.yaml`](data/session-template.yaml), each naming the field ids it stands for, and the build fails unless every field a sitting covers belongs to exactly one of its topics. That constraint is the point: the topics are a promise about what a conversation will cover, so they can't quietly drift from what it actually does. They're shown as cards on the plan and as a strip along the top of the live document, ticking over as fields are settled — counted on the server from what is stored, never tallied in the browser. The two work at different altitudes: the areas say what ground is being covered, the document shows what is actually being written, and the field labels alone do neither.
 
 They deliberately stop short of listing the questions themselves. Showing the whole checklist would turn the conversation back into a form, which is the thing it exists to avoid.
 
@@ -292,6 +298,7 @@ The spine is built and walkable end to end: someone signs up, talks to the openi
 - The Guide and the Sealed Envelope, rendered from data rather than written by a model.
 - The completeness check, and the admin view of a record.
 - A front end: a visual language, a component vocabulary, a header, a home worth landing on, and scaffolding around both conversations.
+- The split screen: the document written in front of you during a sitting, and correctable by hand.
 
 **Not built: the person's own view of their Guide.** Only an admin can read the document the whole product exists to make. That is the next branch, and it is the wrong way round until it lands.
 
@@ -303,7 +310,7 @@ An open text field asks the person to know what's worth saying. A form of the ol
 
 So the work was not decoration. It was **scaffolding**: showing what ground is being covered, what's been got so far, what's still to come, and what sort of thing a useful answer looks like — enough structure that someone can lean on it, without collapsing back into a form and losing what the conversation is for.
 
-What that turned into is described under [Getting around](#getting-around-and-the-admin-view) and [The sittings](#the-sittings): plain-language **topics** per sitting, held in [`session-template.yaml`](data/session-template.yaml) and checked at build time, shown before a conversation starts and ticked off as it runs.
+What that turned into is described under [Getting around](#getting-around-and-the-admin-view) and [The sittings](#the-sittings): plain-language **topics** per sitting, held in [`session-template.yaml`](data/session-template.yaml) and checked at build time, shown before a conversation starts and ticked off as it runs — and, during a sitting, the document itself being written in the next column, which is the most direct answer to the empty box there is.
 
 ## What's next, in order
 
@@ -313,13 +320,9 @@ Each of these is a branch. The front end came first so the rest is built in its 
 
 Only admins can read the Guide today. The person whose record it is cannot see what they've said — in a product built on trust, about their own death, that is the wrong way round. It is also the most reassuring screen in the product, currently invisible to the people it's for.
 
-Ordered before the split screen on purpose: this is the same renderer, on its own page. Doing it first makes the next branch mostly wiring rather than a second implementation.
+The split screen beside a sitting already shows one sitting's worth of it, live and editable. This is the whole record, rendered by [`render.ts`](src/lib/artifact/render.ts) the way the printed Guide is, on a page of its own — what someone would actually hand over.
 
-### 2. The split-screen live artifact
-
-Chat on one side, the document filling in on the other — named from the start as a centrepiece of the intended experience, and the clearest way to show someone that talking is producing something. The capture panel beside a sitting is a first sketch of it; this is the real thing, using the renderer from the branch above.
-
-### 3. Synthetic personas and seeding
+### 2. Synthetic personas and seeding
 
 Demos currently mean improvising answers live, or pasting a script, and paying for model calls to show what the product already knows how to do.
 
@@ -330,11 +333,11 @@ Two different needs, worth building as two things:
 
 No real personal data, ever — these are written by us.
 
-### 4. Gamification
+### 3. Gamification
 
 Its own piece of work rather than a note at the end of a list. The discovery brief asked for a large, intimidating task made to feel finite; what exists is a progress bar and minute estimates. Worth designing properly once there is a visual language to design in.
 
-### 5. Printing, and the styled PDF
+### 4. Printing, and the styled PDF
 
 The Markdown is there; the paper isn't. Low priority until the rest is real, and it overlaps almost entirely with the styled PDF, so the two are one branch. Deliberately last: styling the artifact before the app has a look means doing it twice.
 

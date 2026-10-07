@@ -571,7 +571,11 @@ function FieldBody({
 
   return (
     <div data-field={field.id} className="flex flex-col gap-1.5">
-      <h5 className="font-sans text-xs font-semibold tracking-[0.06em] text-muted uppercase">{field.label}</h5>
+      {/* Set in sentence case, not capitals. These labels are long -- "who the
+          family would instinctively call who would be the wrong call" -- and a
+          wall of capitals is hard to read and sounds like shouting, which is
+          the wrong voice for a document about someone's death. */}
+      <h5 className="font-sans text-xs font-medium text-muted">{field.label}</h5>
 
       {!body && gap ? (
         <p className="text-faint italic">Not yet known{gap.detail ? ` — ${gap.detail} may know` : ""}.</p>
@@ -615,7 +619,7 @@ function NoteBody({ note, locked, save }: { note: DocumentEntry; locked: boolean
 
   return (
     <div className="flex flex-col gap-1">
-      <h5 className="font-sans text-xs font-semibold tracking-[0.06em] text-muted uppercase">{note.label}</h5>
+      <h5 className="font-sans text-xs font-medium text-muted">{note.label}</h5>
       <LiveBody field={asField} body={body} label={note.label} locked={locked} onCommit={commit} />
       {error && <Alert>{error}</Alert>}
     </div>
