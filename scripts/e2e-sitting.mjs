@@ -70,6 +70,8 @@ await page.getByLabel(/I understand this is not a will/).check();
 await page.getByLabel(/happy to begin/).check();
 await page.getByRole("button", { name: "Begin" }).click();
 await page.waitForURL(/\/start\/intake$/, { timeout: 30_000, waitUntil: "commit" });
+// A conversation that hasn't started opens on what it's for, not on the box.
+await page.getByRole("button", { name: "Start the conversation" }).click();
 await page.getByLabel("Your answer").waitFor();
 
 // ── The opening conversation ──────────────────────────────────────────
@@ -138,7 +140,7 @@ await page.locator("main ol > li").first().waitFor();
 
 const startButtons = await page.getByRole("button", { name: "Start now" }).count();
 check("every planned sitting can be started", startButtons >= 4, `${startButtons} buttons`);
-check("dates read as a suggestion", (await page.locator("main").innerText()).includes("Suggested for"));
+check("dates read as a suggestion", /suggested for/i.test(await page.locator("main").innerText()));
 await shot("1-plan");
 
 // ── The sitting ───────────────────────────────────────────────────────
@@ -150,7 +152,11 @@ await peopleRow.getByRole("button", { name: "Start now" }).click();
 await page.waitForURL(/\/sitting$/, { timeout: 30_000, waitUntil: "commit" });
 await page.getByLabel("Your answer").waitFor();
 check("a sitting starts from the plan", page.url().endsWith("/sitting"));
-check("the panel starts empty", (await page.locator("aside").innerText()).includes("Things will appear here"));
+// The document is there from the start -- headings with nothing under them,
+// room waiting to be written in -- so "empty" means nothing recorded, not an
+// empty panel.
+const panel = await page.locator("aside").innerText();
+check("the document starts with nothing recorded in it", /0 recorded of \d+/.test(panel), (panel.match(/\d+ recorded of \d+/) ?? [""])[0]);
 
 let sittingDone = false;
 let reloaded = false;
@@ -189,7 +195,7 @@ if (sittingDone) {
   await page.getByRole("link", { name: "Back to your plan" }).click();
   await page.waitForURL(/\/plan$/, { timeout: 30_000, waitUntil: "commit" });
   const planText = await page.locator("main").innerText();
-  check("the plan shows it done", /1 of \d+ sittings done/.test(planText), planText.split("\n")[1]);
+  check("the plan shows it done", /1 of \d+ done/.test(planText), (planText.match(/\d+ of \d+ done/) ?? [""])[0]);
   await shot("4-plan-after");
 }
 
