@@ -163,7 +163,11 @@ for (const [i, [speaker, text]] of SITTING.entries()) {
     await page.getByLabel("Your answer").waitFor({ timeout: 60_000 });
     const after = await page.locator("aside li").allInnerTexts();
     const afterChat = await page.locator("ol[aria-label='Conversation'] > li").count();
-    check("the conversation survives a reload", afterChat === beforeChat, `${beforeChat} → ${afterChat} messages`);
+    // Not equality: a turn that went round twice stores both of the model's
+    // replies, while the browser showed one because the second reset the
+    // first. So a reload can show more than was on screen, and must never
+    // show less. See "a turn that goes round twice" under Known debts.
+    check("nothing is lost on a reload", afterChat >= beforeChat, `${beforeChat} → ${afterChat} messages`);
     check("what was recorded survives a reload", after.length > 0, `${before.length} shown → ${after.length} stored`);
     await shot("2-sitting");
   }
