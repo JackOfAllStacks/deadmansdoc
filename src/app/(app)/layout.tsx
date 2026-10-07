@@ -2,6 +2,7 @@ import { journeyFor } from "@/lib/journey";
 import { isAdmin, requireSession } from "@/lib/session";
 import { AccountMenu } from "./account-menu";
 import { Nav, type NavLink } from "./nav";
+import { ThemeToggle } from "./theme-toggle";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { user } = await requireSession();
@@ -24,7 +25,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex flex-1 flex-col">
       <Nav links={links}>
-        <AccountMenu name={user.name} email={user.email} admin={isAdmin(user)} />
+        <div className="flex items-center gap-1">
+          <AccountMenu name={user.name} email={user.email} admin={isAdmin(user)} />
+          <ThemeToggle />
+        </div>
       </Nav>
       {children}
     </div>

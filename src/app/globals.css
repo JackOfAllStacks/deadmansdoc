@@ -13,6 +13,8 @@
  */
 
 :root {
+  color-scheme: light;
+
   /* Surfaces, from furthest back to nearest front. */
   --paper: #fbf9f6;
   --surface: #ffffff;
@@ -69,49 +71,59 @@
   --shadow-menu: 0 4px 6px -1px rgb(28 25 23 / 0.08), 0 10px 20px -5px rgb(28 25 23 / 0.12);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #14120f;
-    --surface: #1c1916;
-    --soft: #24211c;
+/*
+ * Dark.
+ *
+ * Keyed on an attribute rather than the media query, because the header now
+ * has a switch in it and a choice has to be able to outrank the system. The
+ * attribute is set before the first paint by the script in app/layout.tsx,
+ * which resolves the system preference when nobody has chosen -- so this is
+ * the only place the dark palette is written down, rather than one copy here
+ * and another for the overridden case.
+ */
+:root[data-theme="dark"] {
+  color-scheme: dark;
 
-    --ink: #ece7e0;
-    --muted: #a49c92;
-    --faint: #7e766c;
+  --paper: #14120f;
+  --surface: #1c1916;
+  --soft: #24211c;
 
-    --line: #302b25;
-    --line-strong: #453e36;
+  --ink: #ece7e0;
+  --muted: #a49c92;
+  --faint: #7e766c;
 
-    --accent: #7fb3a6;
-    --accent-hover: #93c2b6;
-    --accent-ink: #11201d;
-    --accent-soft: #1e2b28;
+  --line: #302b25;
+  --line-strong: #453e36;
 
-    --recorded: #7cb894;
-    --recorded-soft: #1b2b22;
-    --unknown: #d3a65e;
-    --unknown-soft: #2d2519;
-    --outstanding: #a49c92;
-    --outstanding-soft: #262320;
+  --accent: #7fb3a6;
+  --accent-hover: #93c2b6;
+  --accent-ink: #11201d;
+  --accent-soft: #1e2b28;
 
-    --warm: #d9926a;
-    --warm-soft: #2b1f18;
+  --recorded: #7cb894;
+  --recorded-soft: #1b2b22;
+  --unknown: #d3a65e;
+  --unknown-soft: #2d2519;
+  --outstanding: #a49c92;
+  --outstanding-soft: #262320;
 
-    --danger: #e08a7d;
-    --danger-soft: #2c1d1a;
+  --warm: #d9926a;
+  --warm-soft: #2b1f18;
 
-    --area-people: #7fb3a6;
-    --area-people-soft: #1d2b28;
-    --area-first-days: #d4a568;
-    --area-first-days-soft: #2c2318;
-    --area-money-out: #90a8cf;
-    --area-money-out-soft: #1d2430;
-    --area-money-in-owed: #bb9ac4;
-    --area-money-in-owed-soft: #271e2b;
+  --danger: #e08a7d;
+  --danger-soft: #2c1d1a;
 
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.25);
-    --shadow-menu: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 10px 20px -5px rgb(0 0 0 / 0.5);
-  }
+  --area-people: #7fb3a6;
+  --area-people-soft: #1d2b28;
+  --area-first-days: #d4a568;
+  --area-first-days-soft: #2c2318;
+  --area-money-out: #90a8cf;
+  --area-money-out-soft: #1d2430;
+  --area-money-in-owed: #bb9ac4;
+  --area-money-in-owed-soft: #271e2b;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.25);
+  --shadow-menu: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 10px 20px -5px rgb(0 0 0 / 0.5);
 }
 
 @theme inline {
@@ -167,6 +179,20 @@
 
   --shadow-card: var(--shadow-card);
   --shadow-menu: var(--shadow-menu);
+}
+
+/* The switch shows where it would take you, which CSS already knows: no state
+   in React, so nothing to get wrong between the server and the browser. */
+[data-theme-icon="dark"] {
+  display: none;
+}
+
+:root[data-theme="dark"] [data-theme-icon="dark"] {
+  display: block;
+}
+
+:root[data-theme="dark"] [data-theme-icon="light"] {
+  display: none;
 }
 
 body {
