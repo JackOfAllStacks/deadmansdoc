@@ -8,6 +8,7 @@ import {
   Card,
   CardLink,
   cx,
+  EmptyState,
   Note,
   Page,
   PageHeader,
@@ -18,8 +19,8 @@ import { sessionTemplate } from "@/lib/content";
 import { journeyFor, possessive, possessiveLower, type Journey } from "@/lib/journey";
 import { formatMinutes, totalMinutes } from "@/lib/plan/build-plan";
 import { requireSession } from "@/lib/session";
+import { progressFor } from "@/lib/progress";
 import { filledFields } from "@/lib/sitting/capture";
-import { sittingFields } from "@/lib/sitting/coverage";
 import { formatDay, todayInMelbourne } from "@/lib/today";
 
 export const metadata = { title: "Home · The Handover" };
@@ -57,12 +58,17 @@ export default async function HomePage() {
 
       <NextStep journey={journey} />
 
+      {sittings.length > 0 && <WhereItStands recordId={record.id} whose={whose} />}
+
       {sittings.length > 0 && (
         <section className="flex flex-col gap-4">
           <SectionHeading aside={`about ${formatMinutes(minutes)} in total`}>{whose} sittings</SectionHeading>
+          {/* Deliberately below the record and not above it: this is the
+              schedule, not the achievement. A sitting can finish having
+              recorded very little. */}
           <Card tone="quiet" className="flex flex-col gap-2">
             <p className="text-sm text-muted">
-              {done} of {sittings.length} done
+              {done} of {sittings.length} conversations done
             </p>
             <Progress value={done} max={sittings.length} label="Sittings done" />
           </Card>
@@ -100,8 +106,6 @@ export default async function HomePage() {
           </div>
         </section>
       )}
-
-      {sittings.length > 0 && <RecordedSoFar recordId={record.id} />}
 
       <Note>
         The dates are suggestions, not deadlines. Start a sitting whenever it suits, stop part-way
@@ -199,46 +203,143 @@ function NextStep({ journey }: { journey: Journey }) {
   );
 }
 
-/** A count of what is actually in the record, so progress isn't only a bar. */
-async function RecordedSoFar({ recordId }: { recordId: string }) {
+/*
+ * Where the record stands.
+ *
+ * The number that used to lead here was sittings done, and a count of sittings
+ * measures a schedule rather than an achievement: a sitting can finish having
+ * recorded very little. So the record itself is the measure now, and the
+ * sittings are the thing that gets you there.
+ *
+ * Under it, what that adds up to in plain terms -- and those claims are
+ * earned, never written. A claim only appears once every field behind it holds
+ * an answer, so the product can't tell somebody their family would know who to
+ * ring when what is written down is that nobody knows. See
+ * data/milestones.yaml.
+ */
+async function WhereItStands({ recordId, whose }: { recordId: string; whose: string }) {
   const filled = await filledFields(recordId);
   if (!filled.length) return null;
-
-  const answered = filled.filter((f) => f.status === "answered").length;
-  const gaps = filled.filter((f) => f.status === "unknown").length;
-  const everything = sessionTemplate.sittings.flatMap((s) => sittingFields(s.covers)).length;
+  const p = progressFor(filled, whose);
 
   return (
-    <section className="flex flex-col gap-3">
-      <SectionHeading>What&apos;s in the record</SectionHeading>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Card tone="quiet" className="flex flex-col gap-1">
-          <p className="font-serif text-3xl text-recorded">{answered}</p>
-          <p className="text-sm text-muted">things recorded</p>
-        </Card>
-        {/* A gap is the one thing in the record that asks something of the
-            person afterwards, so this number is a way through rather than a
-            tally. With none of them there's nowhere worth going. */}
-        {gaps > 0 ? (
-          <CardLink href="/loose-ends" className="flex flex-col gap-1">
-            <p className="font-serif text-3xl text-unknown">{gaps}</p>
-            <p className="text-sm text-muted">noted as nobody knows yet — see what&apos;s left to find out</p>
-          </CardLink>
-        ) : (
+    <>
+      <section className="flex flex-col gap-4">
+        <SectionHeading aside={`${p.answered + p.gaps} of ${p.total} covered`}>
+          What&apos;s in the record
+        </SectionHeading>
+
+        <div className="grid gap-3 sm:grid-cols-3">
           <Card tone="quiet" className="flex flex-col gap-1">
-            <p className="font-serif text-3xl text-unknown">{gaps}</p>
-            <p className="text-sm text-muted">noted as nobody knows yet</p>
+            <p className="font-serif text-3xl text-recorded">{p.answered}</p>
+            <p className="text-sm text-muted">things recorded</p>
           </Card>
-        )}
-        <Card tone="quiet" className="flex flex-col gap-1">
-          <p className="font-serif text-3xl text-faint">{Math.max(0, everything - answered - gaps)}</p>
-          <p className="text-sm text-muted">still to come</p>
-        </Card>
-      </div>
-      <p className="measure text-sm text-muted">
-        A gap counts as much as an answer: &ldquo;nobody knows where that is&rdquo; is exactly the
-        sort of thing a family needs to be told.
-      </p>
-    </section>
+          {/* A gap is the one thing in the record that asks something of the
+              person afterwards, so this number is a way through rather than a
+              tally. With none of them there's nowhere worth going. */}
+          {p.gaps > 0 ? (
+            <CardLink href="/loose-ends" className="flex flex-col gap-1">
+              <p className="font-serif text-3xl text-unknown">{p.gaps}</p>
+              <p className="text-sm text-muted">noted as nobody knows yet — see what&apos;s left to find out</p>
+            </CardLink>
+          ) : (
+            <Card tone="quiet" className="flex flex-col gap-1">
+              <p className="font-serif text-3xl text-unknown">0</p>
+              <p className="text-sm text-muted">noted as nobody knows yet</p>
+            </Card>
+          )}
+          <Card tone="quiet" className="flex flex-col gap-1">
+            <p className="font-serif text-3xl text-faint">{p.outstanding}</p>
+            <p className="text-sm text-muted">still to come</p>
+          </Card>
+        </div>
+
+        <p className="measure text-sm text-muted">
+          A gap counts as much as an answer: &ldquo;nobody knows where that is&rdquo; is exactly the
+          sort of thing a family needs to be told.
+        </p>
+
+        {/* The document's own sections, so what is filling up is the thing
+            that gets printed rather than a tally of conversations. */}
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {p.sections.map((section) => (
+            <li key={section.id}>
+              <Card tone="plain" className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <h3 className="text-base">{section.title}</h3>
+                  {section.complete ? (
+                    <Badge tone="recorded">Answered</Badge>
+                  ) : section.settled ? (
+                    <Badge tone="unknown">Nothing left to ask</Badge>
+                  ) : (
+                    <span className="text-sm text-muted">
+                      {section.answered + section.gaps} of {section.total}
+                    </span>
+                  )}
+                </div>
+                <Progress
+                  value={section.answered}
+                  max={section.total}
+                  label={`${section.title}: answered`}
+                  tone="recorded"
+                />
+              </Card>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {(p.met.length > 0 || p.next) && (
+        <section className="flex flex-col gap-4">
+          <SectionHeading aside={p.met.length > 0 ? `${p.met.length} of ${p.milestones.length}` : undefined}>
+            What that already means
+          </SectionHeading>
+
+          {p.met.length > 0 ? (
+            <ul className="flex flex-col gap-2">
+              {p.met.map((m) => (
+                <li key={m.id}>
+                  <Card tone="quiet" className="flex items-start gap-3">
+                    <Tick />
+                    <p className="measure leading-relaxed">{m.says}</p>
+                  </Card>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState>
+              Nothing to say yet. These fill in as the record does, and each one is a thing the
+              people you leave behind would actually be able to do.
+            </EmptyState>
+          )}
+
+          {p.next && (
+            <Card tone="accent" className="flex flex-col gap-2">
+              <p className="text-xs font-medium tracking-wide text-faint uppercase">
+                {p.next.missing.length === 1 ? "One answer away" : `${p.next.missing.length} answers away`}
+              </p>
+              <p className="measure leading-relaxed">{p.next.says}</p>
+              <p className="measure text-sm text-muted">
+                Still to cover: {p.next.missing.map((f) => f.label.toLowerCase()).join("; ")}.
+              </p>
+            </Card>
+          )}
+        </section>
+      )}
+    </>
+  );
+}
+
+function Tick() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden className="mt-1 size-4 shrink-0 text-recorded" fill="none">
+      <path
+        d="M4 10.5 8 14.5 16 5.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

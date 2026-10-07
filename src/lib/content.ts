@@ -61,6 +61,19 @@ export interface QuestionBank {
   questions: Question[];
 }
 
+export interface Milestone {
+  id: string;
+  /** What the family could do. `{family}` is substituted; nothing else is. */
+  says: string;
+  /** The fields that have to hold an answer for the claim to be true. */
+  needs: string[];
+}
+
+export interface MilestoneSet {
+  version: number;
+  milestones: Milestone[];
+}
+
 function load<T>(file: string): T {
   return parse(readFileSync(join(process.cwd(), "data", file), "utf8")) as T;
 }
@@ -99,6 +112,7 @@ export function contentProblems(
   artifact: ArtifactDefinition,
   bank: QuestionBank,
   template: SessionTemplate,
+  milestoneSet: MilestoneSet,
 ): string[] {
   const problems: string[] = [];
 
@@ -190,14 +204,41 @@ export function contentProblems(
     if (!coveredBy.has(id)) problems.push(`field ${id} isn't covered by any sitting`);
   }
 
+  // A milestone is a claim about the record said in plain words. Holding them
+  // as data is only worth anything if the claim and the fields behind it can't
+  // drift apart, so a milestone naming a field that doesn't exist is a build
+  // failure like any other.
+  const milestoneIds = new Set<string>();
+  for (const milestone of milestoneSet.milestones) {
+    if (milestoneIds.has(milestone.id)) problems.push(`duplicate milestone id ${milestone.id}`);
+    milestoneIds.add(milestone.id);
+    if (!milestone.needs.length) problems.push(`milestone "${milestone.id}" needs no fields, so it is always true`);
+    if (!milestone.says.includes("{family}")) {
+      problems.push(`milestone "${milestone.id}" never says whose family it is about`);
+    }
+    for (const ref of milestone.needs) {
+      if (!fieldIds.has(ref)) problems.push(`milestone "${milestone.id}" needs unknown field ${ref}`);
+    }
+    // A sealed field is in the envelope, which the family only opens after a
+    // death -- so it can't be the thing that makes a claim about what they
+    // would know true today.
+    for (const ref of milestone.needs) {
+      const field = [...artifact.sections.flatMap(sectionFields)].find((f) => f.id === ref);
+      if (field?.disclosure === "sealed") {
+        problems.push(`milestone "${milestone.id}" needs ${ref}, which is sealed`);
+      }
+    }
+  }
+
   return problems;
 }
 
 export const artifact = load<ArtifactDefinition>("artifact-fields.yaml");
 export const questionBank = load<QuestionBank>("question-bank.yaml");
 export const sessionTemplate = load<SessionTemplate>("session-template.yaml");
+export const milestoneSet = load<MilestoneSet>("milestones.yaml");
 
-const problems = contentProblems(artifact, questionBank, sessionTemplate);
+const problems = contentProblems(artifact, questionBank, sessionTemplate, milestoneSet);
 if (problems.length) {
   throw new Error(`Invalid content in data/:\n  ${problems.join("\n  ")}`);
 }

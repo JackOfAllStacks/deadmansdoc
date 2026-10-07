@@ -8,11 +8,19 @@ import { TopicStrip } from "@/components/topics";
 import { Alert, ButtonLink, Card, Progress as ProgressBar } from "@/components/ui";
 import { renderBlock, type BlockShape } from "@/lib/sitting/block";
 import type { SittingEvent } from "@/lib/sitting/agent";
+import type { SittingHarvest } from "@/lib/progress";
 import type { Coverage, TopicProgress } from "@/lib/sitting/coverage";
 import type { DocumentEntry, DocumentFieldView, DocumentSectionView } from "@/lib/sitting/document";
 import type { ChatMessage } from "@/lib/transcript";
 
 type Status = "idle" | "sending" | "finished" | "catching-up";
+
+/** What the sitting got, as the server counted it. */
+interface Got {
+  harvest: SittingHarvest;
+  settled: string[];
+  unlocked: string[];
+}
 type Progress = Pick<Coverage, "answered" | "gaps" | "total">;
 
 /** What the whole document looks like after an edit, read back from the database. */
@@ -90,6 +98,7 @@ export function SittingChat({
   const [speaker, setSpeaker] = useState(speakers[0]);
   const [status, setStatus] = useState<Status>(busy ? "catching-up" : "idle");
   const [summary, setSummary] = useState("");
+  const [got, setGot] = useState<Got | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -244,6 +253,7 @@ export function SittingChat({
           } else if (e.type === "done") {
             outcome = "done";
             setSummary(e.summary);
+            setGot({ harvest: e.harvest, settled: e.settled, unlocked: e.unlocked });
           } else {
             outcome = e.type;
           }
@@ -300,11 +310,7 @@ export function SittingChat({
         />
 
         {status === "finished" ? (
-          <Card tone="accent" className="flex flex-col items-start gap-3">
-            <h2 className="text-lg">That&apos;s this sitting done</h2>
-            {summary && <p className="measure text-sm text-muted">{summary}</p>}
-            <ButtonLink href="/plan">Back to your plan</ButtonLink>
-          </Card>
+          <Finished summary={summary} got={got} />
         ) : (
           <Composer
             draft={draft}
@@ -647,5 +653,87 @@ function NoteBody({ note, locked, save }: { note: DocumentEntry; locked: boolean
       <LiveBody field={asField} body={body} label={note.label} locked={locked} onCommit={commit} />
       {error && <Alert>{error}</Alert>}
     </div>
+  );
+}
+
+/*
+ * The end of a sitting.
+ *
+ * This used to be "that's this sitting done", the model's summary and a button
+ * out, which threw away the one moment where somebody had just done something
+ * hard. What goes here instead is what the conversation actually got, counted
+ * on the server from what was stored -- not a score, not a reward, and nothing
+ * claimed that isn't in the record.
+ *
+ * The claims under "what this means" are the careful part. Each one is only
+ * shown when every field behind it holds an answer, never when what is
+ * recorded is that nobody knows -- a gap is knowledge worth having and it is
+ * not the same as the family being covered. See data/milestones.yaml.
+ */
+function Finished({ summary, got }: { summary: string; got: Got | null }) {
+  const h = got?.harvest;
+  const counted = h
+    ? [
+        h.recorded > 0 && `${h.recorded} ${h.recorded === 1 ? "thing" : "things"} written down`,
+        h.people > 0 && `${h.people} ${h.people === 1 ? "person" : "people"} named`,
+        h.entries > 0 && `${h.entries} ${h.entries === 1 ? "entry" : "entries"} listed`,
+        h.gaps > 0 && `${h.gaps} ${h.gaps === 1 ? "thing" : "things"} nobody knows yet`,
+        h.notes > 0 && `${h.notes} ${h.notes === 1 ? "note" : "notes"} kept`,
+      ].filter((x): x is string => Boolean(x))
+    : [];
+
+  return (
+    <Card tone="accent" className="flex flex-col items-start gap-4">
+      <div className="flex flex-col gap-2">
+        <h2 className="text-lg">That&apos;s this sitting done</h2>
+        {summary && <p className="measure text-sm text-muted">{summary}</p>}
+      </div>
+
+      {counted.length > 0 && (
+        <p className="measure text-sm">
+          {counted.slice(0, -1).join(", ")}
+          {counted.length > 1 ? ", and " : ""}
+          {counted.at(-1)}.
+        </p>
+      )}
+
+      {got && got.settled.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-medium tracking-wide text-faint uppercase">Covered now</p>
+          <ul className="flex flex-col gap-1">
+            {got.settled.map((label) => (
+              <li key={label} className="text-sm text-muted">
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {got && got.unlocked.length > 0 && (
+        <div className="flex flex-col gap-1.5 border-t border-accent/20 pt-3">
+          <p className="text-xs font-medium tracking-wide text-faint uppercase">What that means</p>
+          <ul className="measure flex flex-col gap-1.5">
+            {got.unlocked.map((says) => (
+              <li key={says} className="text-sm leading-relaxed">
+                {says}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <ButtonLink href="/plan">Back to your plan</ButtonLink>
+        <ButtonLink href="/guide" tone="quiet">
+          Read what it has written
+        </ButtonLink>
+        {got && got.harvest.gaps > 0 && (
+          <ButtonLink href="/loose-ends" tone="quiet">
+            See what&apos;s still to find out
+          </ButtonLink>
+        )}
+      </div>
+    </Card>
   );
 }

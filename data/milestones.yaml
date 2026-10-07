@@ -1,0 +1,79 @@
+# What the family could actually do, once certain things are recorded.
+#
+# The discovery brief asked for a large, intimidating task made to feel finite.
+# A bar and a count of sittings don't do that: they measure a schedule. What
+# does is telling somebody precisely what they have achieved, in terms of what
+# the people they leave behind would now be able to do.
+#
+# So each of these is a claim about the record, and each one has to be earned.
+# A milestone only reads as true when every field it names holds an *answer*.
+# A recorded gap is knowledge and counts towards a section being settled, but
+# "they would know who to ring" is not true when what is written down is that
+# nobody knows who to ring. Getting that backwards would have this product
+# tell someone their family is covered while the record says otherwise.
+#
+# `{family}` becomes "Your family" or "Margaret's family". Nothing else is
+# substituted, and the build fails if a milestone names a field that doesn't
+# exist -- the whole point of holding these as data is that the claim and the
+# fields behind it can't drift apart.
+#
+# No points, no streaks, no badges, no levels. This is a product about dying,
+# used by people who are frightened or grieving, and rewarding someone for
+# progress on their own death is exactly the glib register it can't afford.
+
+version: 1
+
+milestones:
+  - id: who-to-ring
+    says: >
+      {family} would know who to ring first — and who to ring when they don't
+      know who to ring.
+    needs: [s1.first_calls, s1.fallback_contact]
+
+  - id: what-not-to-touch
+    says: >
+      {family} would know what to leave alone: what not to cancel, close, sign
+      or move until somebody qualified has looked at it.
+    needs: [s1.do_not_yet]
+
+  - id: who-is-who
+    says: >
+      {family} would know who everyone is, and what each of them is
+      responsible for.
+    needs: [s3.key_people, s3.responsibilities]
+
+  - id: the-wrong-call
+    says: >
+      {family} would know who not to ring — including the person they would
+      instinctively ring who would be the wrong call.
+    needs: [s3.do_not_contact, s3.wrong_call]
+
+  - id: the-first-days
+    says: >
+      {family} would know what has to happen in the first few days, and who is
+      qualified to decide what.
+    needs: [s2.first_72h, s2.urgent_decisions]
+
+  - id: nothing-lapses
+    says: >
+      {family} would know what would quietly spoil, lapse or fail if nobody
+      got to it in time.
+    needs: [s2.first_week_losses, s5.silent_failures]
+
+  - id: the-money-keeps-running
+    says: >
+      {family} would know which account the household runs on, what must not
+      be interrupted, and what must not be closed.
+    needs: [s5.bill_account, s5.uninterruptible_payments, s5.do_not_close_accounts]
+
+  - id: what-is-owed
+    says: >
+      {family} would know what is owed, and what somebody else has been left
+      on the hook for.
+    needs: [s5.mortgage_loans_cards, s5.cosigned, s5.guarantees]
+
+  - id: what-still-comes-in
+    says: >
+      {family} would know what money is still coming, including what nobody
+      else would think to chase.
+    needs: [s5.money_after_death, s5.claim_required, s5.unchased_income]

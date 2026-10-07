@@ -213,3 +213,12 @@ export async function rescheduleSitting(recordId: string, sittingId: string, dat
     returning id`;
   return rows.length === 1;
 }
+
+/** How the subject is referred to: "Your plan" versus "John's plan". */
+export function possessive(record: RecordRow): string {
+  return record.subject_relationship === "self" ? "Your" : `${record.subject_name}'s`;
+}
+
+export function possessiveLower(record: RecordRow): string {
+  return record.subject_relationship === "self" ? "your" : `${record.subject_name}'s`;
+}
