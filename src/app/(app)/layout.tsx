@@ -14,6 +14,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     // there is a plan -- not hidden until it happens to have something in it.
     links.push({ href: "/guide", label: "The Guide" });
   }
+  // Only once there is something to find out. An empty page headed "what's
+  // still to find out" would read as a reproach.
+  if (journey.gaps > 0) links.push({ href: "/loose-ends", label: "Still to find out" });
   // Readable from the moment it exists, not only while it's unfinished: it is
   // the only place that says why the plan came out the way it did.
   if (journey.record) links.push({ href: "/start/intake", label: "Opening conversation" });
