@@ -149,7 +149,12 @@ const DESCRIPTIONS: Record<ToolName, string> = {
   save_field:
     "Record one answer against one field. Call it as soon as you have something worth keeping, in the same turn you " +
     "learn it -- never batched up at the end. Calling it again for the same field replaces what's there, so only do " +
-    "that when you have something better. A field that takes entries is filled with save_entity, not this.",
+    "that when you have something better. A field that takes entries is filled with save_entity, not this. " +
+    // Measured: with the slots gone, the one thing left that the model gets
+    // wrong is writing a sentence into a field that takes names. Several of
+    // those read like questions you would answer in a sentence.
+    "Some fields hold names and nothing else -- the list of what is still worth covering says which, and those " +
+    "take the names of people already recorded, never a sentence about them.",
   save_entity:
     "Record one person, account, bill, debt, income stream or routing rule, or add newly learned details to one " +
     "already recorded. One call per entry.",
