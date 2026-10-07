@@ -91,13 +91,13 @@ async function say(speaker, text) {
   await page.getByRole("button", { name: "Send" }).click();
   await page.waitForFunction(
     () => {
+      // The turn that ends the conversation takes the composer with it, and
+      // which panel replaces it depends on whether there was already a plan:
+      // "see your plan" the first time, "that's been taken into account" when
+      // something was added later. So the test is simply whether the composer
+      // is still there and done waiting.
       const btn = [...document.querySelectorAll("button")].find((b) => /^(Send|Waiting…)$/.test(b.textContent ?? ""));
-      const plan = [...document.querySelectorAll("a")].some((l) => l.textContent === "See your plan");
-      // The turn that ends the conversation takes the composer away with it,
-      // so there is no Send button to come back to -- only the panel offering
-      // to add something later.
-      const over = [...document.querySelectorAll("button")].some((b) => b.textContent === "Add something to this");
-      return plan || over || (btn && btn.textContent === "Send");
+      return !btn || btn.textContent === "Send";
     },
     null,
     { timeout: 180_000 },
@@ -217,18 +217,23 @@ if (finished) {
   for (const [speaker, text] of AFTERTHOUGHTS) {
     await say(speaker, text);
     console.log(`\n[reopen ${speaker}] ${text}\n[agent, ${lastSeconds}s] ${(await page.locator("ol > li").allInnerTexts()).at(-1)}`);
-    if (await page.getByRole("button", { name: "Add something to this" }).count()) {
+    if (await page.getByRole("link", { name: "Back to your plan" }).count()) {
       reFinished = true;
       break;
     }
   }
   check("the reopened conversation finishes again", reFinished);
+
+  // The card says how many sittings were re-worked, and that number comes
+  // straight from what applyRevision actually moved -- so a nonzero one is the
+  // write path reporting on itself.
   const told = await page.locator("main").innerText();
   check(
     "it says how many sittings were re-worked",
     /sittings? you haven't started yet (has|have) been re-worked/i.test(told),
-    (told.match(/The \d+ sittings[^.]*\./) ?? told.match(/The sitting[^.]*\./) ?? [""])[0],
+    (told.match(/The [^.]*re-worked[^.]*\./) ?? [""])[0],
   );
+  await shot(page, "6-recut-told");
 
   const now = await planRows();
   check("the plan still has the same sittings", now.length === was.length, `${was.length} → ${now.length}`);
@@ -250,8 +255,11 @@ if (finished) {
   await page.waitForURL(/\/sitting$/, { timeout: 30_000, waitUntil: "commit" });
   await page.goto(`${BASE}/start/intake`);
   await page.getByRole("button", { name: "Add something to this" }).click();
-  const refusal = await page.locator("[role=alert]").first().innerText({ timeout: 15_000 });
-  check("reopening is refused while a sitting is open", /finish the sitting/i.test(refusal), refusal);
+  // The composer keeps an empty alert slot, so take the one with words in it.
+  const refusal = page.locator("[role=alert]").filter({ hasText: /\S/ }).first();
+  await refusal.waitFor({ timeout: 15_000 });
+  const said = await refusal.innerText();
+  check("reopening is refused while a sitting is open", /finish the sitting/i.test(said), said);
 }
 
 // ── Account B: can't reach A's record ─────────────────────────────────

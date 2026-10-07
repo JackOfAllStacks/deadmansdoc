@@ -260,6 +260,28 @@ describe("runIntakeTurn", () => {
     expect(state.requests[0].messages.some((m) => m.role === "system")).toBe(false);
   });
 
+  it("tells the model when it is in a conversation that was reopened", async () => {
+    // Without this the model has nothing in front of it saying it is in a
+    // second conversation, or that calling finish_intake is what re-works the
+    // plan. Measured: it answers, thanks them, says goodbye, and leaves the
+    // conversation open, so nothing is ever re-cut.
+    state.sittings = [
+      { id: "s1", sitting_key: "people", seq: 1, status: "planned", estimated_minutes: 15, scheduled_for: "2026-01-05" },
+    ] as typeof state.sittings;
+    state.replies = [{ text: "Noted." }];
+    await turn();
+    const last = state.requests[0].messages.at(-1) as { role: string; content: string };
+    expect(last.role).toBe("system");
+    expect(last.content).toMatch(/finished before/i);
+    expect(last.content).toMatch(/re-works the sittings/i);
+  });
+
+  it("says nothing of the sort on a first conversation, so the prefix still caches", async () => {
+    state.replies = [{ text: "Noted." }];
+    await turn();
+    expect(state.requests[0].messages.some((m) => m.role === "system")).toBe(false);
+  });
+
   it("saves nothing when the model refuses", async () => {
     state.replies = [{ text: "partial", stop: "refusal" }];
     const events = await turn();
