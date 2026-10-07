@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Wordmark } from "@/components/mark";
 import { cx } from "@/components/ui";
 
 export interface NavLink {
@@ -23,8 +24,8 @@ export function Nav({ links, children }: { links: NavLink[]; children: React.Rea
   return (
     <header className="app-chrome border-b border-line bg-surface">
       <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3 sm:px-6">
-        <Link href="/home" className="font-serif text-lg tracking-tight">
-          The Handover
+        <Link href="/home" aria-label="The Handover — home">
+          <Wordmark size="sm" />
         </Link>
 
         <nav aria-label="Main" className="order-3 -mx-2 w-full sm:order-2 sm:mx-0 sm:w-auto">

@@ -261,9 +261,13 @@ What this does *not* do is show the product being used. For that the conversatio
 
 ## The look of it
 
+**The mark** ([`mark.tsx`](src/components/mark.tsx)) is two cupped hands under a folded letter. Not a bird, which reads as afterlife imagery and is exactly the glib register this can't afford; not a handshake, which is a business transaction. It is about custody — something held carefully, and passed on — and the envelope is already a real object here, so the letter is a thing rather than a metaphor. The hands stop short of meeting: an earlier version closed that gap and the whole thing read as a teacup.
+
 Everything visual is a token in [`globals.css`](src/app/globals.css): surfaces, text, lines, one accent, and the three states anything in the record can be in (**recorded**, **not known**, **still to come**). Pages use the names — `bg-surface`, `text-muted`, `border-line` — and never a raw colour or an opacity-on-black trick, so the whole product can be re-toned from that one file. The palette is warm rather than clinical on purpose: this is a product about dying, used by people who are frightened or grieving, and stark monochrome reads as a hospital form.
 
 Headings are set in a serif and body text in a grotesque, because what this makes is a **document**, and it should look like one from the first screen while the interface itself stays out of the way.
+
+**Each sitting has a colour**, carried wherever that sitting appears: its card on the plan and on home, its chips, and the landing page. The colour is doing work — it says which part of the record you're looking at before you've read anything — so it belongs with the information rather than on top of it. A second, warmer accent exists for the places the green would feel cold.
 
 [`src/components/ui.tsx`](src/components/ui.tsx) is the vocabulary every page is built from — `Page`, `PageHeader`, `Card`, `Button`, `Badge`, `Progress`, `Note`, `Alert`. [`chat.tsx`](src/components/chat.tsx) holds the conversation itself, shared by the opening conversation and the sittings, which had a copy each until this branch. [`topics.tsx`](src/components/topics.tsx) is the scaffolding. The rule is that a page composes these: if something doesn't fit, it earns a variant there rather than a private copy in the page.
 
