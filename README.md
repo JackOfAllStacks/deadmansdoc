@@ -104,6 +104,7 @@ node scripts/e2e-sitting.mjs  # the whole journey, including a sitting (spends m
 node scripts/e2e-admin-record.mjs  # the admin view of a record it left behind
 node scripts/e2e-loose-ends.mjs    # the gaps page, from a seeded record (free)
 node scripts/e2e-progress.mjs      # how far through the record is (free)
+node scripts/demo-run.mjs          # watch a record being made, for a demo (spends credit)
 ```
 
 `GET /api/health` reports whether the database is reachable and which content version is loaded.
@@ -317,7 +318,11 @@ The people live in [`data/personas`](data/personas) and are **invented**: no rea
 
 Seeding **replaces** whatever that account had, which is what makes it repeatable between run-throughs. It fills an account that already exists rather than creating one, so nothing here touches sign-up or passwords; and because a record is written across half a dozen tables with no transaction spanning them, a failure part-way clears up after itself rather than leaving something that looks seeded and isn't.
 
-What this does *not* do is show the product being used. For that the conversation has to actually run — see what's next, below.
+**Watching it happen** is the other half, and it needs the conversation to actually run. [`scripts/demo-run.mjs`](scripts/demo-run.mjs) plays a persona's own words into the real pages and the real agents at a pace you can follow: consent, the opening conversation, the plan it works out, one sitting with the document filling in beside it, and the Guide at the end. There is no special path through the app — if it works, the product works, and if it stalls, so would a person.
+
+The words live under `script:` in the persona, and [`e2e-sitting.mjs`](scripts/e2e-sitting.mjs) reads the same lines, so what is tested and what is demonstrated can't drift apart. A line attributed to somebody who isn't in the room, or a script for a sitting that doesn't exist, **fails the build** like every other mistake in `data/`.
+
+It costs credit — roughly US$0.20 for a conversation and a sitting — so seeding stays the default and this stays the deliberate choice. `--pace` sets the pause between lines and `--headless` turns the window off, which is how it gets checked.
 
 ## The look of it
 
@@ -387,8 +392,9 @@ The spine is built and walkable end to end: someone signs up, talks to the openi
 - Seeded demo records, so showing the product costs nothing and needs no improvising.
 - The gaps as something a person can act on: grouped by who would know, answerable in place.
 - Progress measured as the record rather than the schedule, with claims that have to be earned.
+- A scripted run through the real agents, so a demo can show the product being used.
 
-**Not built: a demo of the experience.** A seeded record shows what the product makes; nothing yet shows it being made. See what's next, below.
+**Not built: a designed artifact.** What comes off the printer is an honest print of the reading view. See what's next, below.
 
 ### The problem the front end had to solve
 
@@ -404,13 +410,7 @@ What that turned into is described under [Getting around](#getting-around-and-th
 
 Each of these is a branch. The front end came first so the rest is built in its vocabulary rather than retrofitted; what follows is ordered the same way, cheapest-unlock first.
 
-### 1. A scripted run through the real agents
-
-Seeded records cover showing the *output*. What they can't show is the *experience* — the conversation actually happening, the document filling in as someone talks. That still means improvising answers or pasting a script in by hand.
-
-A scripted persona driven through the real agents would fix it. Slower and it costs credit, so it stays a deliberate choice rather than the only way to demo.
-
-### 2. The styled PDF
+### 1. The styled PDF
 
 Printing works now — the browser's own print of the reading view, which is honest paper with no new code. What's still missing is a *designed* artifact: something that looks like it was meant to be kept, rather than a web page that went through a printer. Deliberately last, because it only makes sense once the rest has settled.
 
