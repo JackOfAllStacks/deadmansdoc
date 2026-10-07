@@ -118,9 +118,14 @@ export function DocumentContents({ doc }: { doc: Doc }) {
   );
 }
 
+/**
+ * Set on a sheet, with an edge to it: this is a document rather than a region
+ * of a web page, and where it starts and stops should need no explaining. The
+ * sheet itself is dropped for print, where the paper is the edge.
+ */
 export function DocumentPage({ doc }: { doc: Doc }) {
   return (
-    <article className="flex flex-col gap-10">
+    <article className="flex flex-col gap-10 rounded-lg border border-line bg-surface px-6 py-8 shadow-card sm:px-10 sm:py-12 print:rounded-none print:border-0 print:bg-transparent print:p-0 print:shadow-none">
       <header className="flex flex-col gap-4 border-b border-line pb-6">
         {/* The page around this already names it. The document carries its own
             title for print, where that page furniture is hidden. */}

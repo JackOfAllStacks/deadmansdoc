@@ -26,15 +26,19 @@ export function DocumentView({ doc, markdown, downloadHref }: { doc: Doc; markdo
   }
 
   const action = "rounded-md border border-line px-3 py-1.5 text-sm hover:bg-soft";
+  const join = downloadHref.includes("?") ? "&" : "?";
 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap gap-3 print:hidden">
+        <a href={`${downloadHref}${join}format=pdf`} className={action}>
+          Download PDF
+        </a>
         <a href={downloadHref} className={action}>
-          Download for Word
+          Download Word
         </a>
         <button onClick={() => window.print()} className={action}>
-          Print or save as PDF
+          Print
         </button>
         <button onClick={copy} className={action}>
           {copied ? "Copied" : "Copy Markdown"}

@@ -11,6 +11,9 @@ import { Button } from "@/components/ui";
  * uses the page itself, so what comes out of the printer -- or out of "save as
  * PDF" -- is what is on the screen.
  */
+const LINK =
+  "inline-flex items-center justify-center gap-2 rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium transition-colors hover:bg-soft";
+
 export function DocumentActions({ markdown, downloadHref }: { markdown: string; downloadHref: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -24,16 +27,18 @@ export function DocumentActions({ markdown, downloadHref }: { markdown: string; 
     }
   }
 
+  const join = downloadHref.includes("?") ? "&" : "?";
+
   return (
     <div className="flex flex-wrap gap-3 print:hidden">
-      <a
-        href={downloadHref}
-        className="inline-flex items-center justify-center gap-2 rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium transition-colors hover:bg-soft"
-      >
-        Download for Word
+      <a href={`${downloadHref}${join}format=pdf`} className={LINK}>
+        Download PDF
+      </a>
+      <a href={downloadHref} className={LINK}>
+        Download Word
       </a>
       <Button tone="secondary" size="sm" onClick={() => window.print()}>
-        Print or save as PDF
+        Print
       </Button>
       <Button tone="secondary" size="sm" onClick={copy}>
         {copied ? "Copied" : "Copy text"}
