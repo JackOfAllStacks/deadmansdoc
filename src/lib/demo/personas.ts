@@ -62,6 +62,22 @@ export interface PersonaLine {
   text: string;
 }
 
+export interface ScriptLine {
+  who: string;
+  says: string;
+}
+
+/**
+ * What they say, for watching the product being used rather than seeding the
+ * result it would have produced. Played into the real endpoints by
+ * scripts/demo-run.mjs.
+ */
+export interface PersonaScript {
+  intake: ScriptLine[];
+  /** Keyed by sitting key, so a script can cover one sitting or several. */
+  sittings: Record<string, ScriptLine[]>;
+}
+
 export interface Persona {
   key: string;
   name: string;
@@ -77,6 +93,7 @@ export interface Persona {
   record?: PersonaValue[];
   notes?: PersonaNote[];
   transcript?: PersonaLine[];
+  script?: PersonaScript;
 }
 
 export function personaProblems(persona: Persona): string[] {
@@ -128,6 +145,27 @@ export function personaProblems(persona: Persona): string[] {
     }
     if (!row.value && !row.amount && row.unknown === undefined && !row.entity) {
       say(`${row.field} has nothing recorded against it`);
+    }
+  }
+
+  // A script is dialogue, so the only things that can be wrong with it are who
+  // is speaking and which sitting it belongs to -- and both would only show up
+  // when somebody was demonstrating the product in front of people.
+  const script = persona.script;
+  if (script) {
+    const here = new Set(persona.present ?? []);
+    const lines = [
+      ...(script.intake ?? []).map((l) => ["the opening conversation", l] as const),
+      ...Object.entries(script.sittings ?? {}).flatMap(([key, ls]) =>
+        (ls ?? []).map((l) => [`the "${key}" sitting`, l] as const),
+      ),
+    ];
+    for (const [where, line] of lines) {
+      if (!line.says?.trim()) say(`has an empty line in ${where}`);
+      if (!here.has(line.who)) say(`has ${line.who} speaking in ${where}, who isn't in the room`);
+    }
+    for (const key of Object.keys(script.sittings ?? {})) {
+      if (!templateKeys.has(key)) say(`has a script for unknown sitting "${key}"`);
     }
   }
 

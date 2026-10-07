@@ -8,7 +8,10 @@
 // (npx playwright install chromium --only-shell) once.
 //
 // Usage: node scripts/e2e-sitting.mjs <base-url> <signup-code> [screenshot-dir]
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { chromium } from "playwright";
+import { parse } from "yaml";
 
 const [BASE = "http://localhost:3000", CODE, SHOTS = "."] = process.argv.slice(2);
 const stamp = Date.now();
@@ -18,34 +21,12 @@ const check = (name, ok, detail = "") => {
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}`);
 };
 
-// John, 73, semi-retired builder, with his son Jack. Same persona as the demo
-// script, trimmed for the opening conversation.
-const INTAKE = [
-  ["Jack", "There's Dad, my brother Michael in Brisbane and me. Mum died two years ago. Dad's also got his brother Terry and his sister Robyn. Honestly the thing he's worried about is what's owed on the units and the rent that keeps coming in after he's gone."],
-  ["John", "Everyday account and savings with NAB, two term deposits, the share portfolio through CommSec, and the company account with Westpac. I've done all of it myself since Denise passed."],
-  ["John", "There's the building company, still ticking over, and the family trust that owns two units in Frankston. No mortgage on the house. There's a loan on the ute and an overdraft on the company, and I lent my nephew Trent forty grand on a handshake."],
-  ["Jack", "Dad's got an accountant, Peter, a solicitor called Gail who did the will, and a bloke who looks after his super."],
-  ["John", "The rent from the units would keep coming in, and a couple of final invoices the builders still owe me."],
-  ["John", "We're not religious. I'd like the RSL to do a short service, and cremation's fine. There's no rush."],
-  ["Jack", "One of the units is on the market right now, and there's an insurance claim for the roof dragging on since March."],
-  ["Jack", "I think that covers it."],
-  ["Jack", "Yes, that's everything for today, thanks."],
-];
-
-// Answers for the sitting itself. Deliberately rambly and full of the shapes
-// the tools have to cope with: people, a list, an ordered sequence, a gap, and
-// a figure that should end up sealed.
-const SITTING = [
-  ["Jack", "The first person to call would be me. Then Michael in Brisbane, though he'd take a day to get here. And Dad's sister Robyn — she's the one who'd actually organise people."],
-  ["John", "Robyn's on 0412 555 010. Jack you've got my phone. Michael's number I never remember, it's in the phone under Mick."],
-  ["Jack", "Peter the accountant handles the company books and the trust. Gail did the will. If it's anything about money, Peter's the first call — Dad wouldn't want us ringing the bank ourselves."],
-  ["John", "Robyn and Michael have never met properly, only at the funeral. They'd clash. Jack, you'd have to be the one in the middle."],
-  ["John", "Nobody's been told any of this, really. Jack knows some of it. Michael knows none of it."],
-  ["Jack", "Actually — don't let anyone ring Trent about the forty grand straight away. That'd cause a blue at exactly the wrong moment."],
-  ["John", "I honestly don't know who'd look after the company if I went. Peter would know what needs doing, I suppose."],
-  ["Jack", "I think that's the people covered."],
-  ["Jack", "Yes, let's stop there for today."],
-];
+// John's own words, read from his persona file so the thing that is tested and
+// the thing scripts/demo-run.mjs demonstrates can't drift apart. Deliberately
+// rambly, and full of the shapes the tools have to cope with.
+const persona = parse(readFileSync(join(process.cwd(), "data", "personas", "john.yaml"), "utf8"));
+const INTAKE = persona.script.intake.map((l) => [l.who, l.says.replace(/\s+/g, " ").trim()]);
+const SITTING = persona.script.sittings.people.map((l) => [l.who, l.says.replace(/\s+/g, " ").trim()]);
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 950 } });
@@ -182,7 +163,11 @@ for (const [i, [speaker, text]] of SITTING.entries()) {
     await page.getByLabel("Your answer").waitFor({ timeout: 60_000 });
     const after = await page.locator("aside li").allInnerTexts();
     const afterChat = await page.locator("ol[aria-label='Conversation'] > li").count();
-    check("the conversation survives a reload", afterChat === beforeChat, `${beforeChat} → ${afterChat} messages`);
+    // Not equality: a turn that went round twice stores both of the model's
+    // replies, while the browser showed one because the second reset the
+    // first. So a reload can show more than was on screen, and must never
+    // show less. See "a turn that goes round twice" under Known debts.
+    check("nothing is lost on a reload", afterChat >= beforeChat, `${beforeChat} → ${afterChat} messages`);
     check("what was recorded survives a reload", after.length > 0, `${before.length} shown → ${after.length} stored`);
     await shot("2-sitting");
   }

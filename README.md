@@ -104,6 +104,7 @@ node scripts/e2e-sitting.mjs  # the whole journey, including a sitting (spends m
 node scripts/e2e-admin-record.mjs  # the admin view of a record it left behind
 node scripts/e2e-loose-ends.mjs    # the gaps page, from a seeded record (free)
 node scripts/e2e-progress.mjs      # how far through the record is (free)
+node scripts/demo-run.mjs          # watch a record being made, for a demo (spends credit)
 ```
 
 `GET /api/health` reports whether the database is reachable and which content version is loaded.
@@ -168,7 +169,9 @@ A new account goes `/start` → `/start/intake` → `/plan/new` → `/plan`. `/h
 
 The slots stay put and the sittings move between them (`reorderSlots`), the same rule the opening conversation's re-cut follows: a plan's dates are something people arrange their month around, so moving the money sitting to the front gives it the date that was already first rather than dragging its own date along and leaving a hole. Dates are sorted before they're handed out, so they always run forwards down the plan even if one was moved out of order by hand.
 
-**Going back to it.** The opening conversation stays readable after it finishes — it is the only thing that explains why the plan came out as it did — and it can be reopened to add something. Finishing it a second time re-cuts **only the sittings nobody has started**: they're re-estimated and re-ordered from the fuller picture, while anything done or in progress is left exactly as it was, because what was said in it is already in the record. The untouched sittings also keep their own dates and positions — the slots they already occupy are handed out again in the new order, so remembering something doesn't rearrange someone's month. Reopening is refused outright while a sitting is open. See `reviseRemaining` in [`build-plan.ts`](src/lib/plan/build-plan.ts).
+**Going back to it.** The opening conversation stays readable after it finishes — it is the only thing that explains why the plan came out as it did — and it can be reopened to add something. **Finishing it is what does the work**, and the model is told so when it is in a reopened conversation ([`REOPENED`](src/lib/intake/prompt.ts)): without that it has nothing in front of it saying this is a second conversation, and it answers the afterthought, thanks them, says goodbye and leaves the conversation open — so nothing is ever re-cut. That was found by driving it, not by reading it.
+
+Finishing it a second time re-cuts **only the sittings nobody has started**: they're re-estimated and re-ordered from the fuller picture, while anything done or in progress is left exactly as it was, because what was said in it is already in the record. The untouched sittings also keep their own dates and positions — the slots they already occupy are handed out again in the new order, so remembering something doesn't rearrange someone's month. Reopening is refused outright while a sitting is open. See `reviseRemaining` in [`build-plan.ts`](src/lib/plan/build-plan.ts).
 
 **The plan** ([`src/lib/plan/build-plan.ts`](src/lib/plan/build-plan.ts)) is worked out in code, not by the model. [`data/session-template.yaml`](data/session-template.yaml) holds the sittings, their base minutes and the rules that adjust them; tune it there rather than in code. Order follows whatever was raised unprompted, then the template's own order. Sittings over 30 minutes split into parts. The build fails unless every v1 field is covered by exactly one sitting.
 
@@ -315,7 +318,11 @@ The people live in [`data/personas`](data/personas) and are **invented**: no rea
 
 Seeding **replaces** whatever that account had, which is what makes it repeatable between run-throughs. It fills an account that already exists rather than creating one, so nothing here touches sign-up or passwords; and because a record is written across half a dozen tables with no transaction spanning them, a failure part-way clears up after itself rather than leaving something that looks seeded and isn't.
 
-What this does *not* do is show the product being used. For that the conversation has to actually run — see what's next, below.
+**Watching it happen** is the other half, and it needs the conversation to actually run. [`scripts/demo-run.mjs`](scripts/demo-run.mjs) plays a persona's own words into the real pages and the real agents at a pace you can follow: consent, the opening conversation, the plan it works out, one sitting with the document filling in beside it, and the Guide at the end. There is no special path through the app — if it works, the product works, and if it stalls, so would a person.
+
+The words live under `script:` in the persona, and [`e2e-sitting.mjs`](scripts/e2e-sitting.mjs) reads the same lines, so what is tested and what is demonstrated can't drift apart. A line attributed to somebody who isn't in the room, or a script for a sitting that doesn't exist, **fails the build** like every other mistake in `data/`.
+
+It costs credit — roughly US$0.20 for a conversation and a sitting — so seeding stays the default and this stays the deliberate choice. `--pace` sets the pause between lines and `--headless` turns the window off, which is how it gets checked.
 
 ## The look of it
 
@@ -385,8 +392,9 @@ The spine is built and walkable end to end: someone signs up, talks to the openi
 - Seeded demo records, so showing the product costs nothing and needs no improvising.
 - The gaps as something a person can act on: grouped by who would know, answerable in place.
 - Progress measured as the record rather than the schedule, with claims that have to be earned.
+- A scripted run through the real agents, so a demo can show the product being used.
 
-**Not built: a demo of the experience.** A seeded record shows what the product makes; nothing yet shows it being made. See what's next, below.
+**Not built: a designed artifact.** What comes off the printer is an honest print of the reading view. See what's next, below.
 
 ### The problem the front end had to solve
 
@@ -402,13 +410,7 @@ What that turned into is described under [Getting around](#getting-around-and-th
 
 Each of these is a branch. The front end came first so the rest is built in its vocabulary rather than retrofitted; what follows is ordered the same way, cheapest-unlock first.
 
-### 1. A scripted run through the real agents
-
-Seeded records cover showing the *output*. What they can't show is the *experience* — the conversation actually happening, the document filling in as someone talks. That still means improvising answers or pasting a script in by hand.
-
-A scripted persona driven through the real agents would fix it. Slower and it costs credit, so it stays a deliberate choice rather than the only way to demo.
-
-### 2. The styled PDF
+### 1. The styled PDF
 
 Printing works now — the browser's own print of the reading view, which is honest paper with no new code. What's still missing is a *designed* artifact: something that looks like it was meant to be kept, rather than a web page that went through a printer. Deliberately last, because it only makes sense once the rest has settled.
 
@@ -428,6 +430,7 @@ Things that are true about the code today, recorded so they are chosen rather th
 |---|---|
 | **Sittings still cost more than the opening conversation** | 2.12 model calls a message, then 1.44, now 1.22–1.33. What's left is a different cause: `save_entity` sent with an attribute key the entry doesn't hold — `"phone" isn't something s1.routing_map records` — which is the same shape of problem the slots were, one level down. The server knows every entry's keys; the model finds them out by being told no. Worth the same treatment, and worth measuring the same way. |
 | **Sonnet files less tidily than Opus** | Same script, same persona: a phone number went to an overflow note instead of onto the person, and a "don't ring him yet" landed in an entry's notes rather than the field for things not to do yet. Sonnet is the right call for now on cost. Judge any change with `scripts/e2e-sitting.mjs`, not by feel. |
+| **A turn that goes round twice leaves two replies in the transcript** | When a tool call is rejected the loop goes round, the model writes its reply again, and the browser is told to reset — so the person sees one reply and the record stores two. Nothing is lost and nothing is wrong in the document, but reloading mid-sitting shows a slightly longer conversation than was on screen, and the extra reply is one nobody read. Measured: 13 stored replies across 8 exchanges in a run with 4 rejections. The fix is either to drop the superseded text or to merge consecutive replies when the transcript is read; the second is safer, since the first throws away something the model actually said. |
 | **Admins can read every transcript** | Accepted, deliberately. It is the tool for tuning the interview, and the data is synthetic. It needs an answer before anyone's real life goes in, and not before. |
 | **The split into parts never happens** | The planner splits a sitting over 30 minutes into parts, but no sitting can reach 30 under the current rules, so that path is unreachable from real data. Built and tested; don't promise it in a demo. `reviseRemaining` declines to re-cut a plan containing one rather than guess at how the parts should be redrawn. |
 | **The visual language has had one pair of eyes on it** | Tokens, type scale and components are in place and consistent, but the palette and spacing are a first pass, checked at desktop and phone width in both colour schemes and no further. It is a foundation to react to, not a finished design. |

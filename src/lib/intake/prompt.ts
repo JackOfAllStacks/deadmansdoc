@@ -63,3 +63,19 @@ export function contextBlock(record: RecordRow, speakers: string[]): string {
 // that turn whatever the model does.
 export const WRAP_UP =
   "This is the last exchange in the opening conversation. Reply briefly, record anything from their message, and call finish_intake.";
+
+/*
+ * Added after the history when there is already a plan — so, when someone has
+ * come back to add something.
+ *
+ * Without it the model has no idea it is in a second conversation rather than
+ * the first, and nothing in front of it says that finishing is load-bearing.
+ * Measured: it answered the afterthoughts, thanked them warmly, said goodbye,
+ * and left the conversation open — so the sittings were never re-worked, which
+ * is the entire reason for reopening it.
+ */
+export const REOPENED =
+  "This conversation was finished before, and they have come back to add something. There is already a plan of " +
+  "sittings, and everything on your list has been answered once. Record whatever is new in what they say. As soon " +
+  "as they have nothing more to add, close warmly and call finish_intake -- calling it is what re-works the " +
+  "sittings they haven't started yet, so a conversation left open changes nothing for them.";

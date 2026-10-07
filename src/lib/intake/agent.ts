@@ -9,12 +9,13 @@ import {
   speakersFor,
   type MessageRow,
   type RecordRow,
+  type SittingRow,
 } from "@/lib/records";
 import { sessionTemplate } from "@/lib/content";
 import { reviseRemaining } from "@/lib/plan/build-plan";
 import { logFailure } from "@/lib/errors";
 import { MODEL } from "@/lib/model";
-import { contextBlock, SYSTEM_PROMPT, WRAP_UP } from "./prompt";
+import { contextBlock, REOPENED, SYSTEM_PROMPT, WRAP_UP } from "./prompt";
 import { applySignalUpdate, finishSchema, signalUpdateSchema, toToolSchema, type Signals } from "./signals";
 
 type MessageParam = Anthropic.Beta.BetaMessageParam;
@@ -151,6 +152,11 @@ export async function runIntakeTurn(
   const lastTurn = userTurns >= MAX_USER_TURNS;
 
   const messages = toApiMessages(record, history);
+  // A plan already existing means this conversation was finished once and has
+  // been reopened. Both of these go after the history so the cached prefix
+  // stays valid.
+  const sittings = await listSittings(record.id);
+  if (sittings.length) messages.push({ role: "system", content: REOPENED });
   if (lastTurn) messages.push({ role: "system", content: WRAP_UP });
 
   let signals: Signals = record.intake ?? {};
@@ -270,7 +276,7 @@ export async function runIntakeTurn(
 
   if (finished || lastTurn) {
     await completeIntake(record.id, signals);
-    emit({ type: "done", revised: await reviseAfterReopening(record.id, signals) });
+    emit({ type: "done", revised: await reviseAfterReopening(record.id, sittings, signals) });
   } else {
     emit({ type: "end" });
   }
@@ -282,8 +288,11 @@ export async function runIntakeTurn(
  * someone went back and added something — the sittings they haven't started
  * are re-cut from the fuller picture, and the ones they have are left alone.
  */
-async function reviseAfterReopening(recordId: string, signals: Signals): Promise<number> {
-  const sittings = await listSittings(recordId);
+async function reviseAfterReopening(
+  recordId: string,
+  sittings: SittingRow[],
+  signals: Signals,
+): Promise<number> {
   if (!sittings.length) return 0;
   const revisions = reviseRemaining(sittings, signals, sessionTemplate);
   await applyRevision(recordId, revisions);

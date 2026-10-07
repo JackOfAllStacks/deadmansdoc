@@ -155,3 +155,93 @@ transcript:
   - sitting: money-out
     from: subject
     text: Everything comes out of the joint account at the credit union.
+
+# What they say, if you want to watch it happen rather than seed it.
+#
+# scripts/demo-run.mjs plays these into the real endpoints at a watchable
+# pace, so a demo can show the conversation running and the document filling
+# in as somebody talks -- which a seeded record cannot. It costs API credit,
+# which is why it stays a deliberate choice rather than the only way to show
+# the product.
+#
+# scripts/e2e-sitting.mjs reads the same lines, so what is tested and what is
+# demonstrated can't drift apart. Deliberately rambly, and full of the shapes
+# the tools have to cope with: people, a list, an ordered sequence, an "I don't
+# know", and a figure that has to end up sealed.
+script:
+  intake:
+    - who: Jack
+      says: >-
+        There's Dad, my brother Michael in Brisbane and me. Mum died two years ago. Dad's
+        also got his brother Terry and his sister Robyn. Honestly the thing he's worried
+        about is what's owed on the units and the rent that keeps coming in after he's gone.
+    - who: John
+      says: >-
+        Everyday account and savings with NAB, two term deposits, the share portfolio
+        through CommSec, and the company account with Westpac. I've done all of it myself
+        since Denise passed.
+    - who: John
+      says: >-
+        There's the building company, still ticking over, and the family trust that owns two
+        units in Frankston. No mortgage on the house. There's a loan on the ute and an
+        overdraft on the company, and I lent my nephew Trent forty grand on a handshake.
+    - who: Jack
+      says: >-
+        Dad's got an accountant, Peter, a solicitor called Gail who did the will, and a
+        bloke who looks after his super.
+    - who: John
+      says: >-
+        The rent from the units would keep coming in, and a couple of final invoices the
+        builders still owe me.
+    - who: John
+      says: >-
+        We're not religious. I'd like the RSL to do a short service, and cremation's fine.
+        There's no rush.
+    - who: Jack
+      says: >-
+        One of the units is on the market right now, and there's an insurance claim for the
+        roof dragging on since March.
+    - who: Jack
+      says: >-
+        I think that covers it.
+    - who: Jack
+      says: >-
+        Yes, that's everything for today, thanks.
+  sittings:
+    people:
+      - who: Jack
+        says: >-
+          The first person to call would be me. Then Michael in Brisbane, though he'd take a
+          day to get here. And Dad's sister Robyn — she's the one who'd actually organise
+          people.
+      - who: John
+        says: >-
+          Robyn's on 0412 555 010. Jack you've got my phone. Michael's number I never
+          remember, it's in the phone under Mick.
+      - who: Jack
+        says: >-
+          Peter the accountant handles the company books and the trust. Gail did the will. If
+          it's anything about money, Peter's the first call — Dad wouldn't want us ringing the
+          bank ourselves.
+      - who: John
+        says: >-
+          Robyn and Michael have never met properly, only at the funeral. They'd clash. Jack,
+          you'd have to be the one in the middle.
+      - who: John
+        says: >-
+          Nobody's been told any of this, really. Jack knows some of it. Michael knows none of
+          it.
+      - who: Jack
+        says: >-
+          Actually — don't let anyone ring Trent about the forty grand straight away. That'd
+          cause a blue at exactly the wrong moment.
+      - who: John
+        says: >-
+          I honestly don't know who'd look after the company if I went. Peter would know what
+          needs doing, I suppose.
+      - who: Jack
+        says: >-
+          I think that's the people covered.
+      - who: Jack
+        says: >-
+          Yes, let's stop there for today.
