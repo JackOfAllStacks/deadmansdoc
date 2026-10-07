@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { sessionTemplate } from "@/lib/content";
-import { addDays, buildPlan, isIsoDate, RHYTHMS, type Rhythm } from "@/lib/plan/build-plan";
+import { addDays, buildPlan, isIsoDate, reorderSlots, RHYTHMS, type Rhythm } from "@/lib/plan/build-plan";
 import {
+  applyRevision,
   createRecord,
   getRecordForUser,
+  listSittings,
   reassignSpeaker,
   reopenIntake,
   rescheduleSitting,
@@ -151,5 +153,30 @@ export async function correctSpeaker(_prev: FormState, form: FormData): Promise<
 
   const moved = await reassignSpeaker(record.id, messageId.data, speaker, speaker === record.subject_name);
   if (!moved) return { error: "That message can't be moved." };
+  return { ok: true };
+}
+
+/**
+ * Reordering the plan by hand. The sittings move between the slots they
+ * already occupy, so the dates someone has arranged their month around stay
+ * where they are; see reorderSlots.
+ */
+export async function reorderPlan(_prev: FormState, form: FormData): Promise<FormState> {
+  const { user } = await requireSession();
+  const record = await getRecordForUser(user.id);
+  if (!record) redirect("/home");
+
+  const order = z.array(z.uuid()).max(20).safeParse(JSON.parse(String(form.get("order") ?? "null")));
+  if (!order.success) return { error: "Something went wrong. Please reload the page." };
+
+  const sittings = await listSittings(record.id);
+  const moves = reorderSlots(sittings, order.data);
+  // An order that isn't exactly the sittings nobody has started moves nothing:
+  // usually a page left open while a sitting was begun in another tab.
+  if (!moves.length) return { error: "The plan has changed since this page loaded. Reload and try again." };
+
+  await applyRevision(record.id, moves);
+  revalidatePath("/plan");
+  revalidatePath("/home");
   return { ok: true };
 }

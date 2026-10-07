@@ -166,8 +166,12 @@ export async function applyRevision(recordId: string, revisions: Revision[]): Pr
         title = t.title,
         estimated_minutes = t.minutes,
         seq = t.seq,
-        scheduled_for = t.date::date,
-        updated_at = now()
+        scheduled_for = t.date::date
+      -- No updated_at here: sittings has never had one. It was written as
+      -- though it did, which meant every revision failed on the column that
+      -- doesn't exist -- so reopening the opening conversation never actually
+      -- re-cut anything. The unit tests mock this function, so only driving it
+      -- through a browser found it.
       from jsonb_to_recordset(${JSON.stringify(revisions)}::jsonb)
         as t(id uuid, title text, minutes int, seq int, date text)
       where sittings.id = t.id

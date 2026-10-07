@@ -70,7 +70,7 @@ export default async function MyGuidePage() {
               runs to several screens, and a scroll bar is not navigation. */}
           <div className="grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-12">
             <aside className="hidden lg:block print:hidden">
-              <div className="sticky top-6">
+              <div className="sticky top-24">
                 <DocumentContents doc={doc} />
               </div>
             </aside>

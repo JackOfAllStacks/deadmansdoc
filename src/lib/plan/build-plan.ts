@@ -152,6 +152,51 @@ export function reviseRemaining(
     }));
 }
 
+export interface ReorderRow extends ExistingSitting {
+  title: string;
+  estimated_minutes: number;
+}
+
+/**
+ * Moving a sitting up or down the plan by hand.
+ *
+ * The slots stay put and the sittings move between them: a plan's dates are
+ * something people arrange their month around, so dragging the money sitting
+ * to the front gives it the date that was already first, rather than dragging
+ * its own date along with it and leaving a hole.
+ *
+ * Only sittings nobody has started can move, for the same reason they are the
+ * only ones reviseRemaining will re-cut: what was said in a started sitting is
+ * already in the record, and its place in the order is a matter of fact.
+ *
+ * Seqs and dates are each sorted before they are handed out, so dates always
+ * run forwards down the plan even if one was moved out of order by hand.
+ */
+export function reorderSlots(existing: ReorderRow[], order: string[]): Revision[] {
+  const movable = existing.filter((s) => s.status === "planned");
+  const byId = new Map(movable.map((s) => [s.id, s]));
+
+  // The new order has to be exactly the movable sittings, once each. Anything
+  // else is a stale page or a tampered request, and moves nothing.
+  if (order.length !== movable.length) return [];
+  if (new Set(order).size !== order.length) return [];
+  if (!order.every((id) => byId.has(id))) return [];
+
+  const seqs = movable.map((s) => s.seq).sort((a, b) => a - b);
+  const dates = movable.map((s) => s.scheduled_for).sort();
+
+  return order.map((id, i) => {
+    const sitting = byId.get(id)!;
+    return {
+      id,
+      title: sitting.title,
+      minutes: sitting.estimated_minutes,
+      seq: seqs[i],
+      date: dates[i],
+    };
+  });
+}
+
 export function totalMinutes(plan: { minutes: number }[]): number {
   return plan.reduce((sum, s) => sum + s.minutes, 0);
 }

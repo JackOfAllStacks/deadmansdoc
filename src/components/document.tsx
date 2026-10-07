@@ -77,7 +77,7 @@ export const sectionId = (heading: string) =>
 
 function Section({ section }: { section: DocSection }) {
   return (
-    <section id={sectionId(section.heading)} className="flex scroll-mt-6 flex-col gap-5">
+    <section id={sectionId(section.heading)} className="flex scroll-mt-24 flex-col gap-5">
       <h2 className="border-b border-line pb-2 text-xl">{section.heading}</h2>
       {section.parts.map((part, i) => (
         <div key={i} className="flex flex-col gap-2">

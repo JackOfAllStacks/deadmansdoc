@@ -21,9 +21,12 @@ export interface NavLink {
 export function Nav({ links, children }: { links: NavLink[]; children: React.ReactNode }) {
   const pathname = usePathname();
 
+  // Stays with the browser rather than scrolling away: on a long record the
+  // way back out shouldn't need a journey to the top first. The width matches
+  // the widest page so the header doesn't sit in from the content under it.
   return (
-    <header className="app-chrome border-b border-line bg-surface">
-      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3 sm:px-6">
+    <header className="app-chrome sticky top-0 z-30 border-b border-line bg-surface">
+      <div className="mx-auto flex w-full max-w-[92rem] flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3 sm:px-6">
         <Link href="/home" aria-label="The Handover — home">
           <Wordmark size="sm" />
         </Link>
