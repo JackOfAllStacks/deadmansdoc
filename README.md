@@ -201,6 +201,10 @@ A hand edit goes through **the same zod schemas and validators as a tool call**,
 
 They deliberately stop short of listing the questions themselves. Showing the whole checklist would turn the conversation back into a form, which is the thing it exists to avoid.
 
+**What a turn costs, and why.** Each turn logs a `sitting_turn` line: how many model calls it took, and why the loop went round again. That line is what turned "something in the turn loop is going round too often" into a number. Two identical scripted runs of [`e2e-sitting.mjs`](scripts/e2e-sitting.mjs) measured 2.12 calls a message, then 1.44 after one change — telling the model, per field, which argument `save_field` wants.
+
+The cause was never the loop. It was rejected tool calls: seven of the eight extra calls in the first run were `save_field` sent with the wrong slot for the field, or with two slots at once. The server has always known every field's type and never said so, so the list of what's still worth covering now carries it. Judge any change here the same way, with two runs of the same script, rather than by reasoning about it.
+
 **Caching.** The system prompt is identical for every sitting and every person. What changes — who this is, what's recorded, what's left, how long is left — goes in a system message **after** the history, so the cached prefix stays valid.
 
 **Stopping.** At four minutes remaining the model is told to draw to a close; if someone says they're done, it finishes in that turn without asking again. A turn cap ends the sitting server-side regardless. Leaving part-way keeps everything — a sitting stays open until it's finished.
@@ -362,7 +366,7 @@ Things that are true about the code today, recorded so they are chosen rather th
 
 | | |
 |---|---|
-| **Sittings cost more than they should** | A nine-message sitting took 25 model calls — about 2.8 a message, where the opening conversation averages one. Something in the turn loop is going round more often than it needs to. Not urgent, not understood yet, worth an hour with the logs. |
+| **Sittings still cost more than the opening conversation** | Measured, not guessed: 2.12 model calls a message before, 1.44 after telling the model which argument each field wants. What's left is the same cause — `save_field` takes one of `text`, `items` or `people`, and the model still sometimes sends two or picks the wrong one. Each rejection costs a whole extra call. The fix that would end it is structural: one `value` argument, routed by the field's declared type, so a wrong slot stops being expressible. Worth doing, but it changes the tool schema, so it wants measuring against `scripts/e2e-sitting.mjs` rather than being dropped in. |
 | **Sonnet files less tidily than Opus** | Same script, same persona: a phone number went to an overflow note instead of onto the person, and a "don't ring him yet" landed in an entry's notes rather than the field for things not to do yet. Sonnet is the right call for now on cost. Judge any change with `scripts/e2e-sitting.mjs`, not by feel. |
 | **Admins can read every transcript** | Accepted, deliberately. It is the tool for tuning the interview, and the data is synthetic. It needs an answer before anyone's real life goes in, and not before. |
 | **The split into parts never happens** | The planner splits a sitting over 30 minutes into parts, but no sitting can reach 30 under the current rules, so that path is unreachable from real data. Built and tested; don't promise it in a demo. `reviseRemaining` declines to re-cut a plan containing one rather than guess at how the parts should be redrawn. |

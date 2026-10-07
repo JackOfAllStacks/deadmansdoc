@@ -371,6 +371,11 @@ export async function runSittingTurn(
   let finished: string | undefined;
   let userSaved = false;
   let shownText = false;
+  // Why the loop went round again, in order. A sitting averaged 2.8 model
+  // calls a message against the opening conversation's one, and nothing
+  // recorded which branch was doing it.
+  const wentAgain: string[] = [];
+  const usage = { input: 0, output: 0, cacheRead: 0 };
 
   try {
     for (let call = 0; call < MAX_CALLS_PER_TURN && finished === undefined; call++) {
@@ -392,6 +397,9 @@ export async function runSittingTurn(
         },
         sitting.id,
       );
+      usage.input += message.usage.input_tokens;
+      usage.output += message.usage.output_tokens;
+      usage.cacheRead += message.usage.cache_read_input_tokens ?? 0;
 
       if (message.stop_reason === "refusal") {
         emit({ type: "reset" });
@@ -448,7 +456,19 @@ export async function runSittingTurn(
       // here. Go round again only if nothing has been said, or a call failed
       // and the model needs to see why.
       if (shownText && !anyFailed) break;
+      wentAgain.push(anyFailed ? (shownText ? "tool-failed" : "no-text-and-tool-failed") : "no-text");
     }
+    console.log(
+      JSON.stringify({
+        event: "sitting_turn",
+        sitting: sitting.id,
+        calls: wentAgain.length + 1,
+        went_again: wentAgain,
+        tools: state.touched.size,
+        ms: Date.now() - startedAt,
+        ...usage,
+      }),
+    );
   } catch (err) {
     await logFailure({
       context: "sitting:turn",

@@ -1,4 +1,4 @@
-import type { Question } from "@/lib/content";
+import { fieldsById, type Field, type FieldType, type Question } from "@/lib/content";
 import type { Coverage } from "@/lib/sitting/coverage";
 import type { RecordRow } from "@/lib/records";
 import type { SittingRow } from "@/lib/records";
@@ -68,6 +68,26 @@ export function contextBlock(record: RecordRow, sitting: SittingRow, speakers: s
 }
 
 // Sent after the history each turn, so the cached prefix above never changes.
+// Which argument of save_field a given field wants. The server has always
+// known this and never said so, and the model guessing wrong was the single
+// biggest source of rejected tool calls -- each one costing a whole extra
+// model call to correct.
+const SLOT: Record<FieldType, string> = {
+  text: "text",
+  list: "items",
+  ordered: "items, in order",
+  people: "people, named from those already recorded",
+  entities: "save_entity",
+};
+
+function slotsFor(question: Question): string {
+  const wants = question.fills
+    .map((id) => fieldsById.get(id))
+    .filter((f): f is Field => Boolean(f))
+    .map((f) => `${f.id}: ${SLOT[f.type]}`);
+  return wants.length ? `  (${wants.join(" · ")})` : "";
+}
+
 export function stateBlock(coverage: Coverage, remaining: Question[], minutesLeft: number): string {
   const lines = [
     "<progress>",
@@ -81,7 +101,7 @@ export function stateBlock(coverage: Coverage, remaining: Question[], minutesLef
       "Still worth covering, most useful first. These are prompts for you, not a script —",
       "ask in your own words, in whatever order fits the conversation, and skip what plainly",
       "doesn't apply to this person:",
-      ...remaining.map((q) => `- ${q.ask}`),
+      ...remaining.map((q) => `- ${q.ask}${slotsFor(q)}`),
     );
   } else {
     lines.push("", "Everything this sitting set out to cover has been recorded or noted as unknown.");
