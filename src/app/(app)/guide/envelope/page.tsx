@@ -32,7 +32,7 @@ export default async function MyEnvelopePage() {
           lead="Figures, and anything recorded as private. It is kept out of the Guide and printed on its own, to be opened only after death — but it is your record, so you can read it here whenever you want."
         />
         {doc && markdown && (
-          <DocumentActions markdown={markdown} filename={`envelope-${data.header.subject_name.toLowerCase()}.md`} />
+          <DocumentActions markdown={markdown} downloadHref="/api/guide/download?kind=envelope" />
         )}
       </div>
 

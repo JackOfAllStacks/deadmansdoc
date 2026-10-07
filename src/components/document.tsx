@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 import type { Doc, DocSection, Entry } from "@/lib/artifact/doc";
+import { parseInline } from "@/lib/artifact/inline";
 
 /*
  * The documents, set to be read.
@@ -14,19 +15,18 @@ import type { Doc, DocSection, Entry } from "@/lib/artifact/doc";
  */
 
 // The documents use exactly two inline marks, **strong** and _quiet_, and the
-// renderer is the only thing that writes them. A full Markdown parser would be
-// a lot of surface area for two marks nobody else can introduce.
-const INLINE = /(\*\*[^*]+\*\*|_[^_]+_)/g;
-
+// renderer is the only thing that writes them. Reading them is shared with the
+// Word file in lib/artifact/inline.ts, so the two can't disagree about what a
+// line says.
 export function inline(text: string): ReactNode[] {
-  return text.split(INLINE).map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
+  return parseInline(text).map((run, i) => {
+    if (run.mark === "strong") {
+      return <strong key={i} className="font-semibold">{run.text}</strong>;
     }
-    if (part.startsWith("_") && part.endsWith("_")) {
-      return <em key={i} className="text-muted not-italic">{part.slice(1, -1)}</em>;
+    if (run.mark === "quiet") {
+      return <em key={i} className="text-muted not-italic">{run.text}</em>;
     }
-    return <Fragment key={i}>{part}</Fragment>;
+    return <Fragment key={i}>{run.text}</Fragment>;
   });
 }
 
@@ -118,9 +118,14 @@ export function DocumentContents({ doc }: { doc: Doc }) {
   );
 }
 
+/**
+ * Set on a sheet, with an edge to it: this is a document rather than a region
+ * of a web page, and where it starts and stops should need no explaining. The
+ * sheet itself is dropped for print, where the paper is the edge.
+ */
 export function DocumentPage({ doc }: { doc: Doc }) {
   return (
-    <article className="flex flex-col gap-10">
+    <article className="flex flex-col gap-10 rounded-lg border border-line bg-surface px-6 py-8 shadow-card sm:px-10 sm:py-12 print:rounded-none print:border-0 print:bg-transparent print:p-0 print:shadow-none">
       <header className="flex flex-col gap-4 border-b border-line pb-6">
         {/* The page around this already names it. The document carries its own
             title for print, where that page furniture is hidden. */}

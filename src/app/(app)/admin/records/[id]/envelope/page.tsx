@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { collectRecord } from "@/lib/artifact/collect";
-import { renderEnvelope } from "@/lib/artifact/render";
+import { envelopeDoc, renderEnvelope } from "@/lib/artifact/render";
 import { requireAdmin } from "@/lib/session";
 import { todayInMelbourne } from "@/lib/today";
 import { DocumentView } from "../document-view";
@@ -15,7 +15,9 @@ export default async function EnvelopePage({ params }: PageProps<"/admin/records
   const data = await collectRecord(id);
   if (!data) notFound();
 
-  const markdown = renderEnvelope(data, { version: "draft", preparedOn: todayInMelbourne() });
+  const meta = { version: "draft", preparedOn: todayInMelbourne() };
+  const markdown = renderEnvelope(data, meta);
+  const doc = envelopeDoc(data, meta);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-6 py-10">
@@ -29,8 +31,12 @@ export default async function EnvelopePage({ params }: PageProps<"/admin/records
           no minimum.
         </p>
       </div>
-      {markdown ? (
-        <DocumentView markdown={markdown} filename={`envelope-${data.header.subject_name.toLowerCase()}.md`} />
+      {doc && markdown ? (
+        <DocumentView
+          doc={doc}
+          markdown={markdown}
+          downloadHref={`/api/guide/download?kind=envelope&record=${id}`}
+        />
       ) : (
         <p className="rounded-md border border-line p-4 text-sm">
           Nothing in this record is sealed, so no envelope prints. The Guide says as much, so nobody goes

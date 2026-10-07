@@ -1,8 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { DocumentPage } from "@/components/document";
+import type { Doc } from "@/lib/artifact/doc";
 
-export function DocumentView({ markdown, filename }: { markdown: string; filename: string }) {
+/**
+ * The document, as the person whose record it is would see it.
+ *
+ * It used to show the Markdown itself, on the grounds that when you are tuning
+ * the interview what matters is exactly what prints. That is still true, so it
+ * is still here -- but folded away, because the first question about a record
+ * is almost always what it says rather than how it is marked up.
+ */
+export function DocumentView({ doc, markdown, downloadHref }: { doc: Doc; markdown: string; downloadHref: string }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -15,36 +25,34 @@ export function DocumentView({ markdown, filename }: { markdown: string; filenam
     }
   }
 
-  const href = `data:text/markdown;charset=utf-8,${encodeURIComponent(markdown)}`;
+  const action = "rounded-md border border-line px-3 py-1.5 text-sm hover:bg-soft";
+  const join = downloadHref.includes("?") ? "&" : "?";
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-5">
       <div className="flex flex-wrap gap-3 print:hidden">
-        <button
-          onClick={copy}
-          className="rounded-md border border-line px-3 py-1.5 text-sm hover:bg-soft"
-        >
-          {copied ? "Copied" : "Copy"}
-        </button>
-        <a
-          href={href}
-          download={filename}
-          className="rounded-md border border-line px-3 py-1.5 text-sm hover:bg-soft"
-        >
-          Download
+        <a href={`${downloadHref}${join}format=pdf`} className={action}>
+          Download PDF
         </a>
-        <button
-          onClick={() => window.print()}
-          className="rounded-md border border-line px-3 py-1.5 text-sm hover:bg-soft"
-        >
+        <a href={downloadHref} className={action}>
+          Download Word
+        </a>
+        <button onClick={() => window.print()} className={action}>
           Print
         </button>
+        <button onClick={copy} className={action}>
+          {copied ? "Copied" : "Copy Markdown"}
+        </button>
       </div>
-      {/* The Markdown itself, not a rendering of it: this is the artifact, and
-          what it actually says matters more than how it looks for now. */}
-      <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-line p-4 font-mono text-sm leading-relaxed">
-        {markdown}
-      </pre>
+
+      <DocumentPage doc={doc} />
+
+      <details className="print:hidden">
+        <summary className="cursor-pointer text-sm text-muted">Markdown source</summary>
+        <pre className="mt-3 overflow-x-auto whitespace-pre-wrap rounded-md border border-line p-4 font-mono text-sm leading-relaxed">
+          {markdown}
+        </pre>
+      </details>
     </div>
   );
 }

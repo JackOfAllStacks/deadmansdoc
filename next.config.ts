@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/*": ["./data/**/*.yaml"],
   },
+  // pdfkit loads the metrics for the standard PDF fonts from its own package
+  // at runtime. Bundled, those files aren't there and every PDF fails.
+  serverExternalPackages: ["pdfkit"],
 };
 
 export default nextConfig;
