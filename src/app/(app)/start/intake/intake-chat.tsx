@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { reopenConversation } from "@/app/(app)/actions";
-import { Composer, SpeakerPicker, Transcript } from "@/components/chat";
+import { ChatFrame, Composer, SpeakerPicker, Transcript } from "@/components/chat";
 import { Alert, Button, ButtonLink, Card, Note, SectionHeading } from "@/components/ui";
 import type { IntakeEvent } from "@/lib/intake/agent";
 import type { ChatMessage } from "@/lib/transcript";
@@ -154,23 +154,25 @@ export function IntakeChat({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <Note>
         Rough answers are what&apos;s wanted here — a number, a yes or a no. &ldquo;Not sure&rdquo; is
         a real answer, and the detail comes later, a bit at a time.
       </Note>
-      <Transcript greeting={greeting} messages={messages} live={live} pending={status === "sending"} />
-      <Composer
-        draft={draft}
-        onDraft={setDraft}
-        onSend={send}
-        maxLength={maxLength}
-        busy={status !== "idle"}
-        error={error}
-        footer={<span>Stopping here keeps everything said so far.</span>}
-      >
-        <SpeakerPicker speakers={speakers} speaker={speaker} onChange={setSpeaker} />
-      </Composer>
+      <ChatFrame>
+        <Transcript greeting={greeting} messages={messages} live={live} pending={status === "sending"} />
+        <Composer
+          draft={draft}
+          onDraft={setDraft}
+          onSend={send}
+          maxLength={maxLength}
+          busy={status !== "idle"}
+          error={error}
+          footer={<span>Stopping here keeps everything said so far.</span>}
+        >
+          <SpeakerPicker speakers={speakers} speaker={speaker} onChange={setSpeaker} />
+        </Composer>
+      </ChatFrame>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Composer, SpeakerPicker, Transcript } from "@/components/chat";
+import { ChatFrame, Composer, SpeakerPicker, Transcript } from "@/components/chat";
 import { TopicStrip } from "@/components/topics";
 import { Alert, ButtonLink, Card, Progress as ProgressBar } from "@/components/ui";
 import { renderBlock, type BlockShape } from "@/lib/sitting/block";
@@ -272,7 +272,7 @@ export function SittingChat({
       {/* On a phone the document comes first: seeing something being written
           is what makes the box worth typing into. The conversation scrolls
           itself into view after every turn, so it costs nothing once under way. */}
-      <div className="order-2 flex flex-col gap-6 lg:order-1">
+      <ChatFrame className="order-2 lg:order-1">
         <Transcript greeting={greeting} messages={messages} live={live} pending={waiting} />
 
         {status === "finished" ? (
@@ -298,7 +298,7 @@ export function SittingChat({
             <SpeakerPicker speakers={speakers} speaker={speaker} onChange={setSpeaker} />
           </Composer>
         )}
-      </div>
+      </ChatFrame>
 
       <DocumentPanel
         outline={doc}
@@ -337,7 +337,7 @@ function DocumentPanel({
 }) {
   const done = progress.answered + progress.gaps;
   return (
-    <aside className="order-1 flex h-fit max-h-[calc(100vh-3rem)] flex-col gap-5 overflow-y-auto rounded-lg border border-line bg-surface px-6 py-6 sm:px-7 lg:sticky lg:top-6 lg:order-2">
+    <aside className="order-1 flex flex-col gap-5 overflow-y-auto rounded-lg border border-line bg-surface px-6 py-6 sm:max-h-[calc(100dvh-18rem)] sm:min-h-[26rem] sm:px-7 lg:order-2">
       <div className="flex flex-col gap-3 border-b border-line pb-4">
         <div className="flex flex-col gap-2">
           <h2 className="text-lg">The document, so far</h2>

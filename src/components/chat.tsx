@@ -33,6 +33,20 @@ export function Bubble({ message, pending = false }: { message: ChatMessage; pen
   );
 }
 
+/**
+ * Holds a conversation to the height of the screen, so the transcript scrolls
+ * inside itself and the composer stays where you left it. Below `sm` it goes
+ * back to ordinary page flow: a short scrolling box on a phone is worse than
+ * scrolling the page, which is what phones are for.
+ */
+export function ChatFrame({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={cx("flex flex-col gap-4 sm:h-[calc(100dvh-18rem)] sm:min-h-[26rem]", className)}>
+      {children}
+    </div>
+  );
+}
+
 export function Transcript({
   greeting,
   messages,
@@ -44,13 +58,18 @@ export function Transcript({
   live?: string;
   pending?: boolean;
 }) {
-  const endRef = useRef<HTMLDivElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  // Scroll the transcript, never the page. scrollIntoView would walk up to
+  // whichever ancestor happens to scroll, which on a short viewport is the
+  // document, and the composer would slide out from under the cursor.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
+    const box = boxRef.current;
+    if (box) box.scrollTop = box.scrollHeight;
   }, [messages, live, pending]);
 
   return (
-    <>
+    <div ref={boxRef} className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 sm:pr-3">
       <ol aria-live="polite" aria-label="Conversation" className="flex flex-col gap-4">
         <Bubble message={{ from: "agent", text: greeting }} />
         {messages.map((m, i) => (
@@ -58,8 +77,7 @@ export function Transcript({
         ))}
         {pending && <Bubble message={{ from: "agent", text: live ?? "" }} pending={!live} />}
       </ol>
-      <div ref={endRef} />
-    </>
+    </div>
   );
 }
 

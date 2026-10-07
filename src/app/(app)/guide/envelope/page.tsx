@@ -24,7 +24,7 @@ export default async function MyEnvelopePage() {
   const markdown = renderEnvelope(data, meta);
 
   return (
-    <Page>
+    <Page width="prose">
       <div className="flex flex-col gap-4 print:hidden">
         <PageHeader
           eyebrow="Kept separately"
