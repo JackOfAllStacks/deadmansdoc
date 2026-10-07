@@ -78,6 +78,18 @@ export default async function AdminPage() {
       </section>
 
       <section className="flex flex-col gap-3">
+        <h2 className="font-medium">Demo records</h2>
+        <p className="text-sm text-muted">
+          Fill an account with an invented person, so showing the product doesn&apos;t mean
+          improvising answers or paying for model calls.{" "}
+          <Link href="/admin/demo" className="underline underline-offset-4">
+            Seed one
+          </Link>
+          .
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-3">
         <h2 className="font-medium">People</h2>
         <p className="text-sm text-muted">
           Admins can see every account and every record, and can make other admins. Keep it to
