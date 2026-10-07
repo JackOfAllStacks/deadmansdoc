@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { collectRecord } from "@/lib/artifact/collect";
-import { renderGuide } from "@/lib/artifact/render";
+import { guideDoc, renderGuide } from "@/lib/artifact/render";
 import { requireAdmin } from "@/lib/session";
 import { todayInMelbourne } from "@/lib/today";
 import { DocumentView } from "../document-view";
@@ -15,7 +15,8 @@ export default async function GuidePage({ params }: PageProps<"/admin/records/[i
   const data = await collectRecord(id);
   if (!data) notFound();
 
-  const markdown = renderGuide(data, { version: "draft", preparedOn: todayInMelbourne() });
+  const meta = { version: "draft", preparedOn: todayInMelbourne() };
+  const markdown = renderGuide(data, meta);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-6 py-10">
@@ -29,7 +30,7 @@ export default async function GuidePage({ params }: PageProps<"/admin/records/[i
           record always produces the same document.
         </p>
       </div>
-      <DocumentView markdown={markdown} filename={`guide-${data.header.subject_name.toLowerCase()}.md`} />
+      <DocumentView doc={guideDoc(data, meta)} markdown={markdown} downloadHref={`/api/guide/download?record=${id}`} />
     </main>
   );
 }

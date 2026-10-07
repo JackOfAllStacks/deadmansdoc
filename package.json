@@ -19,6 +19,7 @@
     "@anthropic-ai/sdk": "^0.126.0",
     "@neondatabase/serverless": "^1.0.0",
     "better-auth": "^1.7.5",
+    "docx": "^9.9.0",
     "next": "16.3.5",
     "pg": "^8.13.1",
     "react": "19.2.8",

@@ -54,7 +54,7 @@ export default async function MyGuidePage() {
             conversations had about it. */}
         {recorded > 0 && (
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            <DocumentActions markdown={markdown} filename={`guide-${data.header.subject_name.toLowerCase()}.md`} />
+            <DocumentActions markdown={markdown} downloadHref="/api/guide/download" />
             <p className="text-sm text-muted">
               {progress.answered + progress.gaps} of {progress.total} parts covered
               {progress.met.length > 0 &&

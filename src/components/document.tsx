@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 import type { Doc, DocSection, Entry } from "@/lib/artifact/doc";
+import { parseInline } from "@/lib/artifact/inline";
 
 /*
  * The documents, set to be read.
@@ -14,19 +15,18 @@ import type { Doc, DocSection, Entry } from "@/lib/artifact/doc";
  */
 
 // The documents use exactly two inline marks, **strong** and _quiet_, and the
-// renderer is the only thing that writes them. A full Markdown parser would be
-// a lot of surface area for two marks nobody else can introduce.
-const INLINE = /(\*\*[^*]+\*\*|_[^_]+_)/g;
-
+// renderer is the only thing that writes them. Reading them is shared with the
+// Word file in lib/artifact/inline.ts, so the two can't disagree about what a
+// line says.
 export function inline(text: string): ReactNode[] {
-  return text.split(INLINE).map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
+  return parseInline(text).map((run, i) => {
+    if (run.mark === "strong") {
+      return <strong key={i} className="font-semibold">{run.text}</strong>;
     }
-    if (part.startsWith("_") && part.endsWith("_")) {
-      return <em key={i} className="text-muted not-italic">{part.slice(1, -1)}</em>;
+    if (run.mark === "quiet") {
+      return <em key={i} className="text-muted not-italic">{run.text}</em>;
     }
-    return <Fragment key={i}>{part}</Fragment>;
+    return <Fragment key={i}>{run.text}</Fragment>;
   });
 }
 
