@@ -1,7 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import type { Signals } from "@/lib/intake/signals";
-import type { PlannedSitting } from "@/lib/plan/build-plan";
+import type { PlannedSitting, Revision } from "@/lib/plan/build-plan";
 
 // Every function here takes a record id the server looked up from the
 // signed-in user (getRecordForUser), never one sent by the browser. That is
@@ -132,6 +132,46 @@ export async function savePlan(recordId: string, plan: PlannedSitting[]): Promis
     from jsonb_to_recordset(${JSON.stringify(rows)}::jsonb)
       as t(seq int, title text, covers text[], minutes int, date text, key text)
     where not exists (select 1 from sittings where record_id = ${recordId})`;
+}
+
+/**
+ * Lets someone add to the opening conversation after it has finished. Clearing
+ * the completion is all it takes: the turn endpoint and the lock both key off
+ * it. Refused while a sitting is open, because finishing would then re-cut the
+ * plan underneath a conversation already in progress.
+ */
+export async function reopenIntake(recordId: string): Promise<boolean> {
+  const rows = await db()`
+    update records set intake_completed_at = null, updated_at = now()
+    where id = ${recordId}
+      and intake_completed_at is not null
+      and not exists (select 1 from sittings where record_id = ${recordId} and status = 'in_progress')
+    returning id`;
+  return rows.length === 1;
+}
+
+/** Applies a revision to the sittings not yet started. See reviseRemaining. */
+export async function applyRevision(recordId: string, revisions: Revision[]): Promise<void> {
+  if (!revisions.length) return;
+  const sql = db();
+  // A revision permutes seq among the untouched sittings, and (record_id, seq)
+  // is unique, so they're lifted clear of their own numbering first. Both
+  // statements go in one transaction, or neither does.
+  await sql.transaction([
+    sql`update sittings set seq = seq + 1000 where record_id = ${recordId} and status = 'planned'`,
+    sql`
+      update sittings set
+        title = t.title,
+        estimated_minutes = t.minutes,
+        seq = t.seq,
+        scheduled_for = t.date::date,
+        updated_at = now()
+      from jsonb_to_recordset(${JSON.stringify(revisions)}::jsonb)
+        as t(id uuid, title text, minutes int, seq int, date text)
+      where sittings.id = t.id
+        and sittings.record_id = ${recordId}
+        and sittings.status = 'planned'`,
+  ]);
 }
 
 export async function rescheduleSitting(recordId: string, sittingId: string, date: string): Promise<boolean> {

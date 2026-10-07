@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { MessageRow, RecordRow } from "@/lib/records";
+import type { MessageRow, RecordRow, SittingRow } from "@/lib/records";
 
 type Reply = {
   text?: string;
@@ -15,6 +15,8 @@ const state = vi.hoisted(() => ({
   signals: [] as unknown[],
   completed: [] as unknown[],
   history: [] as MessageRow[],
+  sittings: [] as SittingRow[],
+  revisions: [] as unknown[][],
 }));
 
 vi.mock("@anthropic-ai/sdk", () => {
@@ -63,6 +65,8 @@ vi.mock("@/lib/records", () => ({
   saveIntakeSignals: async (_: string, s: unknown) => void state.signals.push(s),
   completeIntake: async (_: string, s: unknown) => void state.completed.push(s),
   speakersFor: (r: RecordRow) => [r.subject_name, ...r.present.filter((n) => n !== r.subject_name)],
+  listSittings: async () => structuredClone(state.sittings),
+  applyRevision: async (_: string, revisions: unknown[]) => void state.revisions.push(revisions),
 }));
 
 const { runIntakeTurn, MAX_USER_TURNS } = await import("./agent");
@@ -108,6 +112,8 @@ beforeEach(() => {
   state.signals = [];
   state.completed = [];
   state.history = [];
+  state.sittings = [];
+  state.revisions = [];
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -201,9 +207,39 @@ describe("runIntakeTurn", () => {
       },
     ];
     const events = await turn();
-    expect(events.at(-1)).toEqual({ type: "done" });
+    expect(events.at(-1)).toEqual({ type: "done", revised: 0 });
     expect(state.completed).toEqual([{ family_count: 2, has_income_after_death: true, summary: "A pension continues." }]);
     expect(state.requests).toHaveLength(1);
+  });
+
+  it("re-cuts only the sittings not yet started when the conversation is reopened", async () => {
+    // A plan already exists: one sitting done, two still untouched.
+    state.sittings = [
+      { id: "s1", seq: 1, title: "The people around you", sitting_key: "people", estimated_minutes: 15, scheduled_for: "2026-10-01", status: "done" },
+      { id: "s2", seq: 2, title: "The first days and weeks", sitting_key: "first-days", estimated_minutes: 15, scheduled_for: "2026-10-08", status: "planned" },
+      { id: "s3", seq: 3, title: "Money going out", sitting_key: "money-out", estimated_minutes: 15, scheduled_for: "2026-10-15", status: "planned" },
+    ];
+    state.replies = [
+      {
+        text: "Noted — I've taken that into account.",
+        tools: [
+          { name: "record_intake", input: signals({ mentioned_sittings: ["money-out"] }) },
+          { name: "finish_intake", input: { summary: "Money is the worry." } },
+        ],
+      },
+    ];
+
+    const events = await turn();
+    expect(events.at(-1)).toEqual({ type: "done", revised: 2 });
+
+    const [revision] = state.revisions as { id: string; seq: number; date: string }[][];
+    // Money moved to the front of what's left, and took the earlier slot with
+    // it. The finished sitting was never in the revision at all.
+    expect(revision.map((r) => r.id)).toEqual(["s3", "s2"]);
+    expect(revision.map((r) => [r.seq, r.date])).toEqual([
+      [2, "2026-10-08"],
+      [3, "2026-10-15"],
+    ]);
   });
 
   it("finishes after the last allowed turn even if the model doesn't", async () => {
@@ -214,7 +250,7 @@ describe("runIntakeTurn", () => {
     state.replies = [{ text: "Thank you." }];
     const events = await turn();
     expect(state.requests[0].messages.at(-1)).toMatchObject({ role: "system" });
-    expect(events.at(-1)).toEqual({ type: "done" });
+    expect(events.at(-1)).toEqual({ type: "done", revised: 0 });
     expect(state.completed).toHaveLength(1);
   });
 

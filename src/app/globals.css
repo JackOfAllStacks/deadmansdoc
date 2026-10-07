@@ -1,26 +1,171 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * The visual language.
+ *
+ * Everything here is a token. Pages use the names — `bg-surface`, `text-muted`,
+ * `border-line` — and never a raw colour or an opacity-on-foreground trick, so
+ * the whole product can be re-toned from this file alone.
+ *
+ * The palette is warm rather than clinical: paper and ink, not white and black.
+ * This is a product about dying, used by people who are frightened or grieving,
+ * and stark monochrome reads as either a hospital form or a tax return.
+ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  /* Surfaces, from furthest back to nearest front. */
+  --paper: #fbf9f6;
+  --surface: #ffffff;
+  --soft: #f3efe9;
+
+  /* Text. `ink` is for reading, `muted` for labels and asides, `faint` for
+     things present but not being looked at. */
+  --ink: #1c1917;
+  --muted: #5d564e;
+  --faint: #8c847a;
+
+  --line: #e5ded4;
+  --line-strong: #d3c9bb;
+
+  /* One accent, a deep muted green. It marks the thing to do next, and
+     nothing else. */
+  --accent: #2f514a;
+  --accent-hover: #24403a;
+  --accent-ink: #f7faf9;
+  --accent-soft: #e6eeec;
+
+  /* The three states anything in the record can be in. Named for the meaning,
+     not the colour, so the meaning survives a re-tone. */
+  --recorded: #2f6b4f;
+  --recorded-soft: #e4efe8;
+  --unknown: #8a6220;
+  --unknown-soft: #f6eddc;
+  --outstanding: #6b6259;
+  --outstanding-soft: #efeae3;
+
+  --danger: #9a3125;
+  --danger-soft: #f7e7e4;
+
+  --radius: 0.625rem;
+  --radius-lg: 0.875rem;
+  --shadow-card: 0 1px 2px rgb(28 25 23 / 0.04), 0 1px 3px rgb(28 25 23 / 0.06);
+  --shadow-menu: 0 4px 6px -1px rgb(28 25 23 / 0.08), 0 10px 20px -5px rgb(28 25 23 / 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #14120f;
+    --surface: #1c1916;
+    --soft: #24211c;
+
+    --ink: #ece7e0;
+    --muted: #a49c92;
+    --faint: #7e766c;
+
+    --line: #302b25;
+    --line-strong: #453e36;
+
+    --accent: #7fb3a6;
+    --accent-hover: #93c2b6;
+    --accent-ink: #11201d;
+    --accent-soft: #1e2b28;
+
+    --recorded: #7cb894;
+    --recorded-soft: #1b2b22;
+    --unknown: #d3a65e;
+    --unknown-soft: #2d2519;
+    --outstanding: #a49c92;
+    --outstanding-soft: #262320;
+
+    --danger: #e08a7d;
+    --danger-soft: #2c1d1a;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.25);
+    --shadow-menu: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 10px 20px -5px rgb(0 0 0 / 0.5);
   }
 }
 
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-soft: var(--soft);
+
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+
+  --color-recorded: var(--recorded);
+  --color-recorded-soft: var(--recorded-soft);
+  --color-unknown: var(--unknown);
+  --color-unknown-soft: var(--unknown-soft);
+  --color-outstanding: var(--outstanding);
+  --color-outstanding-soft: var(--outstanding-soft);
+
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  /* Kept so anything not yet converted still renders in the new palette
+     rather than falling back to Tailwind's defaults. */
+  --color-background: var(--paper);
+  --color-foreground: var(--ink);
+
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-display);
+  --font-mono: var(--font-geist-mono);
+
+  --radius-DEFAULT: var(--radius);
+  --radius-lg: var(--radius-lg);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-menu: var(--shadow-menu);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  /* Open, because a lot of this is read slowly. */
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Headings are serif: this product makes a document, and a document has a
+   voice. The sans-serif body keeps the interface itself out of the way. */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), ui-serif, Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+/* Long-form copy reads better a little narrower than its container. */
+.measure {
+  max-width: 62ch;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

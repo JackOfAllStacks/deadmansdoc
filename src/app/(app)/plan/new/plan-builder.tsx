@@ -2,7 +2,9 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { confirmPlan, type FormState } from "@/app/(app)/actions";
-import { FormError, SubmitButton } from "@/components/form";
+import { Field, FormError, Select, SubmitButton } from "@/components/form";
+import { TopicChips } from "@/components/topics";
+import { Card, Note } from "@/components/ui";
 import type { Signals } from "@/lib/intake/signals";
 import { buildPlan, formatMinutes, isIsoDate, RHYTHMS, totalMinutes, type Rhythm } from "@/lib/plan/build-plan";
 import type { SessionTemplate } from "@/lib/plan/template";
@@ -29,62 +31,60 @@ export function PlanBuilder({
     () => (isIsoDate(startDate) ? buildPlan(signals, template, { startDate, rhythm }) : null),
     [signals, template, startDate, rhythm],
   );
+  const topicsFor = (key: string) => template.sittings.find((s) => s.key === key)?.topics ?? [];
 
   return (
     <form action={action} className="flex flex-col gap-8">
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium">First sitting</span>
-          <input
-            type="date"
-            name="startDate"
-            value={startDate}
-            min={today}
-            max={latest}
-            onChange={(e) => setStartDate(e.target.value)}
-            required
-            className="rounded-md border border-foreground/20 bg-background px-3 py-2"
-          />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium">How often</span>
-          <select
-            name="rhythm"
-            value={rhythm}
-            onChange={(e) => setRhythm(e.target.value as Rhythm)}
-            className="rounded-md border border-foreground/20 bg-background px-3 py-2"
-          >
-            {Object.entries(RHYTHMS).map(([value, { label }]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Field
+          label="First sitting"
+          type="date"
+          name="startDate"
+          value={startDate}
+          min={today}
+          max={latest}
+          onChange={(e) => setStartDate(e.target.value)}
+          required
+        />
+        <Select label="How often" name="rhythm" value={rhythm} onChange={(e) => setRhythm(e.target.value as Rhythm)}>
+          {Object.entries(RHYTHMS).map(([value, { label }]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </Select>
       </div>
 
       {plan && (
         <section className="flex flex-col gap-3">
-          <p className="text-sm text-foreground/70">
+          <p className="text-sm text-muted">
             {plan.length} sittings, about {formatMinutes(totalMinutes(plan))} in total.
           </p>
           <ol className="flex flex-col gap-3">
             {plan.map((sitting, i) => (
-              <li key={i} className="flex gap-4 rounded-md border border-foreground/15 p-4">
-                <span className="w-6 shrink-0 text-right tabular-nums text-foreground/40">{i + 1}</span>
-                <div className="flex flex-1 flex-col gap-1">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-                    <span className="font-medium">{sitting.title}</span>
-                    <span className="text-sm text-foreground/60">about {formatMinutes(sitting.minutes)}</span>
+              <li key={i}>
+                <Card className="flex gap-4">
+                  <span className="w-6 shrink-0 text-right tabular-nums text-faint">{i + 1}</span>
+                  <div className="flex flex-1 flex-col gap-2">
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+                      <h2 className="text-lg">{sitting.title}</h2>
+                      <span className="text-sm text-muted">about {formatMinutes(sitting.minutes)}</span>
+                    </div>
+                    <p className="text-sm text-muted">{sitting.summary}</p>
+                    <TopicChips topics={topicsFor(sitting.key)} />
+                    <p className="text-sm">{formatDay(sitting.date)}</p>
                   </div>
-                  <span className="text-sm text-foreground/70">{sitting.summary}</span>
-                  <span className="text-sm">{formatDay(sitting.date)}</span>
-                </div>
+                </Card>
               </li>
             ))}
           </ol>
         </section>
       )}
+
+      <Note>
+        These dates are only a rhythm to aim at. Any sitting can be moved, or started early, from
+        the plan afterwards.
+      </Note>
 
       <FormError message={state.error ?? null} />
       <SubmitButton pending={pending}>{pending ? "Saving…" : "Use this plan"}</SubmitButton>

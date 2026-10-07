@@ -93,6 +93,65 @@ export function buildPlan(
   });
 }
 
+export interface ExistingSitting {
+  id: string;
+  seq: number;
+  sitting_key: string;
+  status: "planned" | "in_progress" | "done" | "skipped";
+  scheduled_for: string;
+}
+
+export interface Revision {
+  id: string;
+  title: string;
+  minutes: number;
+  seq: number;
+  date: string;
+}
+
+/**
+ * What happens when someone goes back to the opening conversation and adds to
+ * it after the plan already exists.
+ *
+ * The rule: a sitting that has been started is never touched. What was said in
+ * it is already in the record, and re-cutting it would either lose that or
+ * pretend it covered something it didn't. Only sittings still untouched are
+ * rebuilt — re-estimated from the new answers and put back in whatever order
+ * the new answers imply.
+ *
+ * They also keep their own dates and positions rather than being re-dated from
+ * scratch: the slots the untouched sittings already occupy are handed out
+ * again in the new order. Someone who has arranged their week around these
+ * shouldn't have it rearranged because they remembered something.
+ */
+export function reviseRemaining(
+  existing: ExistingSitting[],
+  signals: Signals,
+  template: SessionTemplate,
+): Revision[] {
+  const movable = existing.filter((s) => s.status === "planned");
+  if (!movable.length) return [];
+  // A sitting split into parts would put two rows under one key, and this
+  // works key by key. No sitting can reach the split threshold today, so
+  // rather than guess at how to re-cut the parts, leave the plan alone.
+  if (new Set(movable.map((s) => s.sitting_key)).size !== movable.length) return [];
+
+  const byKey = new Map(movable.map((s) => [s.sitting_key, s]));
+  const slots = movable.map((s) => s.seq).sort((a, b) => a - b);
+  const dates = movable.map((s) => s.scheduled_for).sort();
+  const step = template.round_to_minutes;
+
+  return orderSittings(template, signals)
+    .filter((t) => byKey.has(t.key))
+    .map((t, i) => ({
+      id: byKey.get(t.key)!.id,
+      title: t.title,
+      minutes: roundTo(sittingMinutes(t, signals), step),
+      seq: slots[i],
+      date: dates[i],
+    }));
+}
+
 export function totalMinutes(plan: { minutes: number }[]): number {
   return plan.reduce((sum, s) => sum + s.minutes, 0);
 }

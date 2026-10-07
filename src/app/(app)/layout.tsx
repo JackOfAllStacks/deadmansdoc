@@ -1,18 +1,23 @@
-import Link from "next/link";
+import { journeyFor } from "@/lib/journey";
 import { isAdmin, requireSession } from "@/lib/session";
 import { AccountMenu } from "./account-menu";
+import { Nav, type NavLink } from "./nav";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { user } = await requireSession();
+  const journey = await journeyFor(user.id);
+
+  const links: NavLink[] = [{ href: "/home", label: "Home" }];
+  if (journey.sittings.length) links.push({ href: "/plan", label: "Your plan" });
+  // Readable from the moment it exists, not only while it's unfinished: it is
+  // the only place that says why the plan came out the way it did.
+  if (journey.record) links.push({ href: "/start/intake", label: "Opening conversation" });
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-foreground/10">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-3">
-          <Link href="/home" className="font-medium">The Handover</Link>
-          <AccountMenu name={user.name} email={user.email} admin={isAdmin(user)} />
-        </div>
-      </header>
+      <Nav links={links}>
+        <AccountMenu name={user.name} email={user.email} admin={isAdmin(user)} />
+      </Nav>
       {children}
     </div>
   );

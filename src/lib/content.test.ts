@@ -42,6 +42,31 @@ describe("contentProblems", () => {
     expect(problems).toContain('sitting "money-in-owed" is missing from the session template');
   });
 
+  it("flags a topic that claims a field its sitting doesn't cover", () => {
+    const t = withSittings((t) => t.sittings[0].topics[0].covers.push("s2.deadlines"));
+    expect(contentProblems(artifact, questionBank, t)).toContain(
+      'topic "Who to ring first" claims s2.deadlines, which "people" doesn\'t cover',
+    );
+  });
+
+  it("flags a field the topics leave out, so nothing is covered unannounced", () => {
+    const t = withSittings((t) => {
+      t.sittings[0].topics[0].covers = t.sittings[0].topics[0].covers.filter(
+        (id) => id !== "s1.fallback_contact",
+      );
+    });
+    expect(contentProblems(artifact, questionBank, t)).toContain(
+      'field s1.fallback_contact isn\'t in any topic of "people"',
+    );
+  });
+
+  it("flags a field claimed by two topics of the same sitting", () => {
+    const t = withSittings((t) => t.sittings[0].topics[1].covers.push("s1.first_calls"));
+    expect(contentProblems(artifact, questionBank, t)).toContain(
+      'field s1.first_calls is in both "Who to ring first" and "Who\'s around"',
+    );
+  });
+
   it("still flags a question pointing at a missing field", () => {
     const bank = structuredClone(questionBank);
     bank.questions[0].fills = ["s1.nope"];

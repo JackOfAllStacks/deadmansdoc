@@ -1,13 +1,17 @@
 import Anthropic from "@anthropic-ai/sdk";
 import {
+  applyRevision,
   appendIntakeMessage,
   completeIntake,
   intakeMessages,
+  listSittings,
   saveIntakeSignals,
   speakersFor,
   type MessageRow,
   type RecordRow,
 } from "@/lib/records";
+import { sessionTemplate } from "@/lib/content";
+import { reviseRemaining } from "@/lib/plan/build-plan";
 import { logFailure } from "@/lib/errors";
 import { MODEL } from "@/lib/model";
 import { contextBlock, SYSTEM_PROMPT, WRAP_UP } from "./prompt";
@@ -25,8 +29,10 @@ export type IntakeEvent =
   | { type: "text"; text: string }
   // The model's reply is being regenerated; discard what was shown so far.
   | { type: "reset" }
-  // The opening conversation is over; the plan comes next.
-  | { type: "done" }
+  // The opening conversation is over. `revised` is how many sittings were
+  // re-cut by it, which is only ever non-zero when it was reopened after a
+  // plan already existed.
+  | { type: "done"; revised: number }
   // The reply is complete; waiting for the person.
   | { type: "end" }
   // kept: whether the person's message was saved. If not, it can be sent again.
@@ -264,8 +270,22 @@ export async function runIntakeTurn(
 
   if (finished || lastTurn) {
     await completeIntake(record.id, signals);
-    emit({ type: "done" });
+    emit({ type: "done", revised: await reviseAfterReopening(record.id, signals) });
   } else {
     emit({ type: "end" });
   }
+}
+
+/**
+ * Called when the opening conversation ends. The first time through there is
+ * no plan yet and this does nothing. If it's being finished a second time —
+ * someone went back and added something — the sittings they haven't started
+ * are re-cut from the fuller picture, and the ones they have are left alone.
+ */
+async function reviseAfterReopening(recordId: string, signals: Signals): Promise<number> {
+  const sittings = await listSittings(recordId);
+  if (!sittings.length) return 0;
+  const revisions = reviseRemaining(sittings, signals, sessionTemplate);
+  await applyRevision(recordId, revisions);
+  return revisions.length;
 }

@@ -1,22 +1,36 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { reopenConversation } from "@/app/(app)/actions";
+import { Composer, SpeakerPicker, Transcript } from "@/components/chat";
+import { Alert, Button, ButtonLink, Card, Note, SectionHeading } from "@/components/ui";
 import type { IntakeEvent } from "@/lib/intake/agent";
 import type { ChatMessage } from "@/lib/transcript";
 
 type Status = "idle" | "sending" | "finished";
+
+export interface Area {
+  title: string;
+  summary: string;
+}
 
 export function IntakeChat({
   greeting,
   history,
   speakers,
   maxLength,
+  areas,
+  finished,
+  hasPlan,
 }: {
   greeting: string;
   history: ChatMessage[];
   speakers: string[];
   maxLength: number;
+  areas: Area[];
+  finished: boolean;
+  hasPlan: boolean;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(history);
   const [live, setLive] = useState("");
@@ -24,14 +38,12 @@ export function IntakeChat({
   const [speaker, setSpeaker] = useState(speakers[0]);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
-  const endRef = useRef<HTMLDivElement>(null);
+  const [revised, setRevised] = useState(0);
+  // Nobody is dropped straight into an empty box: a fresh conversation opens
+  // on an explanation of what it's for and what it leads to.
+  const [started, setStarted] = useState(history.length > 0);
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
-  }, [messages, live, status]);
-
-  async function send(event?: FormEvent) {
-    event?.preventDefault();
+  async function send() {
     const text = draft.trim();
     if (!text || status !== "idle") return;
 
@@ -84,6 +96,9 @@ export function IntakeChat({
             outcome = "error";
             if (e.kept) setError(e.message);
             else restore(e.message);
+          } else if (e.type === "done") {
+            outcome = "done";
+            setRevised(e.revised);
           } else {
             outcome = e.type;
           }
@@ -106,95 +121,167 @@ export function IntakeChat({
     }
   }
 
-  function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-      event.preventDefault();
-      void send();
-    }
+  if (finished) return <Finished greeting={greeting} messages={messages} hasPlan={hasPlan} />;
+  if (!started) return <BeforeYouBegin areas={areas} onBegin={() => setStarted(true)} />;
+
+  if (status === "finished") {
+    return (
+      <div className="flex flex-col gap-6">
+        <Transcript greeting={greeting} messages={messages} />
+        <Card tone="accent" className="flex flex-col items-start gap-3">
+          {hasPlan ? (
+            <>
+              <h2 className="text-lg">Thank you — that&apos;s been taken into account</h2>
+              <p className="measure text-sm text-muted">
+                {revised > 0
+                  ? `The ${revised === 1 ? "sitting" : `${revised} sittings`} you haven't started yet have been re-worked around what you've just added. Anything already done stays exactly as it was.`
+                  : "Everything in your plan has already been started or finished, so nothing has been changed."}
+              </p>
+              <ButtonLink href="/plan">Back to your plan</ButtonLink>
+            </>
+          ) : (
+            <>
+              <h2 className="text-lg">That&apos;s everything for now</h2>
+              <p className="measure text-sm text-muted">
+                Next comes the plan: a handful of short sittings, and when you&apos;d like to do them.
+              </p>
+              <ButtonLink href="/plan/new">See your plan</ButtonLink>
+            </>
+          )}
+        </Card>
+      </div>
+    );
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <ol aria-live="polite" className="flex flex-col gap-4">
-        <Bubble message={{ from: "agent", text: greeting }} />
-        {messages.map((m, i) => (
-          <Bubble key={i} message={m} />
-        ))}
-        {status === "sending" && (
-          <Bubble message={{ from: "agent", text: live }} pending={!live} />
-        )}
-      </ol>
-      <div ref={endRef} />
-
-      {status === "finished" ? (
-        <div className="flex flex-col items-start gap-3 rounded-md border border-foreground/15 p-4">
-          <p>That&apos;s everything for now. Next, let&apos;s set a rhythm for the sittings.</p>
-          <Link href="/plan/new" className="rounded-md bg-foreground px-4 py-2.5 font-medium text-background">
-            See your plan
-          </Link>
-        </div>
-      ) : (
-        <form onSubmit={send} className="flex flex-col gap-3">
-          {speakers.length > 1 && (
-            <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              <legend className="sr-only">Who is typing?</legend>
-              <span className="text-foreground/60">Who&apos;s typing:</span>
-              {speakers.map((name) => (
-                <label key={name} className="flex items-center gap-1.5">
-                  <input
-                    type="radio"
-                    name="speaker"
-                    checked={speaker === name}
-                    onChange={() => setSpeaker(name)}
-                  />
-                  {name}
-                </label>
-              ))}
-            </fieldset>
-          )}
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={onKeyDown}
-            maxLength={maxLength}
-            rows={3}
-            placeholder="Type your answer…"
-            aria-label="Your answer"
-            className="resize-y rounded-md border border-foreground/20 bg-background px-3 py-2 text-base outline-none focus:border-foreground/60 focus:ring-2 focus:ring-foreground/10"
-          />
-          {error && (
-            <p role="alert" className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-              {error}
-            </p>
-          )}
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-foreground/50">Enter to send · Shift+Enter for a new line</span>
-            <button
-              type="submit"
-              disabled={status !== "idle" || !draft.trim()}
-              className="rounded-md bg-foreground px-4 py-2.5 font-medium text-background transition-opacity disabled:opacity-50"
-            >
-              {status === "sending" ? "Waiting…" : "Send"}
-            </button>
-          </div>
-        </form>
-      )}
+      <Note>
+        Rough answers are what&apos;s wanted here — a number, a yes or a no. &ldquo;Not sure&rdquo; is
+        a real answer, and the detail comes later, a bit at a time.
+      </Note>
+      <Transcript greeting={greeting} messages={messages} live={live} pending={status === "sending"} />
+      <Composer
+        draft={draft}
+        onDraft={setDraft}
+        onSend={send}
+        maxLength={maxLength}
+        busy={status !== "idle"}
+        error={error}
+        footer={<span>Stopping here keeps everything said so far.</span>}
+      >
+        <SpeakerPicker speakers={speakers} speaker={speaker} onChange={setSpeaker} />
+      </Composer>
     </div>
   );
 }
 
-function Bubble({ message, pending = false }: { message: ChatMessage; pending?: boolean }) {
-  const isAgent = message.from === "agent";
+/** Context before the empty box: what this is, and what it leads to. */
+function BeforeYouBegin({ areas, onBegin }: { areas: Area[]; onBegin: () => void }) {
+  const steps: [string, string][] = [
+    [
+      "A short conversation, about five minutes",
+      "Rough answers only — how many people, roughly what's involved. No numbers, no account details, nothing to go and look up.",
+    ],
+    [
+      "It works out a plan",
+      "A handful of short sittings, each covering one part of the record, in whatever order suits what you've said.",
+    ],
+    [
+      "Then you do them whenever you like",
+      "Half an hour at most, and you can stop part-way through any of them.",
+    ],
+  ];
+
   return (
-    <li className={`flex flex-col gap-1 ${isAgent ? "items-start" : "items-end"}`}>
-      {!isAgent && message.name && <span className="text-xs text-foreground/50">{message.name}</span>}
-      <div
-        className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-4 py-3 leading-relaxed ${
-          isAgent ? "bg-foreground/5" : "bg-foreground text-background"
-        }`}
-      >
-        {pending ? <span className="text-foreground/50">…</span> : message.text}
-      </div>
-    </li>
+    <div className="flex flex-col gap-6">
+      <Card tone="raised" className="flex flex-col gap-4">
+        <h2 className="text-xl">What happens now</h2>
+        <ol className="flex flex-col gap-3">
+          {steps.map(([title, detail], i) => (
+            <li key={title} className="flex gap-3">
+              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm tabular-nums text-accent">
+                {i + 1}
+              </span>
+              <div className="flex flex-col gap-0.5">
+                <span className="font-medium">{title}</span>
+                <span className="text-sm text-muted">{detail}</span>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </Card>
+
+      <section className="flex flex-col gap-3">
+        <SectionHeading aside="in the sittings after this">What the record covers</SectionHeading>
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {areas.map((area) => (
+            <li key={area.title} className="rounded-md border border-line bg-surface p-4">
+              <p className="font-medium">{area.title}</p>
+              <p className="mt-1 text-sm text-muted">{area.summary}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <Note>
+        None of this is a legal document, and nothing here is shown to anyone else. You can stop at
+        any point — what&apos;s been said is kept.
+      </Note>
+
+      <Button onClick={onBegin} className="self-start">
+        Start the conversation
+      </Button>
+    </div>
+  );
+}
+
+/** Once it's over it stays readable — and can be added to. */
+function Finished({
+  greeting,
+  messages,
+  hasPlan,
+}: {
+  greeting: string;
+  messages: ChatMessage[];
+  hasPlan: boolean;
+}) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function reopen() {
+    setPending(true);
+    setError(null);
+    const result = await reopenConversation();
+    if (result.error) {
+      setError(result.error);
+      setPending(false);
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Note>
+        This conversation is finished. It&apos;s kept here because it&apos;s the reason the plan came
+        out the way it did.
+      </Note>
+      <Transcript greeting={greeting} messages={messages} />
+      <Card tone="quiet" className="flex flex-col items-start gap-3">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-lg">Thought of something since?</h2>
+          <p className="measure text-sm text-muted">
+            {hasPlan
+              ? "You can add to this. The sittings you haven't started yet get re-worked around whatever you add; anything already done stays as it is."
+              : "You can add to this before the plan is set."}
+          </p>
+        </div>
+        {error && <Alert>{error}</Alert>}
+        <Button tone="secondary" onClick={reopen} disabled={pending}>
+          {pending ? "Opening…" : "Add something to this"}
+        </Button>
+      </Card>
+    </div>
   );
 }

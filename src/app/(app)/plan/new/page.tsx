@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Page, PageHeader } from "@/components/ui";
 import { sessionTemplate } from "@/lib/content";
 import { getRecordForUser, listSittings } from "@/lib/records";
 import { requireSession } from "@/lib/session";
@@ -18,15 +19,12 @@ export default async function NewPlanPage() {
   const whose = record.subject_relationship === "self" ? "your" : `${record.subject_name}'s`;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-10">
-      <header className="flex flex-col gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">A plan for {whose} handover</h1>
-        <p className="leading-relaxed text-foreground/80">
-          Based on that conversation, here&apos;s how the rest could be broken up. Each sitting is short
-          and covers one part of the record. Choose when you&apos;d like to start and how often to meet;
-          you can move any sitting later.
-        </p>
-      </header>
+    <Page width="prose">
+      <PageHeader
+        eyebrow="From the opening conversation"
+        title={`A plan for ${whose} handover`}
+        lead="Here's how the rest could be broken up. Each sitting is short and covers one part of the record. Choose when to start and how often; any of them can be moved later."
+      />
       <PlanBuilder
         signals={record.intake}
         template={sessionTemplate}
@@ -34,6 +32,6 @@ export default async function NewPlanPage() {
         latest={addDays(today, 365)}
         defaultStart={addDays(today, 1)}
       />
-    </main>
+    </Page>
   );
 }

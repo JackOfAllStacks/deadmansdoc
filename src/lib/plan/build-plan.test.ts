@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { sessionTemplate } from "@/lib/content";
 import type { Signals } from "@/lib/intake/signals";
-import { addDays, buildPlan, formatMinutes, isIsoDate, orderSittings, sittingMinutes, totalMinutes } from "./build-plan";
+import {
+  addDays,
+  buildPlan,
+  formatMinutes,
+  isIsoDate,
+  orderSittings,
+  reviseRemaining,
+  sittingMinutes,
+  totalMinutes,
+  type ExistingSitting,
+} from "./build-plan";
 import type { SessionTemplate } from "./template";
 
 const template: SessionTemplate = {
@@ -13,6 +23,7 @@ const template: SessionTemplate = {
       key: "people",
       title: "People",
       summary: "",
+      topics: [],
       default_order: 1,
       covers: [],
       base_minutes: 15,
@@ -22,6 +33,7 @@ const template: SessionTemplate = {
       key: "first-days",
       title: "First days",
       summary: "",
+      topics: [],
       default_order: 2,
       covers: [],
       base_minutes: 15,
@@ -31,6 +43,7 @@ const template: SessionTemplate = {
       key: "money-out",
       title: "Money out",
       summary: "",
+      topics: [],
       default_order: 3,
       covers: [],
       base_minutes: 12,
@@ -40,6 +53,7 @@ const template: SessionTemplate = {
       key: "money-in-owed",
       title: "Money in",
       summary: "",
+      topics: [],
       default_order: 4,
       covers: [],
       base_minutes: 10,
@@ -195,5 +209,64 @@ describe("date and time helpers", () => {
     expect(formatMinutes(45)).toBe("45 min");
     expect(formatMinutes(60)).toBe("1 hr");
     expect(formatMinutes(95)).toBe("1 hr 35 min");
+  });
+});
+
+describe("reviseRemaining", () => {
+  const existing = (
+    rows: [id: string, seq: number, key: string, status: string, date: string][],
+  ): ExistingSitting[] =>
+    rows.map(([id, seq, sitting_key, status, scheduled_for]) => ({
+      id,
+      seq,
+      sitting_key,
+      status: status as ExistingSitting["status"],
+      scheduled_for,
+    }));
+
+  const plan = existing([
+    ["a", 1, "people", "done", "2026-10-01"],
+    ["b", 2, "first-days", "planned", "2026-10-08"],
+    ["c", 3, "money-out", "planned", "2026-10-15"],
+    ["d", 4, "money-in-owed", "planned", "2026-10-22"],
+  ]);
+
+  it("never touches a sitting that has been started", () => {
+    const ids = reviseRemaining(plan, { front_of_mind: ["people"] }, template).map((r) => r.id);
+    expect(ids).not.toContain("a");
+    expect(ids.sort()).toEqual(["b", "c", "d"]);
+  });
+
+  it("reorders what's left without moving the dates someone has planned around", () => {
+    const revised = reviseRemaining(plan, { front_of_mind: ["money-in-owed"] }, template);
+    // The money sitting is now first of what's left, so it takes the earliest
+    // slot — but the slots themselves are exactly the ones already in the plan.
+    expect(revised.map((r) => r.id)).toEqual(["d", "b", "c"]);
+    expect(revised.map((r) => r.seq)).toEqual([2, 3, 4]);
+    expect(revised.map((r) => r.date)).toEqual(["2026-10-08", "2026-10-15", "2026-10-22"]);
+  });
+
+  it("re-estimates from the new answers", () => {
+    const before = reviseRemaining(plan, {}, template).find((r) => r.id === "b")!;
+    const after = reviseRemaining(plan, { has_time_constrained_rites: true }, template).find(
+      (r) => r.id === "b",
+    )!;
+    expect(after.minutes).toBe(before.minutes + 5);
+  });
+
+  it("does nothing when every sitting has been started", () => {
+    const started = existing([
+      ["a", 1, "people", "done", "2026-10-01"],
+      ["b", 2, "first-days", "in_progress", "2026-10-08"],
+    ]);
+    expect(reviseRemaining(started, {}, template)).toEqual([]);
+  });
+
+  it("leaves a plan alone rather than guess how to re-cut a split sitting", () => {
+    const split = existing([
+      ["a", 1, "money-out", "planned", "2026-10-01"],
+      ["b", 2, "money-out", "planned", "2026-10-08"],
+    ]);
+    expect(reviseRemaining(split, {}, template)).toEqual([]);
   });
 });
