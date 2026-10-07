@@ -36,9 +36,20 @@ export interface PlanItem {
  */
 export function PlanList({ items, today, latest }: { items: PlanItem[]; today: string; latest: string }) {
   const [list, setList] = useState(items);
+  const [fromServer, setFromServer] = useState(items);
   const [dragging, setDragging] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [, start] = useTransition();
+
+  // The server is the truth and this list is an optimistic view of it, so
+  // whenever new rows arrive the view gives way to them. Without this, the
+  // date picker on a card would write to the database and revalidate the page
+  // while the list carried on showing what it was first handed -- which it did,
+  // from the day this became a client component until a browser run caught it.
+  if (fromServer !== items) {
+    setFromServer(items);
+    setList(items);
+  }
 
   const movable = (item: PlanItem) => item.status === "planned";
   const positions = list.map((item, i) => (movable(item) ? i : -1)).filter((i) => i >= 0);

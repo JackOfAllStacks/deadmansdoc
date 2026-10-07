@@ -68,13 +68,24 @@ await page.getByLabel(/happy to begin/).check();
 await page.getByRole("button", { name: "Begin" }).click();
 await page.waitForURL(/\/start\/intake$/, { timeout: 30_000, waitUntil: "commit" });
 check("start form creates the record", page.url().endsWith("/start/intake"));
+// Nobody is dropped into an empty box: the text field appears once someone
+// chooses to begin.
+await page.getByRole("button", { name: "Start the conversation" }).click();
 await page.getByLabel("Your answer").waitFor();
 check("greeting names Margaret", (await page.locator("ol li").first().innerText()).includes("Margaret's"));
 
-const transcript = [];
-let finished = false;
-for (const [i, [speaker, text]] of SCRIPT.entries()) {
-  await page.getByLabel(speaker, { exact: true }).check();
+/**
+ * One exchange. The segmented speaker control's radio is sr-only and its label
+ * sits over it, so a person clicks the label -- checking the input directly is
+ * the thing a person can't do, and Playwright rightly refuses it.
+ */
+let lastSeconds = "0";
+async function say(speaker, text) {
+  await page
+    .locator("label")
+    .filter({ has: page.locator('input[name="speaker"]') })
+    .filter({ hasText: new RegExp(`^${speaker}$`) })
+    .click();
   await page.getByLabel("Your answer").fill(text);
   const started = Date.now();
   await page.getByRole("button", { name: "Send" }).click();
@@ -82,12 +93,23 @@ for (const [i, [speaker, text]] of SCRIPT.entries()) {
     () => {
       const btn = [...document.querySelectorAll("button")].find((b) => /^(Send|Waiting…)$/.test(b.textContent ?? ""));
       const plan = [...document.querySelectorAll("a")].some((l) => l.textContent === "See your plan");
-      return plan || (btn && btn.textContent === "Send");
+      // The turn that ends the conversation takes the composer away with it,
+      // so there is no Send button to come back to -- only the panel offering
+      // to add something later.
+      const over = [...document.querySelectorAll("button")].some((b) => b.textContent === "Add something to this");
+      return plan || over || (btn && btn.textContent === "Send");
     },
     null,
     { timeout: 180_000 },
   );
-  const seconds = ((Date.now() - started) / 1000).toFixed(1);
+  lastSeconds = ((Date.now() - started) / 1000).toFixed(1);
+}
+
+const transcript = [];
+let finished = false;
+for (const [i, [speaker, text]] of SCRIPT.entries()) {
+  await say(speaker, text);
+  const seconds = lastSeconds;
   const bubbles = await page.locator("ol > li").allInnerTexts();
   const alert = await page.locator("form [role=alert]").allInnerTexts();
   transcript.push({ speaker, text, reply: bubbles.at(-1), seconds, alert });
@@ -141,11 +163,95 @@ if (finished) {
   check("a sitting can be rescheduled", after !== before, `${before} → ${after}`);
   await shot(page, "5-plan");
 
-  for (const path of ["/home", "/start", "/start/intake", "/plan/new"]) {
+  // Where each page goes once there is a plan. /home is a dashboard rather
+  // than a step now, and the finished conversation stays readable, so only the
+  // two that would be a step backwards send you somewhere else.
+  for (const [path, lands] of [
+    ["/home", "/home"],
+    ["/start", "/home"],
+    ["/start/intake", "/start/intake"],
+    ["/plan/new", "/plan"],
+  ]) {
     await page.goto(`${BASE}${path}`);
-    await page.waitForURL(/\/plan$/, { timeout: 15_000, waitUntil: "commit" }).catch(() => {});
-    check(`${path} now leads to /plan`, page.url().endsWith("/plan"));
+    await page.waitForURL((u) => u.pathname === lands, { timeout: 15_000, waitUntil: "commit" }).catch(() => {});
+    check(`${path} lands on ${lands}`, new URL(page.url()).pathname === lands, page.url());
   }
+
+  // ── Reopening it, and the re-cut ────────────────────────────────────
+  //
+  // This is the path a bug sat on, undetected, from the day re-entry merged
+  // until the day something else happened to use the same function:
+  // applyRevision set a column the sittings table has never had, so every
+  // revision failed outright and reopening the conversation never once re-cut
+  // a plan. The unit tests mock applyRevision, and no script had ever
+  // *finished* a reopened conversation -- it was reachable only by driving it.
+  // So this is here to make sure it stays driven.
+  const planRows = async () => {
+    await page.goto(`${BASE}/plan`);
+    await page.locator("main ol > li").first().waitFor();
+    return (await page.locator("main ol > li").allInnerTexts()).map((r) => r.replace(/\s+/g, " ").trim());
+  };
+  const minutesOf = (rows) => rows.map((r) => (r.match(/about (\d+) min/) ?? [])[1]).join(",");
+  const datesOf = (rows) => rows.map((r) => (r.match(/· ([A-Z][a-z]+day \d+ [A-Z][a-z]+)/) ?? [])[1]).sort().join(",");
+  // The sequence number runs straight into the title in innerText.
+  const titlesOf = (rows) => rows.map((r) => (r.match(/^\d+\s*(.+?)\s+(To do|Done|Open now|Skipped)/) ?? [])[1]).join(" / ");
+
+  const was = await planRows();
+  await page.goto(`${BASE}/start/intake`);
+  await page.getByRole("button", { name: "Add something to this" }).click();
+  if (await page.getByRole("button", { name: "Start the conversation" }).count()) {
+    await page.getByRole("button", { name: "Start the conversation" }).click();
+  }
+  await page.getByLabel("Your answer").waitFor({ timeout: 30_000 });
+  check("a finished conversation can be added to", true);
+
+  // Both of these move signals the planner scales on: a family trust adds to
+  // two sittings, and more people to tell adds to a third.
+  const AFTERTHOUGHTS = [
+    ["Priya", "Sorry, we forgot something. Mum is a trustee of a small family trust that holds the house, and there's a bit of share income that comes with it."],
+    ["Margaret", "And there are six grandchildren, plus Dev's wife. They'd all need telling."],
+    ["Priya", "That's everything, thank you."],
+    ["Priya", "Yes, we're done."],
+  ];
+  let reFinished = false;
+  for (const [speaker, text] of AFTERTHOUGHTS) {
+    await say(speaker, text);
+    console.log(`\n[reopen ${speaker}] ${text}\n[agent, ${lastSeconds}s] ${(await page.locator("ol > li").allInnerTexts()).at(-1)}`);
+    if (await page.getByRole("button", { name: "Add something to this" }).count()) {
+      reFinished = true;
+      break;
+    }
+  }
+  check("the reopened conversation finishes again", reFinished);
+  const told = await page.locator("main").innerText();
+  check(
+    "it says how many sittings were re-worked",
+    /sittings? you haven't started yet (has|have) been re-worked/i.test(told),
+    (told.match(/The \d+ sittings[^.]*\./) ?? told.match(/The sitting[^.]*\./) ?? [""])[0],
+  );
+
+  const now = await planRows();
+  check("the plan still has the same sittings", now.length === was.length, `${was.length} → ${now.length}`);
+  // The point of the whole thing: finishing it again re-estimates what hasn't
+  // been started. If this fails, the revision never reached the database.
+  check(
+    "the sittings were re-estimated from the fuller picture",
+    minutesOf(now) !== minutesOf(was),
+    `${minutesOf(was)} → ${minutesOf(now)}`,
+  );
+  // The slots stay put and the sittings move between them, so remembering
+  // something doesn't rearrange somebody's month.
+  check("the dates stayed where they were", datesOf(now) === datesOf(was), datesOf(was));
+  console.log(`\nPLAN BEFORE: ${titlesOf(was)}\nPLAN AFTER:  ${titlesOf(now)}`);
+  await shot(page, "6-plan-recut");
+
+  // ── And it won't reopen over an open sitting ────────────────────────
+  await page.getByRole("button", { name: "Start now" }).first().click();
+  await page.waitForURL(/\/sitting$/, { timeout: 30_000, waitUntil: "commit" });
+  await page.goto(`${BASE}/start/intake`);
+  await page.getByRole("button", { name: "Add something to this" }).click();
+  const refusal = await page.locator("[role=alert]").first().innerText({ timeout: 15_000 });
+  check("reopening is refused while a sitting is open", /finish the sitting/i.test(refusal), refusal);
 }
 
 // ── Account B: can't reach A's record ─────────────────────────────────
