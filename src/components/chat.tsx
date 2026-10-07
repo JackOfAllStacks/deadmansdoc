@@ -10,11 +10,44 @@ import { Alert, Button, cx } from "@/components/ui";
  * around them.
  */
 
-export function Bubble({ message, pending = false }: { message: ChatMessage; pending?: boolean }) {
+export function Bubble({
+  message,
+  pending = false,
+  speakers = [],
+  onCorrect,
+}: {
+  message: ChatMessage;
+  pending?: boolean;
+  /** Everyone who could have said it. Fewer than two means nothing to correct. */
+  speakers?: string[];
+  onCorrect?: (id: string, speaker: string) => void;
+}) {
   const isAgent = message.from === "agent";
+  // Two people share one keyboard and the control gets left on the wrong name.
+  // The name is shown on every message so a mistake is visible immediately,
+  // and clicking it hands the message to the next person along.
+  const canCorrect =
+    !isAgent && Boolean(message.id) && speakers.length > 1 && speakers.includes(message.name) && onCorrect;
+
   return (
     <li className={cx("flex flex-col gap-1", isAgent ? "items-start" : "items-end")}>
-      {!isAgent && message.name && <span className="text-xs text-faint">{message.name}</span>}
+      {!isAgent &&
+        message.name &&
+        (canCorrect ? (
+          <button
+            type="button"
+            onClick={() => {
+              const next = speakers[(speakers.indexOf(message.name) + 1) % speakers.length];
+              onCorrect!(message.id!, next);
+            }}
+            title={`Said by ${message.name} — click to file it under someone else`}
+            className="rounded px-1 text-xs text-faint underline decoration-dotted underline-offset-2 hover:text-ink"
+          >
+            {message.name}
+          </button>
+        ) : (
+          <span className="text-xs text-faint">{message.name}</span>
+        ))}
       <div
         className={cx(
           "max-w-[85%] rounded-lg px-4 py-3 leading-relaxed whitespace-pre-wrap",
@@ -52,11 +85,15 @@ export function Transcript({
   messages,
   live,
   pending,
+  speakers,
+  onCorrect,
 }: {
   greeting: string;
   messages: ChatMessage[];
   live?: string;
   pending?: boolean;
+  speakers?: string[];
+  onCorrect?: (id: string, speaker: string) => void;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -73,7 +110,7 @@ export function Transcript({
       <ol aria-live="polite" aria-label="Conversation" className="flex flex-col gap-4">
         <Bubble message={{ from: "agent", text: greeting }} />
         {messages.map((m, i) => (
-          <Bubble key={i} message={m} />
+          <Bubble key={i} message={m} speakers={speakers} onCorrect={onCorrect} />
         ))}
         {pending && <Bubble message={{ from: "agent", text: live ?? "" }} pending={!live} />}
       </ol>
@@ -81,6 +118,13 @@ export function Transcript({
   );
 }
 
+/**
+ * Who is answering. It was a row of small radio buttons above the box, which
+ * is easy to not see and easier to not change: in testing one person started
+ * typing and the whole exchange was filed under the other. It is now a
+ * segmented control that says whose answer this is in a sentence, and every
+ * message carries the name it went under so a mistake shows up at once.
+ */
 export function SpeakerPicker({
   speakers,
   speaker,
@@ -92,15 +136,29 @@ export function SpeakerPicker({
 }) {
   if (speakers.length < 2) return null;
   return (
-    <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-      <legend className="sr-only">Who is typing?</legend>
-      <span className="text-muted">Who&apos;s typing:</span>
-      {speakers.map((name) => (
-        <label key={name} className="flex items-center gap-1.5">
-          <input type="radio" name="speaker" checked={speaker === name} onChange={() => onChange(name)} />
-          {name}
-        </label>
-      ))}
+    <fieldset className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <legend className="sr-only">Whose answer is this?</legend>
+      <span className="text-sm text-muted">Answering as</span>
+      <div className="flex flex-wrap gap-1 rounded-lg bg-soft p-1">
+        {speakers.map((name) => (
+          <label
+            key={name}
+            className={cx(
+              "cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              speaker === name ? "bg-surface text-ink shadow-card" : "text-muted hover:text-ink",
+            )}
+          >
+            <input
+              type="radio"
+              name="speaker"
+              className="sr-only"
+              checked={speaker === name}
+              onChange={() => onChange(name)}
+            />
+            {name}
+          </label>
+        ))}
+      </div>
     </fieldset>
   );
 }

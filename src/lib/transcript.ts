@@ -1,6 +1,8 @@
 import type { MessageRow } from "@/lib/records";
 
-export type ChatMessage = { from: "agent"; text: string } | { from: "person"; name: string; text: string };
+export type ChatMessage =
+  | { from: "agent"; text: string }
+  | { from: "person"; name: string; text: string; id?: string };
 
 // Stored messages back into something to show. A person's message is kept
 // twice: `content` is what they typed, and the block sent to the model is
@@ -16,7 +18,7 @@ export function toChatHistory(messages: MessageRow[]): ChatMessage[] {
       const first = m.blocks[0];
       const labelled = first && first.type === "text" ? first.text : "";
       const name = labelled.endsWith(`: ${m.content}`) ? labelled.slice(0, -(m.content.length + 2)) : "";
-      history.push({ from: "person", name, text: m.content });
+      history.push({ from: "person", name, text: m.content, id: m.id });
     }
   }
   return history;

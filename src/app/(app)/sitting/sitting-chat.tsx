@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { correctSpeaker } from "@/app/(app)/actions";
 import { ChatFrame, Composer, SpeakerPicker, Transcript } from "@/components/chat";
 import { TopicStrip } from "@/components/topics";
 import { Alert, ButtonLink, Card, Progress as ProgressBar } from "@/components/ui";
@@ -265,6 +266,22 @@ export function SittingChat({
     }
   }
 
+
+  // Filing a message under someone else. Optimistic, because the alternative
+  // is the name flickering back for a moment and looking like it failed.
+  async function correct(id: string, name: string) {
+    const before = messages;
+    setMessages((m) => m.map((x) => (x.from === "person" && x.id === id ? { ...x, name } : x)));
+    const form = new FormData();
+    form.set("messageId", id);
+    form.set("speaker", name);
+    const result = await correctSpeaker({}, form);
+    if (result.error) {
+      setMessages(before);
+      setError(result.error);
+    }
+  }
+
   const waiting = status === "sending" || status === "catching-up";
 
   return (
@@ -273,7 +290,14 @@ export function SittingChat({
           is what makes the box worth typing into. The conversation scrolls
           itself into view after every turn, so it costs nothing once under way. */}
       <ChatFrame className="order-2 lg:order-1">
-        <Transcript greeting={greeting} messages={messages} live={live} pending={waiting} />
+        <Transcript
+          greeting={greeting}
+          messages={messages}
+          live={live}
+          pending={waiting}
+          speakers={speakers}
+          onCorrect={correct}
+        />
 
         {status === "finished" ? (
           <Card tone="accent" className="flex flex-col items-start gap-3">

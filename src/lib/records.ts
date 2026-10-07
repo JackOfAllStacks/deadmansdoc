@@ -49,6 +49,8 @@ export function speakersFor(record: RecordRow): string[] {
 export type MessageRole = "agent" | "subject" | "helper" | "tool";
 
 export interface MessageRow {
+  /** Absent only for a message being written, before it is stored. */
+  id?: string;
   role: MessageRole;
   content: string;
   blocks: Anthropic.Beta.BetaContentBlockParam[];
@@ -56,7 +58,7 @@ export interface MessageRow {
 
 export async function intakeMessages(recordId: string): Promise<MessageRow[]> {
   const rows = await db()`
-    select role, content, blocks
+    select id, role, content, blocks
     from messages
     where record_id = ${recordId} and phase = 'intake'
     order by position`;
@@ -172,6 +174,32 @@ export async function applyRevision(recordId: string, revisions: Revision[]): Pr
         and sittings.record_id = ${recordId}
         and sittings.status = 'planned'`,
   ]);
+}
+
+/**
+ * Files a message under a different person. Two people share one keyboard, and
+ * the one answering isn't always the one the control says — so the fix is to
+ * let it be put right afterwards rather than to hope.
+ *
+ * The block sent to the model carries the name as a prefix, so that has to
+ * move too, or the record and the transcript would disagree about who spoke.
+ */
+export async function reassignSpeaker(
+  recordId: string,
+  messageId: string,
+  speaker: string,
+  isSubject: boolean,
+): Promise<boolean> {
+  const rows = await db()`
+    update messages set
+      role = ${isSubject ? "subject" : "helper"},
+      blocks = jsonb_set(blocks, '{0,text}', to_jsonb(${speaker}::text || ': ' || content))
+    where id = ${messageId}
+      and record_id = ${recordId}
+      and role in ('subject', 'helper')
+      and blocks->0->>'type' = 'text'
+    returning id`;
+  return rows.length === 1;
 }
 
 export async function rescheduleSitting(recordId: string, sittingId: string, date: string): Promise<boolean> {

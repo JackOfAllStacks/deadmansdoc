@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { reopenConversation } from "@/app/(app)/actions";
+import { correctSpeaker, reopenConversation } from "@/app/(app)/actions";
 import { ChatFrame, Composer, SpeakerPicker, Transcript } from "@/components/chat";
 import { Alert, Button, ButtonLink, Card, Note, SectionHeading } from "@/components/ui";
 import type { IntakeEvent } from "@/lib/intake/agent";
@@ -121,6 +121,22 @@ export function IntakeChat({
     }
   }
 
+
+  // Filing a message under someone else. Optimistic, because the alternative
+  // is the name flickering back for a moment and looking like it failed.
+  async function correct(id: string, name: string) {
+    const before = messages;
+    setMessages((m) => m.map((x) => (x.from === "person" && x.id === id ? { ...x, name } : x)));
+    const form = new FormData();
+    form.set("messageId", id);
+    form.set("speaker", name);
+    const result = await correctSpeaker({}, form);
+    if (result.error) {
+      setMessages(before);
+      setError(result.error);
+    }
+  }
+
   if (finished) return <Finished greeting={greeting} messages={messages} hasPlan={hasPlan} />;
   if (!started) return <BeforeYouBegin areas={areas} onBegin={() => setStarted(true)} />;
 
@@ -160,7 +176,14 @@ export function IntakeChat({
         a real answer, and the detail comes later, a bit at a time.
       </Note>
       <ChatFrame>
-        <Transcript greeting={greeting} messages={messages} live={live} pending={status === "sending"} />
+        <Transcript
+          greeting={greeting}
+          messages={messages}
+          live={live}
+          pending={status === "sending"}
+          speakers={speakers}
+          onCorrect={correct}
+        />
         <Composer
           draft={draft}
           onDraft={setDraft}
