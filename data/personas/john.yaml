@@ -1,0 +1,150 @@
+# Half way through: one sitting done, one open and left part-way, two still
+# ahead. What a demo should normally show -- a record being made, not a
+# finished one.
+#
+# Invented. No real person, number or place.
+
+key: john
+name: John — half way
+summary: >
+  A father doing this with his son Jack. One sitting done, the next left
+  part-way through, so the plan, the live document and the Guide all have
+  something real in them without being finished.
+
+subject_name: John
+relationship: parent
+present: [John, Jack]
+
+intake_done: true
+intake:
+  subject_relationship: parent
+  family_count: 4
+  household_count: 2
+  adviser_count: 1
+  account_band: "5+"
+  runs_household_money_alone: true
+  has_business_or_trust: false
+  has_debts_or_guarantees: true
+  has_income_after_death: false
+  has_time_constrained_rites: false
+  has_matters_in_progress: false
+  front_of_mind: [people]
+
+sittings:
+  - { key: people, status: done, day: -6 }
+  - { key: money-out, status: in_progress, day: 0 }
+  - { key: first-days, status: planned, day: 7 }
+  - { key: money-in-owed, status: planned, day: 14 }
+
+entities:
+  - type: person
+    label: Robyn
+    data:
+      relationship: wife
+      contact: "0400 111 222"
+  - type: person
+    label: Jack
+    data:
+      relationship: son
+      contact: "0400 333 444"
+      role: doing this with him
+  - type: person
+    label: Pete
+    data:
+      relationship: brother
+  - type: account
+    label: Everyday account
+    data:
+      institution: a credit union
+      held: joint with Robyn
+  - type: bill
+    label: Electricity
+    data:
+      provider: a retailer
+      paid: monthly, direct debit
+
+record:
+  - field: s1.first_calls
+    entity: Robyn
+    action: She should hear it first, from Jack, not over the phone if it can be helped
+  - field: s1.first_calls
+    entity: Jack
+  - field: s1.fallback_contact
+    entity: Jack
+  - field: s1.routing_map
+    entity: Jack
+    action: Anything to do with money goes to him
+  - field: s3.household
+    entity: Robyn
+  - field: s3.key_people
+    entity: Robyn
+    action: Call her before anyone else
+  - field: s3.key_people
+    entity: Jack
+  - field: s3.key_people
+    entity: Pete
+    action: Do not ring him in the first week
+  - field: s3.responsibilities
+    value: [Jack]
+    action: Jack handles the paperwork; Robyn should not have to
+  - field: s3.interrelationships
+    value: Robyn and Pete have not spoken since 2019.
+  - field: s3.financial_knower
+    value: [John]
+    confidence: uncertain
+  - field: s3.do_not_contact
+    value: [Pete]
+    action: Not in the first week. After that, Jack decides
+  - field: s3.wrong_call
+    value: [Pete]
+  - field: s3.anticipated_disagreement
+    value: Pete will say he was owed money. Jack has the only record of it.
+  - field: s3.advisers
+    unknown: Robyn
+  - field: s3.expectations_communicated
+    unknown: Jack
+  # The sitting that is still open, so the live document has a start on it.
+  - field: s5.accounts
+    entity: Everyday account
+  - field: s5.bill_account
+    value: The joint account at the credit union. Everything comes out of it.
+  - field: s5.regular_bills
+    entity: Electricity
+  - field: s5.balances
+    entity: Everyday account
+    amount: about $6,000
+
+notes:
+  - label: The password book
+    value: A small red notebook in the top drawer of the desk. Not a safe place, but it is where it is.
+    action: Tell Robyn it exists
+
+transcript:
+  - sitting: people
+    from: agent
+    text: >
+      This sitting is about who your family should call first, who does what,
+      and who to keep out of it. We can stop whenever you like.
+  - sitting: people
+    from: subject
+    text: >
+      Robyn first. She's my wife. But honestly I'd want Jack to tell her, not
+      a phone call out of nowhere.
+  - sitting: people
+    from: agent
+    text: >
+      That's worth writing down — who tells her matters as much as who is
+      called. Is there anyone who shouldn't be rung straight away?
+  - sitting: people
+    from: subject
+    text: >
+      My brother Pete. Not in the first week. He and Robyn haven't spoken
+      since 2019 and it would just make everything harder.
+  - sitting: money-out
+    from: agent
+    text: >
+      This one is about money going out — the accounts, the bills they pay,
+      and what has to keep running. About twenty minutes.
+  - sitting: money-out
+    from: subject
+    text: Everything comes out of the joint account at the credit union.

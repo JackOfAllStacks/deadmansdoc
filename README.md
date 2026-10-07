@@ -245,6 +245,16 @@ How much of the template a record covers. Most of it is arithmetic: a field with
 
 A verdict of "doesn't apply" is ignored unless the model quotes the words behind it. Silence isn't evidence, and neither is someone saying they're done for the day.
 
+## Demo records
+
+Showing the product used to mean improvising answers live and paying for model calls to produce what it already knows how to produce. [`/admin/demo`](src/app/(app)/admin/demo) fills an account with an invented person instead — the plan, what was said, what was recorded, the gaps, and the sealed figures — in about a second and for nothing, because no model is involved.
+
+The people live in [`data/personas`](data/personas) and are **invented**: no real person, number or place, and the guardrail against real data applies here more than anywhere. They're checked the same way the artifact fields and the question bank are, and a persona that names a field which doesn't exist **fails the build**. One check earns its place especially: a figure can only be put on a field whose disclosure is `sealed`, so a persona cannot be written that leaks a number into the Guide.
+
+Seeding **replaces** whatever that account had, which is what makes it repeatable between run-throughs. It fills an account that already exists rather than creating one, so nothing here touches sign-up or passwords; and because a record is written across half a dozen tables with no transaction spanning them, a failure part-way clears up after itself rather than leaving something that looks seeded and isn't.
+
+What this does *not* do is show the product being used. For that the conversation has to actually run — see what's next, below.
+
 ## The look of it
 
 Everything visual is a token in [`globals.css`](src/app/globals.css): surfaces, text, lines, one accent, and the three states anything in the record can be in (**recorded**, **not known**, **still to come**). Pages use the names — `bg-surface`, `text-muted`, `border-line` — and never a raw colour or an opacity-on-black trick, so the whole product can be re-toned from that one file. The palette is warm rather than clinical on purpose: this is a product about dying, used by people who are frightened or grieving, and stark monochrome reads as a hospital form.
@@ -306,6 +316,7 @@ The spine is built and walkable end to end: someone signs up, talks to the openi
 - A front end: a visual language, a component vocabulary, a header, a home worth landing on, and scaffolding around both conversations.
 - The split screen: the document written in front of you during a sitting, and correctable by hand.
 - The Guide and the Sealed Envelope, readable and printable by the person whose record it is.
+- Seeded demo records, so showing the product costs nothing and needs no improvising.
 
 **Not built: the person's own view of their Guide.** Only an admin can read the document the whole product exists to make. That is the next branch, and it is the wrong way round until it lands.
 
@@ -323,16 +334,11 @@ What that turned into is described under [Getting around](#getting-around-and-th
 
 Each of these is a branch. The front end came first so the rest is built in its vocabulary rather than retrofitted; what follows is ordered the same way, cheapest-unlock first.
 
-### 1. Synthetic personas and seeding
+### 1. A scripted run through the real agents
 
-Demos currently mean improvising answers live, or pasting a script, and paying for model calls to show what the product already knows how to do.
+Seeded records cover showing the *output*. What they can't show is the *experience* — the conversation actually happening, the document filling in as someone talks. That still means improvising answers or pasting a script in by hand.
 
-Two different needs, worth building as two things:
-
-- **Seeded records** written straight into the database — finished and half-finished, several personas. Instant, free, repeatable, and what you want when showing the *output*: the plan, the captured record, the Guide, the envelope.
-- **A scripted run** through the real agents, for when the point is the *experience* rather than the result. Slower and costs credit, so it stays a deliberate choice rather than the only option.
-
-No real personal data, ever — these are written by us.
+A scripted persona driven through the real agents would fix it. Slower and it costs credit, so it stays a deliberate choice rather than the only way to demo.
 
 ### 2. Gamification
 

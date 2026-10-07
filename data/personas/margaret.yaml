@@ -1,0 +1,264 @@
+# A finished record: every sitting done, a Guide with something in every
+# section, and a sealed envelope that prints.
+#
+# Invented, like every persona here. No real person, number or place.
+
+key: margaret
+name: Margaret — finished
+summary: >
+  82, doing this with her daughter Priya. Widowed, two children, a safe
+  deposit box nobody has opened. Every sitting done, so the Guide is as
+  complete as this version gets.
+
+subject_name: Margaret
+relationship: parent
+present: [Margaret, Priya]
+
+intake_done: true
+intake:
+  subject_relationship: parent
+  family_count: 3
+  household_count: 1
+  adviser_count: 2
+  account_band: "2-4"
+  runs_household_money_alone: true
+  has_business_or_trust: false
+  has_debts_or_guarantees: false
+  has_income_after_death: true
+  has_time_constrained_rites: false
+  has_matters_in_progress: true
+  front_of_mind: [people, money-out]
+
+sittings:
+  - { key: people, status: done, day: -28 }
+  - { key: money-out, status: done, day: -21 }
+  - { key: first-days, status: done, day: -14 }
+  - { key: money-in-owed, status: done, day: -7 }
+
+entities:
+  - type: person
+    label: Priya
+    data:
+      relationship: daughter
+      contact: "0400 000 111"
+      role: the one who organises everything
+  - type: person
+    label: Tom
+    data:
+      relationship: son
+      contact: "0400 000 222"
+      role: lives interstate, needs a day to travel
+  - type: person
+    label: Helen Brandt
+    data:
+      relationship: solicitor
+      contact: "03 9000 0000"
+  - type: account
+    label: Everyday account
+    data:
+      institution: Bendigo
+      held: sole
+  - type: account
+    label: Safe deposit box
+    data:
+      institution: Bendigo, Camberwell branch
+  - type: bill
+    label: Council rates
+    data:
+      provider: Boroondara
+      paid: quarterly, by hand
+  - type: bill
+    label: Home insurance
+    data:
+      provider: RACV
+      paid: annually, direct debit
+  - type: income
+    label: Age pension
+
+record:
+  # ── Section 1 ──────────────────────────────────────────────────────
+  - field: s1.first_calls
+    entity: Priya
+    action: Ring her before anyone else — she has the list
+  - field: s1.first_calls
+    entity: Tom
+    action: Ring him the same day; he needs a day to get here
+  - field: s1.fallback_contact
+    entity: Priya
+  - field: s1.routing_map
+    entity: Helen Brandt
+    action: Anything legal goes to her
+  - field: s1.immediate_actions
+    value:
+      - Ring Priya, then Tom
+      - Ring Helen Brandt before signing anything
+      - Leave the Bendigo account alone
+    action: In that order
+  - field: s1.do_not_yet
+    value:
+      - Do not close the Bendigo account — the rates come out of it
+      - Do not cancel the home insurance
+      - Do not empty the house
+
+  # ── Section 2 ──────────────────────────────────────────────────────
+  - field: s2.first_72h
+    value:
+      - Ring Priya and Tom
+      - Ring the funeral director
+      - Ring Helen Brandt
+  - field: s2.first_30d
+    value:
+      - Get the death certificate
+      - Tell Centrelink the pension stops
+      - Tell the bank, but do not close anything
+  - field: s2.first_6m
+    value:
+      - Open the safe deposit box with Helen there
+      - Decide about the house, not before
+  - field: s2.deadlines
+    value: Centrelink wants to be told within fourteen days.
+  - field: s2.impossible_after_notice
+    value:
+      - Once the bank is told, the account freezes and the rates stop being paid
+  - field: s2.first_week_losses
+    value: [The garden, if nobody waters it]
+  - field: s2.urgent_decisions
+    value: Whether to keep the house through winter. Priya decides.
+  - field: s2.time_constrained_rites
+    unknown: Priya
+
+  # ── Section 3 ──────────────────────────────────────────────────────
+  - field: s3.household
+    entity: Priya
+  - field: s3.key_people
+    entity: Priya
+    action: She holds everything — start here
+  - field: s3.key_people
+    entity: Tom
+  - field: s3.responsibilities
+    value: [Priya, Tom]
+    action: Priya organises, Tom helps with the house
+  - field: s3.interrelationships
+    value: Priya and Tom get on. Tom has never met Helen Brandt.
+  - field: s3.advisers
+    entity: Helen Brandt
+  - field: s3.financial_knower
+    value: [Priya]
+  - field: s3.expectations_communicated
+    value: [Priya]
+    action: Tom has not been told he is an executor
+    confidence: uncertain
+  - field: s3.do_not_contact
+    unknown: Priya
+  - field: s3.wrong_call
+    value: [Tom]
+    action: He would ring the bank first, and that freezes the account
+  - field: s3.anticipated_disagreement
+    value: The house. Tom wants it sold, Priya does not.
+
+  # ── Section 5 ──────────────────────────────────────────────────────
+  - field: s5.accounts
+    entity: Everyday account
+  - field: s5.accounts
+    entity: Safe deposit box
+    action: Helen Brandt has to be there to open it
+  - field: s5.balances
+    entity: Everyday account
+    amount: about $18,000
+  - field: s5.bill_account
+    value: Everything comes out of the Bendigo everyday account.
+  - field: s5.bill_account_freeze
+    value: If it freezes, the rates and the insurance both stop.
+  - field: s5.cash
+    value: [About $400 in the biscuit tin on top of the fridge]
+  - field: s5.investments
+    value: [A small parcel of shares, held through the bank]
+  - field: s5.entities
+    value: [None]
+  - field: s5.accountant
+    unknown: Priya
+  - field: s5.contact_before_change
+    value: [Helen Brandt]
+  - field: s5.financial_docs_location
+    value: The green folder in the hall cupboard, second shelf.
+  - field: s5.undisclosed_arrangements
+    value: Money lent to Tom in 2019, never asked for back.
+  - field: s5.regular_bills
+    entity: Council rates
+  - field: s5.regular_bills
+    entity: Home insurance
+  - field: s5.auto_vs_manual
+    entity: Council rates
+    action: Paid by hand — it will be missed
+  - field: s5.uninterruptible_payments
+    value: [Home insurance — the house is empty most of the week]
+  - field: s5.silent_failures
+    value: [The rates. Nobody is told; it just accrues interest]
+  - field: s5.annual_surprises
+    value: [Home insurance renews in March]
+  - field: s5.do_not_close_accounts
+    value: [The Bendigo everyday account]
+  - field: s5.burn_on_death
+    value: [Nothing much. The outgoings are small]
+  - field: s5.mortgage_loans_cards
+    unknown: Priya
+  - field: s5.debts_passing
+    value: [None]
+  - field: s5.cosigned
+    value: [None]
+  - field: s5.guarantees
+    value: [None]
+  - field: s5.tax_outstanding
+    value: Nothing outstanding.
+  - field: s5.hidden_debts
+    value: [None]
+  - field: s5.private_loans
+    value: [The money lent to Tom in 2019 — about $8,000, no record of it]
+  - field: s5.money_after_death
+    value: [The pension, until Centrelink is told]
+  - field: s5.claim_required
+    unknown: Helen Brandt
+  - field: s5.delayed_payouts
+    value: [A small share dividend, usually in October]
+  - field: s5.unchased_income
+    value: [The dividend. Nobody else knows it exists]
+  - field: s5.prior_period_payments
+    value: The pension is paid a fortnight behind.
+  - field: s5.expected_amounts
+    entity: Age pension
+    amount: about $1,100 a fortnight
+
+notes:
+  - label: The biscuit tin
+    value: It is where the cash is, and it looks like rubbish. Do not throw it out.
+    action: Tell Priya before the house is cleared
+  - label: The neighbour
+    value: Jean at number 14 has a key and waters the garden.
+
+transcript:
+  - sitting: people
+    from: agent
+    text: >
+      This sitting is about who your family should call first, who does what,
+      and who to keep out of it. We can stop whenever you like.
+  - sitting: people
+    from: subject
+    text: >
+      Priya first, always. She's the one who organises everything. Tom's in
+      Brisbane so he needs a day's notice to get down here.
+  - sitting: people
+    from: agent
+    text: Thank you. And if Priya couldn't be reached — who then?
+  - sitting: people
+    from: helper
+    text: >
+      That'd still be me, realistically. Mum, you'd want them to ring Helen
+      before anyone signs anything.
+  - sitting: money-out
+    from: agent
+    text: Now the money going out. What actually pays the bills?
+  - sitting: money-out
+    from: subject
+    text: >
+      Everything comes out of the Bendigo account. The rates I pay by hand,
+      which I know is silly, but I've always done it that way.
