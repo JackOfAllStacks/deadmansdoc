@@ -203,3 +203,17 @@ describe("the Sealed Envelope", () => {
     expect(envelope).not.toContain("## Section 3 —");
   });
 });
+
+describe("entity details", () => {
+  it("doesn't repeat the name it is already labelled with", () => {
+    const entities: EntityRow[] = [
+      { id: "e1", entity_type: "person", label: "Robyn", data: { name: "Robyn", relationship: "wife" } },
+    ];
+    const guide = renderGuide(
+      data([value({ field_id: "s3.key_people", entity_instance_id: "e1", value: {} })], entities),
+      meta,
+    );
+    expect(guide).toContain("**Robyn** — relationship: wife");
+    expect(guide).not.toContain("name: Robyn");
+  });
+});

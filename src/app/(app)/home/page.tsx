@@ -86,9 +86,14 @@ export default async function HomePage() {
               );
             })}
           </ul>
-          <ButtonLink href="/plan" tone="quiet" className="self-start">
-            Open the plan to start one, or move a date
-          </ButtonLink>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <ButtonLink href="/plan" tone="quiet">
+              Open the plan to start one, or move a date
+            </ButtonLink>
+            <ButtonLink href="/guide" tone="quiet">
+              Read the Guide as it stands
+            </ButtonLink>
+          </div>
         </section>
       )}
 

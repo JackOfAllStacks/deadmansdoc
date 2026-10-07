@@ -233,6 +233,12 @@ The awkward rules from [the template](docs/Artifact%20Template.md) are the ones 
 - If nothing is sealed, the Guide says so, and nobody spends the worst week of their life hunting for an envelope that was never printed.
 - A gap prints as what it is — "Not yet known. Peter may know." — because a routed gap beats a blank.
 
+**Two outputs, one set of rules.** The renderer produces a [`Doc`](src/lib/artifact/doc.ts) — sections, parts, entries — and Markdown is one way of writing that out. The page a person reads is another, typeset rather than shown as source. Neither can drift from the other, because neither decides what appears. The documents use exactly two inline marks, `**strong**` and `_quiet_`, and the renderer is the only thing that writes them, so the reading view needs a sixteen-line formatter rather than a Markdown parser.
+
+**The person can read their own Guide**, at [`/guide`](src/app/(app)/guide) — the thing the whole product exists to make, and until this branch visible only to admins. Their own Sealed Envelope sits behind one more click: it is their record, so it is theirs to read, but it holds what they chose to keep back and shouldn't be on screen by accident. The admin view still shows the raw Markdown, because when you are tuning the interview what matters is exactly what prints.
+
+**Printing** takes the page, not the Markdown, so what comes off the printer is what was on screen: the app's chrome is dropped, the palette goes black on white whatever the screen was set to, and headings don't fall at the foot of a page. The document keeps its own title and front matter when it prints, since the page furniture naming it has gone.
+
 ### The completeness check
 
 How much of the template a record covers. Most of it is arithmetic: a field with a value is recorded, a field with a recorded gap is a known unknown. **One model call** answers the only question the data can't — whether something is genuinely missing or simply doesn't apply to this person, which is usually only knowable from what was said ("we're not religious, there's no rush"). It runs on demand, never on page load, and it only judges the fields that are still outstanding.
@@ -299,6 +305,7 @@ The spine is built and walkable end to end: someone signs up, talks to the openi
 - The completeness check, and the admin view of a record.
 - A front end: a visual language, a component vocabulary, a header, a home worth landing on, and scaffolding around both conversations.
 - The split screen: the document written in front of you during a sitting, and correctable by hand.
+- The Guide and the Sealed Envelope, readable and printable by the person whose record it is.
 
 **Not built: the person's own view of their Guide.** Only an admin can read the document the whole product exists to make. That is the next branch, and it is the wrong way round until it lands.
 
@@ -316,13 +323,7 @@ What that turned into is described under [Getting around](#getting-around-and-th
 
 Each of these is a branch. The front end came first so the rest is built in its vocabulary rather than retrofitted; what follows is ordered the same way, cheapest-unlock first.
 
-### 1. The Guide, readable by the person it's about
-
-Only admins can read the Guide today. The person whose record it is cannot see what they've said — in a product built on trust, about their own death, that is the wrong way round. It is also the most reassuring screen in the product, currently invisible to the people it's for.
-
-The split screen beside a sitting already shows one sitting's worth of it, live and editable. This is the whole record, rendered by [`render.ts`](src/lib/artifact/render.ts) the way the printed Guide is, on a page of its own — what someone would actually hand over.
-
-### 2. Synthetic personas and seeding
+### 1. Synthetic personas and seeding
 
 Demos currently mean improvising answers live, or pasting a script, and paying for model calls to show what the product already knows how to do.
 
@@ -333,13 +334,13 @@ Two different needs, worth building as two things:
 
 No real personal data, ever — these are written by us.
 
-### 3. Gamification
+### 2. Gamification
 
 Its own piece of work rather than a note at the end of a list. The discovery brief asked for a large, intimidating task made to feel finite; what exists is a progress bar and minute estimates. Worth designing properly once there is a visual language to design in.
 
-### 4. Printing, and the styled PDF
+### 3. The styled PDF
 
-The Markdown is there; the paper isn't. Low priority until the rest is real, and it overlaps almost entirely with the styled PDF, so the two are one branch. Deliberately last: styling the artifact before the app has a look means doing it twice.
+Printing works now — the browser's own print of the reading view, which is honest paper with no new code. What's still missing is a *designed* artifact: something that looks like it was meant to be kept, rather than a web page that went through a printer. Deliberately last, because it only makes sense once the rest has settled.
 
 ### Later, unordered
 
