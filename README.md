@@ -103,6 +103,7 @@ node scripts/e2e-intake.mjs   # opening conversation and plan (spends API credit
 node scripts/e2e-sitting.mjs  # the whole journey, including a sitting (spends more)
 node scripts/e2e-admin-record.mjs  # the admin view of a record it left behind
 node scripts/e2e-loose-ends.mjs    # the gaps page, from a seeded record (free)
+node scripts/e2e-progress.mjs      # how far through the record is (free)
 ```
 
 `GET /api/health` reports whether the database is reachable and which content version is loaded.
@@ -219,6 +220,23 @@ The cause was never the loop. It was rejected tool calls: seven of the eight ext
 **Stopping.** At four minutes remaining the model is told to draw to a close; if someone says they're done, it finishes in that turn without asking again. A turn cap ends the sitting server-side regardless. Leaving part-way keeps everything — a sitting stays open until it's finished.
 
 **A reply outlives the browser.** If someone closes the tab or reloads mid-reply, the turn still finishes and saves server-side. A page opened while that's happening asks [`/api/sitting/state`](src/app/api/sitting/state/route.ts) and waits, rather than sending into a locked sitting.
+
+## How far through this is
+
+The discovery brief asked for a large, intimidating task made to feel **finite**. What existed was a progress bar and minute estimates, and a count of sittings done measures a *schedule* rather than an achievement — a sitting can finish having recorded very little. So the record is the measure now, and the sittings are what gets you there. The sitting bar is still on `/home`, below it, and says "conversations done" so it stops reading as the score.
+
+What makes a big thing feel finite is **specificity**: being told exactly what you have got, in terms of what the people you leave behind would now be able to do. [`data/milestones.yaml`](data/milestones.yaml) holds nine of those — "would know who to ring first", "would know what not to touch yet". They are data rather than copy in a component because each one is a claim about the record, and the claim and the fields behind it must not be able to drift apart. The build fails on a milestone naming a field that doesn't exist, one that names no fields at all, or one resting on a **sealed** field — that last because the envelope is opened after a death, so it can't be what makes "your family would know" true today.
+
+**The distinction the whole thing turns on** ([`progress.ts`](src/lib/progress.ts)):
+
+- **settled** — every field holds an answer *or* a recorded gap. Nothing left to ask.
+- **complete** — every field holds an answer.
+
+A gap is knowledge and it counts: "nobody knows where that is" is exactly what a family needs telling. It is not an answer. A claim is only ever shown off *complete*, so the product cannot tell somebody their family would know who to ring while the record says nobody knows. Getting that backwards is the worst thing this could do, which is why it has its own tests and its own browser check.
+
+**The end of a sitting** used to be "that's this sitting done" and a button out, which threw away the one moment where somebody had just done something hard. It now says what the conversation got — counted on the server from what was stored, never a round number — which of its topics it closed, and which claims became true *during it*. That last is a difference taken across the sitting rather than a snapshot, so it says what this conversation did rather than what was already there.
+
+**No points, no streaks, no badges, no levels, no confetti.** That is written into the data file as well as here, so it isn't re-litigated later. Rewarding somebody for progress on their own death is exactly the register this can't afford. The only thing ever congratulated is the record, and only for what is actually in it.
 
 ## What's still to find out
 
@@ -351,6 +369,7 @@ The spine is built and walkable end to end: someone signs up, talks to the openi
 - The Guide and the Sealed Envelope, readable and printable by the person whose record it is.
 - Seeded demo records, so showing the product costs nothing and needs no improvising.
 - The gaps as something a person can act on: grouped by who would know, answerable in place.
+- Progress measured as the record rather than the schedule, with claims that have to be earned.
 
 **Not built: a demo of the experience.** A seeded record shows what the product makes; nothing yet shows it being made. See what's next, below.
 
@@ -374,11 +393,7 @@ Seeded records cover showing the *output*. What they can't show is the *experien
 
 A scripted persona driven through the real agents would fix it. Slower and it costs credit, so it stays a deliberate choice rather than the only way to demo.
 
-### 2. Gamification
-
-Its own piece of work rather than a note at the end of a list. The discovery brief asked for a large, intimidating task made to feel finite; what exists is a progress bar and minute estimates. Worth designing properly once there is a visual language to design in.
-
-### 3. The styled PDF
+### 2. The styled PDF
 
 Printing works now — the browser's own print of the reading view, which is honest paper with no new code. What's still missing is a *designed* artifact: something that looks like it was meant to be kept, rather than a web page that went through a printer. Deliberately last, because it only makes sense once the rest has settled.
 

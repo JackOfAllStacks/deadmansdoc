@@ -277,10 +277,14 @@ async function WhereItStands({ recordId, whose }: { recordId: string; whose: str
                     </span>
                   )}
                 </div>
+                {/* Answers, then gaps in the colour gaps get everywhere else,
+                    so the bar adds up to the number beside it without the two
+                    kinds of covered pretending to be the same thing. */}
                 <Progress
                   value={section.answered}
+                  also={section.gaps}
                   max={section.total}
-                  label={`${section.title}: answered`}
+                  label={`${section.title}: ${section.answered} answered, ${section.gaps} not known, of ${section.total}`}
                   tone="recorded"
                 />
               </Card>

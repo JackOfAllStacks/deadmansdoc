@@ -57,7 +57,8 @@ export default async function MyGuidePage() {
             <DocumentActions markdown={markdown} filename={`guide-${data.header.subject_name.toLowerCase()}.md`} />
             <p className="text-sm text-muted">
               {progress.answered + progress.gaps} of {progress.total} parts covered
-              {progress.met.length > 0 && ` · ${progress.met.length} of ${progress.milestones.length} things your family would know`}
+              {progress.met.length > 0 &&
+                ` · ${progress.met.length} of ${progress.milestones.length} things ${whose} family would know`}
             </p>
           </div>
         )}

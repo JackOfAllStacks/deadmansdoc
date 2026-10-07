@@ -192,31 +192,44 @@ export function Badge({ tone = "neutral", children }: { tone?: BadgeTone; childr
   );
 }
 
+/**
+ * `also` is a second, quieter stretch of the same bar, for the places where
+ * two different things both count as ground covered without meaning the same
+ * thing — answers and recorded gaps. Without it the bar and the number beside
+ * it can disagree, which is worse than either on its own.
+ */
 export function Progress({
   value,
   max,
   label,
   tone = "accent",
+  also = 0,
 }: {
   value: number;
   max: number;
   label: string;
   tone?: "accent" | "recorded";
+  also?: number;
 }) {
-  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+  const span = (n: number) => (max > 0 ? Math.max(0, Math.min(100, (n / max) * 100)) : 0);
+  const first = span(value);
+  const second = Math.min(100 - first, span(also));
   return (
     <div
-      className="h-1.5 overflow-hidden rounded-full bg-soft"
+      className="flex h-1.5 overflow-hidden rounded-full bg-soft"
       role="progressbar"
       aria-valuemin={0}
       aria-valuemax={max}
-      aria-valuenow={value}
+      aria-valuenow={value + also}
       aria-label={label}
     >
       <div
-        className={cx("h-full rounded-full transition-[width] duration-500", tone === "accent" ? "bg-accent" : "bg-recorded")}
-        style={{ width: `${pct}%` }}
+        className={cx("h-full transition-[width] duration-500", tone === "accent" ? "bg-accent" : "bg-recorded")}
+        style={{ width: `${first}%` }}
       />
+      {second > 0 && (
+        <div className="h-full bg-unknown transition-[width] duration-500" style={{ width: `${second}%` }} />
+      )}
     </div>
   );
 }
