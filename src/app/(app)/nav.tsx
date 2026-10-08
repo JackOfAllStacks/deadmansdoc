@@ -22,12 +22,15 @@ export interface NavLink {
  * On a phone the links don't fit beside the wordmark, and sat on a second row
  * of their own that scrolled sideways — two rows of header above every page,
  * and links you had to know were there to go looking for. The hamburger drops
- * the header open instead, stacking them where they already live, which gives
- * the page back the best part of an inch when it is shut.
+ * the header open instead, stacking them underneath, which gives the page
+ * back the best part of an inch when it is shut.
  *
  * Deliberately not a drawer off the side: navigation belongs to the header,
  * and sliding it in from somewhere else makes it a different thing that
  * happens to contain the same links.
+ *
+ * There is no Home among them — the wordmark has always gone there, and a
+ * list that repeats it is a list with a wasted line in it.
  */
 export function Nav({ links, children }: { links: NavLink[]; children: React.ReactNode }) {
   const pathname = usePathname();
@@ -80,22 +83,6 @@ export function Nav({ links, children }: { links: NavLink[]; children: React.Rea
           <Wordmark size="sm" />
         </Link>
 
-        {/* Where the links themselves sit above sm, because that is what it
-            is: the links, folded up. */}
-        <button
-          ref={opener}
-          type="button"
-          onClick={() => setOpen((was) => !was)}
-          aria-expanded={open}
-          aria-controls="main-nav"
-          aria-label="Pages"
-          className="rounded-md p-1.5 text-muted transition-colors hover:bg-soft hover:text-ink sm:hidden"
-        >
-          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden>
-            {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
-          </svg>
-        </button>
-
         <nav aria-label="Main" className="hidden sm:block">
           <ul className="flex items-center gap-1">
             {links.map((link) => (
@@ -117,7 +104,24 @@ export function Nav({ links, children }: { links: NavLink[]; children: React.Rea
           </ul>
         </nav>
 
-        <div className="ml-auto">{children}</div>
+        <div className="ml-auto flex items-center gap-1">
+          {children}
+          {links.length > 0 && (
+            <button
+              ref={opener}
+              type="button"
+              onClick={() => setOpen((was) => !was)}
+              aria-expanded={open}
+              aria-controls="main-nav"
+              aria-label="Pages"
+              className="-mr-1.5 rounded-md p-1.5 text-muted transition-colors hover:bg-soft hover:text-ink sm:hidden"
+            >
+              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden>
+                {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {open && (
