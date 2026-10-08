@@ -66,6 +66,7 @@ const shapeOf = (field: DocumentFieldView): BlockShape => ({
 export function SittingChat({
   eyebrow,
   title,
+  lead,
   greeting,
   history,
   outline,
@@ -78,6 +79,7 @@ export function SittingChat({
 }: {
   eyebrow: string;
   title: string;
+  lead: string;
   greeting: string;
   history: ChatMessage[];
   outline: DocumentSectionView[];
@@ -323,6 +325,7 @@ export function SittingChat({
             <PhoneHead
               eyebrow={eyebrow}
               title={title}
+              lead={lead}
               tabs={showing === "conversation" ? tabs : null}
             />
           }
@@ -371,7 +374,17 @@ export function SittingChat({
  * small screen can't spare the room. The tabs can't go with them: they are
  * how you reach the document, so they stop at the top and stay there.
  */
-function PhoneHead({ eyebrow, title, tabs }: { eyebrow: string; title: string; tabs: ReactNode }) {
+function PhoneHead({
+  eyebrow,
+  title,
+  lead,
+  tabs,
+}: {
+  eyebrow: string;
+  title: string;
+  lead: string;
+  tabs: ReactNode;
+}) {
   // Two siblings rather than one wrapper: a sticky element can only stick
   // inside its own parent, and a parent that ends just below it has nothing
   // to stick within. These are children of the scroll itself, so the tabs
@@ -379,8 +392,12 @@ function PhoneHead({ eyebrow, title, tabs }: { eyebrow: string; title: string; t
   return (
     <>
       <div className="flex flex-col gap-1 px-0.5 pb-3 lg:hidden">
-        <p className="text-sm font-medium text-faint">{eyebrow}</p>
+        <p className="text-xs font-medium text-faint">{eyebrow}</p>
         <h1 className="text-2xl">{title}</h1>
+        {/* Under the title rather than beside it, as on a wide screen: a phone
+            has the height to spare and not the width, and this scrolls away
+            with the rest of the heading anyway. */}
+        <p className="text-sm leading-relaxed text-muted">{lead}</p>
       </div>
       <div className="sticky top-0 z-10 -mx-1 bg-paper px-1 pb-3 lg:hidden">{tabs}</div>
     </>

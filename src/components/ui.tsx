@@ -70,10 +70,10 @@ export function PageHeader({
   lead?: ReactNode;
   aside?: ReactNode;
   /**
-   * `compact` for a page whose own content says what the page is — the
-   * sitting, where the first thing the interviewer says is what this session
-   * covers and how long it takes. A full header there is the same sentence
-   * twice, in a quarter of the screen.
+   * `compact` for a page held to the height of the screen, where the header
+   * competes with what you came to read — the sitting. The title drops a
+   * size, the rows tighten, and the lead sits beside the title rather than
+   * under it, so it costs no height of its own.
    */
   size?: "default" | "compact";
 }) {
@@ -82,12 +82,24 @@ export function PageHeader({
     <header className={cx("flex flex-col", compact ? "gap-1" : "gap-3")}>
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
         <div className={cx("flex flex-col", compact ? "gap-0.5" : "gap-1.5")}>
-          {eyebrow && <p className="text-sm font-medium text-faint">{eyebrow}</p>}
-          <h1 className={compact ? "text-2xl" : "text-3xl sm:text-4xl"}>{title}</h1>
+          {/* Smaller when compact: where you are and how long it takes is a
+              label, not something to read, and it sits above the title. */}
+          {eyebrow && (
+            <p className={cx("font-medium text-faint", compact ? "text-xs" : "text-sm")}>{eyebrow}</p>
+          )}
+          {/* Compact runs the title and the lead along one line, baseline to
+              baseline, and wraps the lead under it only if the screen is too
+              narrow to hold both. `measure` is deliberately not used: it caps
+              the lead at a reading width, which beside a title would break it
+              into a tall column. */}
+          <div className={cx(compact && "flex flex-wrap items-baseline gap-x-3 gap-y-0.5")}>
+            <h1 className={compact ? "text-2xl" : "text-3xl sm:text-4xl"}>{title}</h1>
+            {compact && lead && <p className="text-sm text-muted">{lead}</p>}
+          </div>
         </div>
         {aside}
       </div>
-      {lead && <div className="measure leading-relaxed text-muted">{lead}</div>}
+      {!compact && lead && <div className="measure leading-relaxed text-muted">{lead}</div>}
     </header>
   );
 }

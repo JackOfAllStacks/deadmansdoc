@@ -49,21 +49,21 @@ export default async function SittingPage() {
       className="max-sm:h-0 max-sm:flex-1 max-sm:overflow-y-auto"
     >
       {/* Below lg this is inside the conversation instead, so it scrolls away
-          with it rather than holding the top of a small screen.
-
-          No lead, either here or there: the interviewer's opening line already
-          says what this session covers and how long it takes, so the header
-          was printing the same sentence directly above it. */}
+          with it rather than holding the top of a small screen. The compact
+          header runs the summary along the title's line, so saying what the
+          session covers costs no height here. */}
       <div className="max-lg:hidden">
         <PageHeader
           size="compact"
           eyebrow={`Session ${sitting.seq} · about ${formatMinutes(sitting.estimated_minutes)}`}
           title={sitting.title}
+          lead={summary}
         />
       </div>
       <SittingChat
         eyebrow={`Session ${sitting.seq} · about ${formatMinutes(sitting.estimated_minutes)}`}
         title={sitting.title}
+        lead={summary}
         greeting={greetingFor(record, sitting, summary)}
         history={history}
         outline={documentOutline(sitting.covers, captured)}
