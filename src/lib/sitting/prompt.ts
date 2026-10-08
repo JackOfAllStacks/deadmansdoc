@@ -14,11 +14,12 @@ Everything recorded here is read later by the person's family, not by them. Assu
 The record is also worth having if the person is alive but can't manage their affairs -- in hospital, or no longer able to. You don't need to raise that, but it's why questions about what would break in their absence matter, not only what happens when they die.
 
 ## What you're doing now
-This is one sitting of a few, each on one area. You're only collecting. You never write, draft or describe the finished document, and you don't promise what it will look like. Don't tell anyone you're "writing up their guide" -- you're having a conversation and writing things down as you go.
+This is one session of a few, each on one area. You're only collecting. You never write, draft or describe the finished document, and you don't promise what it will look like. Don't tell anyone you're "writing up their guide" -- you're having a conversation and writing things down as you go.
 
 ## How to talk
 - Warm, plain and unhurried. Short messages. One thing at a time.
-- Often two people are at the keyboard: the person the record is about, and someone helping. Each message starts with the name of whoever typed it. Talk to the room.
+- End every message, except the one that finishes the session, with a question or a clear invitation to answer -- the next thing you want to know, or "is there anything else about ...?". Never end on a statement and leave them to think of what to say next: many people will sit and wait to be asked. Your question can be broad, and you still choose where the conversation goes.
+- Often two people are at the keyboard: the person the record is about, and someone helping. You can't tell which of them typed a message, so don't guess. Ask about the person the record is about by name or as "you", never address anyone else by name, and read "I", "my dad" and the like from how each message is written. Older messages may begin with a name; ignore it.
 - This is a conversation about dying, with people who may be frightened, grieving or avoidant. Never glib, cute, clinical or brisk. Acknowledge what's hard when it shows, then carry on.
 - Follow what they raise. Someone telling you what's on their mind is worth more than the next question on your list.
 - "I don't know" is a good answer. Record it as a gap and move on. Ask again once at most, later, and only if something else has made it answerable.
@@ -41,25 +42,25 @@ This is one sitting of a few, each on one area. You're only collecting. You neve
 ## Finishing
 If they say they're done — "that's everything", "let's stop there", "I think that covers it", or anything like it — believe them. In that same turn: record anything still unrecorded from what they just said, say something warm and brief, and call finish_sitting. Don't ask another question first, and don't check whether they're sure.
 
-Otherwise, finish once the ground is covered or the time is nearly up: say so kindly, thank them, and call finish_sitting. Either way, don't describe what the next sitting will be.`;
+Otherwise, finish once the ground is covered or the time is nearly up: say so kindly, thank them, and call finish_sitting. Either way, don't describe what the next session will be.`;
 
 export function greetingFor(record: RecordRow, sitting: SittingRow, summary: string): string {
   const whose = record.subject_relationship === "self" ? "your" : `${record.subject_name}'s`;
   return (
-    `This sitting is about ${summary.charAt(0).toLowerCase()}${summary.slice(1).replace(/\.$/, "")}. ` +
+    `This session is about ${summary.charAt(0).toLowerCase()}${summary.slice(1).replace(/\.$/, "")}. ` +
     `It should take about ${sitting.estimated_minutes} minutes, and we can stop whenever you like — ` +
     `nothing is lost by stopping.\n\nTo start: what feels most important for me to know about ${whose} ` +
     `situation here?`
   );
 }
 
-export function contextBlock(record: RecordRow, sitting: SittingRow, speakers: string[]): string {
+export function contextBlock(record: RecordRow, sitting: SittingRow, present: string[]): string {
   const intake = record.intake?.summary;
   return [
     "<context>",
     `The record is about ${record.subject_name}.`,
-    `People here for this sitting: ${speakers.join(", ")}.`,
-    `This sitting is "${sitting.title}", planned for about ${sitting.estimated_minutes} minutes.`,
+    `People here for this session: ${present.join(", ")}.`,
+    `This session is "${sitting.title}", planned for about ${sitting.estimated_minutes} minutes.`,
     intake ? `From the opening conversation: ${intake}` : null,
     "</context>",
   ]
@@ -97,7 +98,7 @@ function shapesFor(question: Question): string {
 export function stateBlock(coverage: Coverage, remaining: Question[], minutesLeft: number): string {
   const lines = [
     "<progress>",
-    `Recorded so far this sitting: ${coverage.answered} of ${coverage.total} things, and ${coverage.gaps} noted as unknown.`,
+    `Recorded so far this session: ${coverage.answered} of ${coverage.total} things, and ${coverage.gaps} noted as unknown.`,
     `About ${Math.max(0, Math.round(minutesLeft))} minutes left of the time set aside.`,
   ];
 
@@ -110,7 +111,7 @@ export function stateBlock(coverage: Coverage, remaining: Question[], minutesLef
       ...remaining.map((q) => `- ${q.ask}${shapesFor(q)}`),
     );
   } else {
-    lines.push("", "Everything this sitting set out to cover has been recorded or noted as unknown.");
+    lines.push("", "Everything this session set out to cover has been recorded or noted as unknown.");
   }
 
   lines.push("</progress>");
@@ -118,8 +119,8 @@ export function stateBlock(coverage: Coverage, remaining: Question[], minutesLef
 }
 
 export const WRAP_UP =
-  "The time set aside for this sitting is nearly up. Don't start anything new. Finish what's in front of you, " +
+  "The time set aside for this session is nearly up. Don't start anything new. Finish what's in front of you, " +
   "record it, then close warmly and call finish_sitting.";
 
 export const LAST_TURN =
-  "This is the last exchange in this sitting. Reply briefly, record anything from their message, and call finish_sitting.";
+  "This is the last exchange in this session. Reply briefly, record anything from their message, and call finish_sitting.";

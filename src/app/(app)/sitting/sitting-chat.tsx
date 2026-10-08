@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { correctSpeaker } from "@/app/(app)/actions";
-import { ChatFrame, Composer, SpeakerPicker, Transcript } from "@/components/chat";
+import { ChatFrame, Composer, Transcript } from "@/components/chat";
 import { TopicStrip } from "@/components/topics";
 import { Alert, ButtonLink, Card, cx, Progress as ProgressBar } from "@/components/ui";
 import { renderBlock, type BlockShape } from "@/lib/sitting/block";
@@ -75,7 +74,6 @@ export function SittingChat({
   people,
   coverage,
   topics,
-  speakers,
   maxLength,
   busy,
 }: {
@@ -89,7 +87,6 @@ export function SittingChat({
   people: string[];
   coverage: Coverage;
   topics: TopicProgress[];
-  speakers: string[];
   maxLength: number;
   busy: boolean;
 }) {
@@ -101,7 +98,6 @@ export function SittingChat({
   const [areas, setAreas] = useState<TopicProgress[]>(topics);
   const [live, setLive] = useState("");
   const [draft, setDraft] = useState("");
-  const [speaker, setSpeaker] = useState(speakers[0]);
   const [status, setStatus] = useState<Status>(busy ? "catching-up" : "idle");
   const [summary, setSummary] = useState("");
   const [got, setGot] = useState<Got | null>(null);
@@ -201,7 +197,7 @@ export function SittingChat({
     setError(null);
     setStatus("sending");
     setDraft("");
-    const mine: ChatMessage = { from: "person", name: speaker, text };
+    const mine: ChatMessage = { from: "person", text };
     setMessages((m) => [...m, mine]);
 
     const restore = (message: string) => {
@@ -216,7 +212,7 @@ export function SittingChat({
       const res = await fetch("/api/sitting/message", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text, speaker }),
+        body: JSON.stringify({ text }),
       });
       if (!res.ok || !res.body) {
         const body = await res.json().catch(() => ({}));
@@ -290,20 +286,6 @@ export function SittingChat({
   }
 
 
-  // Filing a message under someone else. Optimistic, because the alternative
-  // is the name flickering back for a moment and looking like it failed.
-  async function correct(id: string, name: string) {
-    const before = messages;
-    setMessages((m) => m.map((x) => (x.from === "person" && x.id === id ? { ...x, name } : x)));
-    const form = new FormData();
-    form.set("messageId", id);
-    form.set("speaker", name);
-    const result = await correctSpeaker({}, form);
-    if (result.error) {
-      setMessages(before);
-      setError(result.error);
-    }
-  }
 
   const waiting = status === "sending" || status === "catching-up";
 
@@ -339,8 +321,6 @@ export function SittingChat({
           messages={messages}
           live={live}
           pending={waiting}
-          speakers={speakers}
-          onCorrect={correct}
           leading={
             <PhoneHead
               eyebrow={eyebrow}
@@ -366,9 +346,7 @@ export function SittingChat({
                 Stop for now
               </ButtonLink>
             }
-          >
-            <SpeakerPicker speakers={speakers} speaker={speaker} onChange={setSpeaker} />
-          </Composer>
+          />
         )}
       </ChatFrame>
 
@@ -808,7 +786,7 @@ function Finished({ summary, got }: { summary: string; got: Got | null }) {
   return (
     <Card tone="accent" className="flex flex-col items-start gap-4">
       <div className="flex flex-col gap-2">
-        <h2 className="text-lg">That&apos;s this sitting done</h2>
+        <h2 className="text-lg">That&apos;s this session done</h2>
         {summary && <p className="measure text-sm text-muted">{summary}</p>}
       </div>
 

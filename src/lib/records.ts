@@ -104,13 +104,12 @@ export interface SittingRow {
   title: string;
   sitting_key: string;
   estimated_minutes: number;
-  scheduled_for: string;
   status: "planned" | "in_progress" | "done" | "skipped";
 }
 
 export async function listSittings(recordId: string): Promise<SittingRow[]> {
   const rows = await db()`
-    select id, seq, title, sitting_key, estimated_minutes, to_char(scheduled_for, 'YYYY-MM-DD') as scheduled_for, status
+    select id, seq, title, sitting_key, estimated_minutes, status
     from sittings
     where record_id = ${recordId}
     order by seq`;
@@ -125,14 +124,13 @@ export async function savePlan(recordId: string, plan: PlannedSitting[]): Promis
     title: s.title,
     covers: s.covers,
     minutes: s.minutes,
-    date: s.date,
     key: s.key,
   }));
   await db()`
-    insert into sittings (record_id, seq, title, covers, estimated_minutes, scheduled_for, sitting_key)
-    select ${recordId}, t.seq, t.title, t.covers, t.minutes, t.date::date, t.key
+    insert into sittings (record_id, seq, title, covers, estimated_minutes, sitting_key)
+    select ${recordId}, t.seq, t.title, t.covers, t.minutes, t.key
     from jsonb_to_recordset(${JSON.stringify(rows)}::jsonb)
-      as t(seq int, title text, covers text[], minutes int, date text, key text)
+      as t(seq int, title text, covers text[], minutes int, key text)
     where not exists (select 1 from sittings where record_id = ${recordId})`;
 }
 
@@ -165,53 +163,18 @@ export async function applyRevision(recordId: string, revisions: Revision[]): Pr
       update sittings set
         title = t.title,
         estimated_minutes = t.minutes,
-        seq = t.seq,
-        scheduled_for = t.date::date
+        seq = t.seq
       -- No updated_at here: sittings has never had one. It was written as
       -- though it did, which meant every revision failed on the column that
       -- doesn't exist -- so reopening the opening conversation never actually
       -- re-cut anything. The unit tests mock this function, so only driving it
       -- through a browser found it.
       from jsonb_to_recordset(${JSON.stringify(revisions)}::jsonb)
-        as t(id uuid, title text, minutes int, seq int, date text)
+        as t(id uuid, title text, minutes int, seq int)
       where sittings.id = t.id
         and sittings.record_id = ${recordId}
         and sittings.status = 'planned'`,
   ]);
-}
-
-/**
- * Files a message under a different person. Two people share one keyboard, and
- * the one answering isn't always the one the control says — so the fix is to
- * let it be put right afterwards rather than to hope.
- *
- * The block sent to the model carries the name as a prefix, so that has to
- * move too, or the record and the transcript would disagree about who spoke.
- */
-export async function reassignSpeaker(
-  recordId: string,
-  messageId: string,
-  speaker: string,
-  isSubject: boolean,
-): Promise<boolean> {
-  const rows = await db()`
-    update messages set
-      role = ${isSubject ? "subject" : "helper"},
-      blocks = jsonb_set(blocks, '{0,text}', to_jsonb(${speaker}::text || ': ' || content))
-    where id = ${messageId}
-      and record_id = ${recordId}
-      and role in ('subject', 'helper')
-      and blocks->0->>'type' = 'text'
-    returning id`;
-  return rows.length === 1;
-}
-
-export async function rescheduleSitting(recordId: string, sittingId: string, date: string): Promise<boolean> {
-  const rows = await db()`
-    update sittings set scheduled_for = ${date}::date
-    where id = ${sittingId} and record_id = ${recordId} and status = 'planned'
-    returning id`;
-  return rows.length === 1;
 }
 
 /** How the subject is referred to: "Your plan" versus "John's plan". */

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/form";
+import { TestNotice } from "@/components/test-notice";
 import { getSession } from "@/lib/session";
 import { SignUpForm } from "./sign-up-form";
 
@@ -18,6 +19,7 @@ export default async function SignUpPage() {
         </>
       }
     >
+      <TestNotice />
       <SignUpForm />
     </AuthShell>
   );

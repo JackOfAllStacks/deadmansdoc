@@ -99,9 +99,9 @@ const signals = (overrides: Record<string, unknown> = {}) => ({
 // The mocked SDK error classes take just a message.
 const mockError = (cls: unknown, message: string) => new (cls as new (m: string) => Error)(message);
 
-async function turn(text = "Hello", speaker = "Priya") {
+async function turn(text = "Hello") {
   const events: IntakeEvent[] = [];
-  await runIntakeTurn(record, speaker, text, (e) => events.push(e));
+  await runIntakeTurn(record, text, (e) => events.push(e));
   return events;
 }
 
@@ -123,15 +123,9 @@ describe("runIntakeTurn", () => {
     state.replies = [{ text: "Thank you. How many accounts?" }];
     const events = await turn("Two children");
     expect(events).toEqual([{ type: "text", text: "Thank you. How many accounts?" }, { type: "end" }]);
-    expect(state.saved.map((m) => m.role)).toEqual(["helper", "agent"]);
-    expect(state.saved[0].blocks).toEqual([{ type: "text", text: "Priya: Two children" }]);
+    expect(state.saved.map((m) => m.role)).toEqual(["subject", "agent"]);
+    expect(state.saved[0].blocks).toEqual([{ type: "text", text: "Two children" }]);
     expect(state.requests).toHaveLength(1);
-  });
-
-  it("labels the subject's own messages", async () => {
-    state.replies = [{ text: "Thanks." }];
-    await turn("I have two children", "Margaret");
-    expect(state.saved[0].role).toBe("subject");
   });
 
   it("puts the context block ahead of the first message only", async () => {
@@ -145,7 +139,7 @@ describe("runIntakeTurn", () => {
     expect(first.content[0].text).toMatch(/^<context>/);
     expect(first.content[1].text).toBe("Margaret: Hi");
     expect(second.content[0].text).toBe("Hello");
-    expect(third.content).toEqual([{ type: "text", text: "Priya: Hello" }]);
+    expect(third.content).toEqual([{ type: "text", text: "Hello" }]);
   });
 
   it("records signals and ends the turn in one call when the reply came first", async () => {
@@ -158,7 +152,7 @@ describe("runIntakeTurn", () => {
     const events = await turn();
     expect(state.requests).toHaveLength(1);
     expect(events.at(-1)).toEqual({ type: "end" });
-    expect(state.saved.map((m) => m.role)).toEqual(["helper", "agent", "tool"]);
+    expect(state.saved.map((m) => m.role)).toEqual(["subject", "agent", "tool"]);
     expect(state.signals.at(-1)).toEqual({ family_count: 2, adviser_count: 2, front_of_mind: ["money-out"] });
   });
 
@@ -215,9 +209,9 @@ describe("runIntakeTurn", () => {
   it("re-cuts only the sittings not yet started when the conversation is reopened", async () => {
     // A plan already exists: one sitting done, two still untouched.
     state.sittings = [
-      { id: "s1", seq: 1, title: "The people around you", sitting_key: "people", estimated_minutes: 15, scheduled_for: "2026-10-01", status: "done" },
-      { id: "s2", seq: 2, title: "The first days and weeks", sitting_key: "first-days", estimated_minutes: 15, scheduled_for: "2026-10-08", status: "planned" },
-      { id: "s3", seq: 3, title: "Money going out", sitting_key: "money-out", estimated_minutes: 15, scheduled_for: "2026-10-15", status: "planned" },
+      { id: "s1", seq: 1, title: "The people around you", sitting_key: "people", estimated_minutes: 15, status: "done" },
+      { id: "s2", seq: 2, title: "The first days and weeks", sitting_key: "first-days", estimated_minutes: 15, status: "planned" },
+      { id: "s3", seq: 3, title: "Money going out", sitting_key: "money-out", estimated_minutes: 15, status: "planned" },
     ];
     state.replies = [
       {
@@ -232,14 +226,11 @@ describe("runIntakeTurn", () => {
     const events = await turn();
     expect(events.at(-1)).toEqual({ type: "done", revised: 2 });
 
-    const [revision] = state.revisions as { id: string; seq: number; date: string }[][];
+    const [revision] = state.revisions as { id: string; seq: number }[][];
     // Money moved to the front of what's left, and took the earlier slot with
     // it. The finished sitting was never in the revision at all.
     expect(revision.map((r) => r.id)).toEqual(["s3", "s2"]);
-    expect(revision.map((r) => [r.seq, r.date])).toEqual([
-      [2, "2026-10-08"],
-      [3, "2026-10-15"],
-    ]);
+    expect(revision.map((r) => r.seq)).toEqual([2, 3]);
   });
 
   it("finishes after the last allowed turn even if the model doesn't", async () => {
@@ -266,14 +257,14 @@ describe("runIntakeTurn", () => {
     // plan. Measured: it answers, thanks them, says goodbye, and leaves the
     // conversation open, so nothing is ever re-cut.
     state.sittings = [
-      { id: "s1", sitting_key: "people", seq: 1, status: "planned", estimated_minutes: 15, scheduled_for: "2026-01-05" },
+      { id: "s1", sitting_key: "people", seq: 1, status: "planned", estimated_minutes: 15 },
     ] as typeof state.sittings;
     state.replies = [{ text: "Noted." }];
     await turn();
     const last = state.requests[0].messages.at(-1) as { role: string; content: string };
     expect(last.role).toBe("system");
     expect(last.content).toMatch(/finished before/i);
-    expect(last.content).toMatch(/re-works the sittings/i);
+    expect(last.content).toMatch(/re-works the sessions/i);
   });
 
   it("says nothing of the sort on a first conversation, so the prefix still caches", async () => {
@@ -321,17 +312,17 @@ describe("runIntakeTurn", () => {
       { throws: mockError(Anthropic.APIError, "boom") },
     ];
     const events = await turn();
-    expect(state.saved.map((m) => m.role)).toEqual(["helper", "agent", "tool"]);
+    expect(state.saved.map((m) => m.role)).toEqual(["subject", "agent", "tool"]);
     expect(events).not.toContainEqual({ type: "reset" });
     expect(events.at(-1)).toMatchObject({ type: "error", kept: true });
   });
 
   it("still saves the reply when the person's connection has gone", async () => {
     state.replies = [{ text: "Thank you." }];
-    await runIntakeTurn(record, "Priya", "Hello", () => {
+    await runIntakeTurn(record, "Hello", () => {
       throw new Error("stream closed");
     });
-    expect(state.saved.map((m) => m.role)).toEqual(["helper", "agent"]);
+    expect(state.saved.map((m) => m.role)).toEqual(["subject", "agent"]);
   });
 
   it("answers an unknown tool with an error", async () => {

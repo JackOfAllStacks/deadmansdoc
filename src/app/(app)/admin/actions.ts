@@ -10,6 +10,7 @@ import { auth } from "@/lib/auth";
 import { personaByKey } from "@/lib/demo/personas";
 import { DEMO_RUN_COOKIE, helperOf, type DemoRunCookie } from "@/lib/demo/run";
 import { seedPersona } from "@/lib/demo/seed";
+import { setUpShowcase, type ShowcaseAccount } from "@/lib/demo/showcase";
 import { logFailure } from "@/lib/errors";
 import { requireAdmin } from "@/lib/session";
 import { SIGNUP_CODE_HEADER } from "@/lib/signup-code-header";
@@ -64,6 +65,33 @@ export async function seedDemoRecord(
   } catch (err) {
     await logFailure({ context: "admin:seed", error: err, userId: parsed.data.userId });
     return { error: "That couldn't be seeded. The failure is in the error log." };
+  }
+}
+
+const showcaseSchema = z.object({
+  password: z.string().min(10, "Use at least ten characters.").max(128, "That password is too long."),
+});
+
+/**
+ * Makes or resets the three accounts that get handed to people being shown
+ * the product. See setUpShowcase.
+ */
+export async function setUpShowcaseAccounts(
+  _prev: FormState & { accounts?: ShowcaseAccount[] },
+  form: FormData,
+): Promise<FormState & { accounts?: ShowcaseAccount[] }> {
+  await requireAdmin();
+
+  const parsed = showcaseSchema.safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  try {
+    const accounts = await setUpShowcase(parsed.data.password);
+    revalidatePath("/admin");
+    return { ok: true, accounts };
+  } catch (err) {
+    await logFailure({ context: "admin:showcase", error: err });
+    return { error: "The accounts couldn't be set up. The failure is in the error log." };
   }
 }
 

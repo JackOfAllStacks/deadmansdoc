@@ -5,8 +5,6 @@ import { reorderPlan } from "@/app/(app)/actions";
 import { TopicChips } from "@/components/topics";
 import { areaOf, Alert, Badge, ButtonLink, Card, cx } from "@/components/ui";
 import { formatMinutes } from "@/lib/plan/build-plan";
-import { formatDay } from "@/lib/today";
-import { MoveSitting } from "./move-sitting";
 import { StartSitting } from "./start-sitting";
 
 export interface PlanItem {
@@ -16,7 +14,6 @@ export interface PlanItem {
   sittingKey: string;
   status: "planned" | "in_progress" | "done" | "skipped";
   minutes: number;
-  date: string;
   summary: string;
   topics: { label: string; blurb: string; covers: string[] }[];
 }
@@ -31,10 +28,9 @@ export interface PlanItem {
  * say what they do — and dragging is an extra for whoever reaches for it.
  *
  * Only sittings nobody has started can move. The slots stay put and the
- * sittings move between them, so a date someone has arranged their month
- * around doesn't follow the sitting around the list.
+ * sittings move between them, so the started ones keep their places.
  */
-export function PlanList({ items, today, latest }: { items: PlanItem[]; today: string; latest: string }) {
+export function PlanList({ items }: { items: PlanItem[] }) {
   const [list, setList] = useState(items);
   const [fromServer, setFromServer] = useState(items);
   const [dragging, setDragging] = useState<string | null>(null);
@@ -42,10 +38,8 @@ export function PlanList({ items, today, latest }: { items: PlanItem[]; today: s
   const [, start] = useTransition();
 
   // The server is the truth and this list is an optimistic view of it, so
-  // whenever new rows arrive the view gives way to them. Without this, the
-  // date picker on a card would write to the database and revalidate the page
-  // while the list carried on showing what it was first handed -- which it did,
-  // from the day this became a client component until a browser run caught it.
+  // whenever new rows arrive the view gives way to them. Without this, a
+  // revalidated page would carry on showing what the list was first handed.
   if (fromServer !== items) {
     setFromServer(items);
     setList(items);
@@ -73,8 +67,8 @@ export function PlanList({ items, today, latest }: { items: PlanItem[]; today: s
   function swap(a: number, b: number) {
     const next = [...list];
     const [one, two] = [next[a], next[b]];
-    next[a] = { ...two, seq: one.seq, date: one.date };
-    next[b] = { ...one, seq: two.seq, date: two.date };
+    next[a] = { ...two, seq: one.seq };
+    next[b] = { ...one, seq: two.seq };
     commit(next);
   }
 
@@ -93,12 +87,12 @@ export function PlanList({ items, today, latest }: { items: PlanItem[]; today: s
     if (from === -1 || from === index || !movable(list[index]) || !movable(list[from])) return;
 
     const next = [...list];
-    const slots = positions.map((i) => ({ seq: next[i].seq, date: next[i].date }));
+    const slots = positions.map((i) => next[i].seq);
     const order = positions.map((i) => next[i]);
     const [taken] = order.splice(positions.indexOf(from), 1);
     order.splice(positions.indexOf(index), 0, taken);
     positions.forEach((at, i) => {
-      next[at] = { ...order[i], seq: slots[i].seq, date: slots[i].date };
+      next[at] = { ...order[i], seq: slots[i] };
     });
     commit(next);
   }
@@ -107,8 +101,7 @@ export function PlanList({ items, today, latest }: { items: PlanItem[]; today: s
     <div className="flex flex-col gap-3">
       {positions.length > 1 && (
         <p className="text-sm text-muted">
-          The sittings still to do can be put in any order — drag one, or use its arrows. The dates
-          stay where they are, so moving a sitting up gives it the earlier date.
+          The sessions still to do can be put in any order — drag one, or use its arrows.
         </p>
       )}
       {error && <Alert>{error}</Alert>}
@@ -155,30 +148,22 @@ export function PlanList({ items, today, latest }: { items: PlanItem[]; today: s
                 <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
                   <span className="text-sm text-muted">
                     about {formatMinutes(item.minutes)}
-                    {item.status === "done" ? "" : ` · ${formatDay(item.date)}`}
                   </span>
-                  {/* Moving it and re-dating it are the same kind of decision,
-                      so they sit together rather than one by the title. */}
-                  {canMove && (
-                    <div className="flex items-center gap-2">
-                      <MoveSitting sittingId={item.id} date={item.date} min={today} max={latest} />
-                      {positions.length > 1 && (
-                        <span className="flex items-center gap-0.5">
-                          <Arrow
-                            direction="up"
-                            label={`Move ${item.title} earlier`}
-                            disabled={at === 0}
-                            onClick={() => move(index, -1)}
-                          />
-                          <Arrow
-                            direction="down"
-                            label={`Move ${item.title} later`}
-                            disabled={at === positions.length - 1}
-                            onClick={() => move(index, 1)}
-                          />
-                        </span>
-                      )}
-                    </div>
+                  {canMove && positions.length > 1 && (
+                    <span className="flex items-center gap-0.5">
+                      <Arrow
+                        direction="up"
+                        label={`Move ${item.title} earlier`}
+                        disabled={at === 0}
+                        onClick={() => move(index, -1)}
+                      />
+                      <Arrow
+                        direction="down"
+                        label={`Move ${item.title} later`}
+                        disabled={at === positions.length - 1}
+                        onClick={() => move(index, 1)}
+                      />
+                    </span>
                   )}
                 </div>
 

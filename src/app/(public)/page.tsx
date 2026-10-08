@@ -14,7 +14,7 @@ const STEPS: [string, string][] = [
     "About five minutes, and rough answers only. It works out which parts of your life need the most time.",
   ],
   [
-    "A handful of short sittings",
+    "A handful of short sessions",
     "Half an hour at most, one area each, whenever suits. Stop part-way whenever you like — nothing is lost.",
   ],
   [
@@ -103,7 +103,7 @@ export default function Home() {
                 first year — the parts that are hardest to reconstruct once someone has gone.
               </p>
               <p className="measure text-sm leading-relaxed text-faint">
-                Each sitting covers one of them. Anything nobody knows is recorded as exactly that,
+                Each session covers one of them. Anything nobody knows is recorded as exactly that,
                 with the name of whoever might: a gap with someone attached is worth more than a
                 blank.
               </p>
@@ -174,7 +174,7 @@ export default function Home() {
             </h2>
             <p className="measure leading-relaxed text-muted">
               It works best with two people — one who knows the answers, and one who&apos;ll need
-              them. A few short sittings, and you can stop at any point.
+              them. A few short sessions, and you can stop at any point.
             </p>
             <ButtonLink href="/sign-up">Start a handover</ButtonLink>
           </div>
@@ -208,7 +208,7 @@ function Preview() {
     <Card tone="raised" className="flex flex-col gap-4 lg:ml-auto lg:max-w-md">
       <div className="flex items-baseline justify-between gap-4 border-b border-line pb-3">
         <h2 className="text-base">The Guide, so far</h2>
-        <span className="text-xs text-muted">3 of 4 sittings done</span>
+        <span className="text-xs text-muted">3 of 4 sessions done</span>
       </div>
       <ul className="flex flex-col gap-3.5">
         {rows.map(([key, label, value]) => {

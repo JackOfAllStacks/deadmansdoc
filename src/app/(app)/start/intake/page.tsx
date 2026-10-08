@@ -4,7 +4,7 @@ import { sessionTemplate } from "@/lib/content";
 import { MAX_MESSAGE_LENGTH } from "@/lib/intake/agent";
 import { greetingFor } from "@/lib/intake/prompt";
 import { journeyFor, possessiveLower } from "@/lib/journey";
-import { intakeMessages, speakersFor } from "@/lib/records";
+import { intakeMessages } from "@/lib/records";
 import { requireSession } from "@/lib/session";
 import { toChatHistory } from "@/lib/transcript";
 import { IntakeChat } from "./intake-chat";
@@ -29,14 +29,13 @@ export default async function IntakePage() {
   return (
     <Page width="prose">
       <PageHeader
-        eyebrow="Before the sittings"
+        eyebrow="Before the sessions"
         title="The opening conversation"
-        lead={`A few short questions about ${possessiveLower(record)} situation, so that the sittings after it are the right ones, in the right order, and the right length.`}
+        lead={`A few short questions about ${possessiveLower(record)} situation, so that the sessions after it are the right ones, in the right order, and the right length.`}
       />
       <IntakeChat
         greeting={greetingFor(record)}
         history={history}
-        speakers={speakersFor(record)}
         maxLength={MAX_MESSAGE_LENGTH}
         areas={areas}
         finished={Boolean(record.intake_completed_at)}

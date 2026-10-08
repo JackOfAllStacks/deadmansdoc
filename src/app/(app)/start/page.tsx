@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { TestNotice } from "@/components/test-notice";
 import { Card, Page, PageHeader } from "@/components/ui";
 import { artifact } from "@/lib/content";
 import { getRecordForUser } from "@/lib/records";
@@ -18,7 +19,7 @@ export default async function StartPage() {
       <PageHeader
         eyebrow="First time here"
         title="Getting started"
-        lead="The Handover records what the people you leave behind will need to know: who to call, what exists, and where to find it. It works best when two people do it together, and it's done over a few short sittings rather than all at once."
+        lead="The Handover records what the people you leave behind will need to know: who to call, what exists, and where to find it. It works best when two people do it together, and it's done over a few short sessions rather than all at once."
       />
 
       <Card tone="quiet" className="flex flex-col gap-3">
@@ -36,6 +37,8 @@ export default async function StartPage() {
           that.
         </p>
       </Card>
+
+      <TestNotice />
 
       <StartForm accountName={user.name} />
     </Page>

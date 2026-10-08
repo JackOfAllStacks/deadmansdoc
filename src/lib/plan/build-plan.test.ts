@@ -2,10 +2,8 @@ import { describe, expect, it } from "vitest";
 import { sessionTemplate } from "@/lib/content";
 import type { Signals } from "@/lib/intake/signals";
 import {
-  addDays,
   buildPlan,
   formatMinutes,
-  isIsoDate,
   orderSittings,
   reorderSlots,
   reviseRemaining,
@@ -64,7 +62,6 @@ const template: SessionTemplate = {
   ],
 };
 
-const start = { startDate: "2026-09-21", rhythm: "weekly" as const };
 const byKey = (key: string) => template.sittings.find((s) => s.key === key)!;
 
 describe("sittingMinutes", () => {
@@ -113,62 +110,29 @@ describe("orderSittings", () => {
 
 describe("buildPlan", () => {
   it("rounds each sitting to the nearest step", () => {
-    const plan = buildPlan({ family_count: 6 }, template, start);
+    const plan = buildPlan({ family_count: 6 }, template);
     expect(plan.map((s) => s.minutes)).toEqual([20, 15, 10, 10]);
   });
 
   it("never rounds a sitting down to nothing", () => {
     const tiny = { ...template, sittings: [{ ...byKey("money-in-owed"), base_minutes: 1 }] };
-    expect(buildPlan({}, tiny, start)[0].minutes).toBe(5);
+    expect(buildPlan({}, tiny)[0].minutes).toBe(5);
   });
 
   it("splits a sitting over the maximum into parts", () => {
-    const plan = buildPlan({ account_band: "5+" }, template, start);
+    const plan = buildPlan({ account_band: "5+" }, template);
     const money = plan.filter((s) => s.key === "money-out");
     expect(money.map((s) => s.title)).toEqual(["Money out (part 1 of 2)", "Money out (part 2 of 2)"]);
     expect(money.map((s) => s.minutes)).toEqual([20, 20]);
     expect(plan).toHaveLength(5);
   });
 
-  it("schedules weekly from the start date", () => {
-    expect(buildPlan({}, template, start).map((s) => s.date)).toEqual([
-      "2026-09-21",
-      "2026-09-28",
-      "2026-10-05",
-      "2026-10-12",
-    ]);
-  });
-
-  it("schedules fortnightly", () => {
-    expect(buildPlan({}, template, { ...start, rhythm: "fortnightly" }).map((s) => s.date)).toEqual([
-      "2026-09-21",
-      "2026-10-05",
-      "2026-10-19",
-      "2026-11-02",
-    ]);
-  });
-
-  it("schedules twice a week on alternating gaps", () => {
-    expect(buildPlan({}, template, { ...start, rhythm: "twice-weekly" }).map((s) => s.date)).toEqual([
-      "2026-09-21",
-      "2026-09-24",
-      "2026-09-28",
-      "2026-10-01",
-    ]);
-  });
-
-  it("rolls over months and years", () => {
-    const plan = buildPlan({}, template, { startDate: "2026-12-24", rhythm: "weekly" });
-    expect(plan.map((s) => s.date)).toEqual(["2026-12-24", "2026-12-31", "2027-01-07", "2027-01-14"]);
-  });
-
-  it("rejects an invalid start date", () => {
-    expect(() => buildPlan({}, template, { ...start, startDate: "2026-02-30" })).toThrow();
-    expect(() => buildPlan({}, template, { ...start, startDate: "21/09/2026" })).toThrow();
+  it("has no dates: people choose when", () => {
+    for (const sitting of buildPlan({}, template)) expect(sitting).not.toHaveProperty("date");
   });
 
   it("keeps the summary and covers from the template", () => {
-    const real = buildPlan({}, sessionTemplate, start);
+    const real = buildPlan({}, sessionTemplate);
     expect(real).toHaveLength(sessionTemplate.sittings.length);
     for (const sitting of real) {
       expect(sitting.summary).not.toBe("");
@@ -188,24 +152,13 @@ describe("buildPlan", () => {
       has_time_constrained_rites: true,
       has_matters_in_progress: true,
     };
-    for (const sitting of buildPlan(busy, sessionTemplate, start)) {
+    for (const sitting of buildPlan(busy, sessionTemplate)) {
       expect(sitting.minutes).toBeLessThanOrEqual(sessionTemplate.max_minutes_per_sitting);
     }
   });
 });
 
-describe("date and time helpers", () => {
-  it("adds days across month ends and leap days", () => {
-    expect(addDays("2028-02-28", 1)).toBe("2028-02-29");
-    expect(addDays("2027-02-28", 1)).toBe("2027-03-01");
-  });
-
-  it("recognises real dates only", () => {
-    expect(isIsoDate("2026-09-21")).toBe(true);
-    expect(isIsoDate("2026-13-01")).toBe(false);
-    expect(isIsoDate("2026-9-21")).toBe(false);
-  });
-
+describe("time helpers", () => {
   it("formats totals", () => {
     expect(totalMinutes([{ minutes: 25 }, { minutes: 50 }])).toBe(75);
     expect(formatMinutes(45)).toBe("45 min");
@@ -216,21 +169,20 @@ describe("date and time helpers", () => {
 
 describe("reviseRemaining", () => {
   const existing = (
-    rows: [id: string, seq: number, key: string, status: string, date: string][],
+    rows: [id: string, seq: number, key: string, status: string][],
   ): ExistingSitting[] =>
-    rows.map(([id, seq, sitting_key, status, scheduled_for]) => ({
+    rows.map(([id, seq, sitting_key, status]) => ({
       id,
       seq,
       sitting_key,
       status: status as ExistingSitting["status"],
-      scheduled_for,
     }));
 
   const plan = existing([
-    ["a", 1, "people", "done", "2026-10-01"],
-    ["b", 2, "first-days", "planned", "2026-10-08"],
-    ["c", 3, "money-out", "planned", "2026-10-15"],
-    ["d", 4, "money-in-owed", "planned", "2026-10-22"],
+    ["a", 1, "people", "done"],
+    ["b", 2, "first-days", "planned"],
+    ["c", 3, "money-out", "planned"],
+    ["d", 4, "money-in-owed", "planned"],
   ]);
 
   it("never touches a sitting that has been started", () => {
@@ -239,13 +191,12 @@ describe("reviseRemaining", () => {
     expect(ids.sort()).toEqual(["b", "c", "d"]);
   });
 
-  it("reorders what's left without moving the dates someone has planned around", () => {
+  it("reorders what's left within the places it already had", () => {
     const revised = reviseRemaining(plan, { front_of_mind: ["money-in-owed"] }, template);
     // The money sitting is now first of what's left, so it takes the earliest
-    // slot — but the slots themselves are exactly the ones already in the plan.
+    // slot, and the slots themselves are exactly the ones already in the plan.
     expect(revised.map((r) => r.id)).toEqual(["d", "b", "c"]);
     expect(revised.map((r) => r.seq)).toEqual([2, 3, 4]);
-    expect(revised.map((r) => r.date)).toEqual(["2026-10-08", "2026-10-15", "2026-10-22"]);
   });
 
   it("re-estimates from the new answers", () => {
@@ -258,16 +209,16 @@ describe("reviseRemaining", () => {
 
   it("does nothing when every sitting has been started", () => {
     const started = existing([
-      ["a", 1, "people", "done", "2026-10-01"],
-      ["b", 2, "first-days", "in_progress", "2026-10-08"],
+      ["a", 1, "people", "done"],
+      ["b", 2, "first-days", "in_progress"],
     ]);
     expect(reviseRemaining(started, {}, template)).toEqual([]);
   });
 
   it("leaves a plan alone rather than guess how to re-cut a split sitting", () => {
     const split = existing([
-      ["a", 1, "money-out", "planned", "2026-10-01"],
-      ["b", 2, "money-out", "planned", "2026-10-08"],
+      ["a", 1, "money-out", "planned"],
+      ["b", 2, "money-out", "planned"],
     ]);
     expect(reviseRemaining(split, {}, template)).toEqual([]);
   });
@@ -275,31 +226,30 @@ describe("reviseRemaining", () => {
 
 describe("reorderSlots", () => {
   const rows = (
-    list: [id: string, seq: number, status: string, date: string][],
+    list: [id: string, seq: number, status: string][],
   ): ReorderRow[] =>
-    list.map(([id, seq, status, scheduled_for]) => ({
+    list.map(([id, seq, status]) => ({
       id,
       seq,
       sitting_key: id,
       status: status as ReorderRow["status"],
-      scheduled_for,
       title: `Sitting ${id}`,
       estimated_minutes: 15,
     }));
 
   const plan = rows([
-    ["a", 1, "done", "2026-10-01"],
-    ["b", 2, "planned", "2026-10-08"],
-    ["c", 3, "planned", "2026-10-15"],
-    ["d", 4, "planned", "2026-10-22"],
+    ["a", 1, "done"],
+    ["b", 2, "planned"],
+    ["c", 3, "planned"],
+    ["d", 4, "planned"],
   ]);
 
-  it("moves a sitting into the slot it was dropped on, dates and all", () => {
+  it("moves a sitting into the slot it was dropped on", () => {
     const moved = reorderSlots(plan, ["d", "b", "c"]);
-    expect(moved.map((r) => [r.id, r.seq, r.date])).toEqual([
-      ["d", 2, "2026-10-08"],
-      ["b", 3, "2026-10-15"],
-      ["c", 4, "2026-10-22"],
+    expect(moved.map((r) => [r.id, r.seq])).toEqual([
+      ["d", 2],
+      ["b", 3],
+      ["c", 4],
     ]);
   });
 
@@ -310,14 +260,6 @@ describe("reorderSlots", () => {
   it("keeps each sitting's own title and estimate", () => {
     const moved = reorderSlots(plan, ["d", "b", "c"]);
     expect(moved[0]).toMatchObject({ title: "Sitting d", minutes: 15 });
-  });
-
-  it("puts dates back in order even if one was moved out of it by hand", () => {
-    const shuffled = rows([
-      ["b", 2, "planned", "2026-11-30"],
-      ["c", 3, "planned", "2026-10-15"],
-    ]);
-    expect(reorderSlots(shuffled, ["b", "c"]).map((r) => r.date)).toEqual(["2026-10-15", "2026-11-30"]);
   });
 
   it("moves nothing when the order isn't the movable sittings exactly", () => {

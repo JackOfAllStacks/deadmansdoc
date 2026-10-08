@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { StartSitting } from "@/app/(app)/plan/start-sitting";
 import { TopicChips } from "@/components/topics";
@@ -21,7 +22,6 @@ import { formatMinutes, totalMinutes } from "@/lib/plan/build-plan";
 import { requireSession } from "@/lib/session";
 import { progressFor } from "@/lib/progress";
 import { filledFields } from "@/lib/sitting/capture";
-import { formatDay, todayInMelbourne } from "@/lib/today";
 
 export const metadata = { title: "Home · The Handover" };
 export const dynamic = "force-dynamic";
@@ -43,12 +43,15 @@ export default async function HomePage() {
   const { record, sittings, done, stage } = journey;
   const whose = possessive(record);
   const minutes = totalMinutes(sittings.map((s) => ({ minutes: s.estimated_minutes })));
+  const left = totalMinutes(
+    sittings.filter((s) => s.status !== "done").map((s) => ({ minutes: s.estimated_minutes })),
+  );
 
   return (
     <Page width="wide">
       <PageHeader
         eyebrow={record.subject_relationship === "self" ? "Your handover" : `A handover for ${record.subject_name}`}
-        title={stage === "complete" ? "Every sitting is done" : `Where ${possessiveLower(record)} handover is up to`}
+        title={stage === "complete" ? "Every session is done" : `Where ${possessiveLower(record)} handover is up to`}
         lead={
           stage === "complete"
             ? "What was said has been written into the record. You can go back over any part of it whenever you like."
@@ -62,7 +65,11 @@ export default async function HomePage() {
 
       {sittings.length > 0 && (
         <section className="flex flex-col gap-4">
-          <SectionHeading aside={`about ${formatMinutes(minutes)} in total`}>{whose} sittings</SectionHeading>
+          <SectionHeading
+            aside={stage === "complete" ? `about ${formatMinutes(minutes)} in total` : `about ${formatMinutes(left)} left`}
+          >
+            {whose} sessions
+          </SectionHeading>
           {/* Deliberately below the record and not above it: this is the
               schedule, not the achievement. A sitting can finish having
               recorded very little. */}
@@ -70,7 +77,7 @@ export default async function HomePage() {
             <p className="text-sm text-muted">
               {done} of {sittings.length} conversations done
             </p>
-            <Progress value={done} max={sittings.length} label="Sittings done" />
+            <Progress value={done} max={sittings.length} label="Sessions done" />
           </Card>
           <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {sittings.map((s) => {
@@ -84,9 +91,7 @@ export default async function HomePage() {
                       <SittingBadge status={s.status} />
                     </div>
                     <p className="text-sm text-muted">
-                      {s.status === "done"
-                        ? `about ${formatMinutes(s.estimated_minutes)}`
-                        : `about ${formatMinutes(s.estimated_minutes)} · suggested for ${formatDay(s.scheduled_for)}`}
+                      about {formatMinutes(s.estimated_minutes)}
                     </p>
                     <div className="mt-auto pt-1">
                       <TopicChips topics={topics} />
@@ -98,7 +103,7 @@ export default async function HomePage() {
           </ul>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             <ButtonLink href="/plan" tone="quiet">
-              {stage === "complete" ? "Look back over the plan" : "Open the plan to start one, or move a date"}
+              {stage === "complete" ? "Look back over the plan" : "Open the plan to start one"}
             </ButtonLink>
             <ButtonLink href="/guide" tone="quiet">
               Read the Guide as it stands
@@ -108,8 +113,8 @@ export default async function HomePage() {
       )}
 
       <Note>
-        The dates are suggestions, not deadlines. Start a sitting whenever it suits, stop part-way
-        whenever you need to, and nothing is lost by stopping.
+        There are no deadlines. Start a session whenever it suits — one at a time, or several in a
+        day — stop part-way whenever you need to, and nothing is lost by stopping.
       </Note>
     </Page>
   );
@@ -133,7 +138,7 @@ function NextStep({ journey }: { journey: Journey }) {
         <div className="flex flex-col gap-1">
           <h2 className="text-lg">Finish the opening conversation</h2>
           <p className="measure text-sm text-muted">
-            A few short questions, so the sittings after it are the right shape. It picks up exactly
+            A few short questions, so the sessions after it are the right shape. It picks up exactly
             where you left it.
           </p>
         </div>
@@ -146,9 +151,9 @@ function NextStep({ journey }: { journey: Journey }) {
     return (
       <Card tone="accent" className="flex flex-col items-start gap-3">
         <div className="flex flex-col gap-1">
-          <h2 className="text-lg">Set the rhythm</h2>
+          <h2 className="text-lg">Your plan is ready</h2>
           <p className="measure text-sm text-muted">
-            The sittings are worked out. All that&apos;s left is choosing when to start and how often.
+            The sessions are worked out. Have a look, then start whichever one you like.
           </p>
         </div>
         <ButtonLink href="/plan/new">See the plan</ButtonLink>
@@ -171,16 +176,12 @@ function NextStep({ journey }: { journey: Journey }) {
   }
 
   if (next) {
-    const today = todayInMelbourne();
     return (
       <Card tone="accent" className="flex flex-col items-start gap-3">
         <div className="flex flex-col gap-1">
           <h2 className="text-lg">Next: {next.title}</h2>
           <p className="measure text-sm text-muted">
-            About {formatMinutes(next.estimated_minutes)}.{" "}
-            {next.scheduled_for > today
-              ? `Suggested for ${formatDay(next.scheduled_for)} — but there's nothing to wait for.`
-              : "Ready whenever you are."}
+            About {formatMinutes(next.estimated_minutes)}. Ready whenever you are.
           </p>
         </div>
         <StartSitting sittingId={next.id} title={next.title} />
@@ -191,9 +192,9 @@ function NextStep({ journey }: { journey: Journey }) {
   return (
     <Card tone="accent" className="flex flex-col items-start gap-3">
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg">Nothing left to book in</h2>
+        <h2 className="text-lg">Nothing left to do</h2>
         <p className="measure text-sm text-muted">
-          Every sitting in the plan has been done. What was said is in the record.
+          Every session in the plan has been done. What was said is in the record.
         </p>
       </div>
       <ButtonLink href="/plan" tone="secondary">
@@ -323,9 +324,31 @@ async function WhereItStands({ recordId, whose }: { recordId: string; whose: str
                 {p.next.missing.length === 1 ? "One answer away" : `${p.next.missing.length} answers away`}
               </p>
               <p className="measure leading-relaxed">{p.next.says}</p>
-              <p className="measure text-sm text-muted">
-                Still to cover: {p.next.missing.map((f) => f.label.toLowerCase()).join("; ")}.
-              </p>
+              {/* A recorded gap has been asked about already, so "still to
+                  cover" would be wrong: it was covered, and nobody knew. */}
+              {p.next.missing.some((f) => !f.gap) && (
+                <p className="measure text-sm text-muted">
+                  Still to cover:{" "}
+                  {p.next.missing
+                    .filter((f) => !f.gap)
+                    .map((f) => f.label.toLowerCase())
+                    .join("; ")}
+                  .
+                </p>
+              )}
+              {p.next.missing.some((f) => f.gap) && (
+                <p className="measure text-sm text-muted">
+                  Noted as nobody knows yet:{" "}
+                  {p.next.missing
+                    .filter((f) => f.gap)
+                    .map((f) => f.label.toLowerCase())
+                    .join("; ")}
+                  .{" "}
+                  <Link href="/loose-ends" className="underline underline-offset-4 hover:text-ink">
+                    Answer it in what&apos;s left to find out
+                  </Link>
+                </p>
+              )}
             </Card>
           )}
         </section>

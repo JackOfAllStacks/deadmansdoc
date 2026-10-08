@@ -98,6 +98,14 @@ describe("progressFor — the claims", () => {
     expect(p.milestones.find((m) => m.id === "who-to-ring")!.met).toBe(false);
   });
 
+  it("says which missing fields were asked about and recorded as unknown", () => {
+    const ids = needs("who-to-ring");
+    const claim = progressFor(unknown(ids), "Your").milestones.find((m) => m.id === "who-to-ring")!;
+    expect(claim.missing.every((f) => f.gap)).toBe(true);
+    const empty = progressFor([], "Your").milestones.find((m) => m.id === "who-to-ring")!;
+    expect(empty.missing.some((f) => f.gap)).toBe(false);
+  });
+
   it("calls it true once every field it names holds an answer", () => {
     const p = progressFor(answered(needs("who-to-ring")), "Your");
     const claim = p.milestones.find((m) => m.id === "who-to-ring")!;

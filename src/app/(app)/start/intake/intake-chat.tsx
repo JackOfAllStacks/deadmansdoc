@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { correctSpeaker, reopenConversation } from "@/app/(app)/actions";
-import { ChatFrame, Composer, SpeakerPicker, Transcript } from "@/components/chat";
+import { reopenConversation } from "@/app/(app)/actions";
+import { ChatFrame, Composer, Transcript } from "@/components/chat";
 import { Alert, Button, ButtonLink, Card, Note, SectionHeading } from "@/components/ui";
 import type { IntakeEvent } from "@/lib/intake/agent";
 import type { ChatMessage } from "@/lib/transcript";
@@ -18,7 +18,6 @@ export interface Area {
 export function IntakeChat({
   greeting,
   history,
-  speakers,
   maxLength,
   areas,
   finished,
@@ -26,7 +25,6 @@ export function IntakeChat({
 }: {
   greeting: string;
   history: ChatMessage[];
-  speakers: string[];
   maxLength: number;
   areas: Area[];
   finished: boolean;
@@ -35,7 +33,6 @@ export function IntakeChat({
   const [messages, setMessages] = useState<ChatMessage[]>(history);
   const [live, setLive] = useState("");
   const [draft, setDraft] = useState("");
-  const [speaker, setSpeaker] = useState(speakers[0]);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [revised, setRevised] = useState(0);
@@ -50,7 +47,7 @@ export function IntakeChat({
     setError(null);
     setStatus("sending");
     setDraft("");
-    const mine: ChatMessage = { from: "person", name: speaker, text };
+    const mine: ChatMessage = { from: "person", text };
     setMessages((m) => [...m, mine]);
 
     const restore = (message: string) => {
@@ -65,7 +62,7 @@ export function IntakeChat({
       const res = await fetch("/api/intake/message", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text, speaker }),
+        body: JSON.stringify({ text }),
       });
       if (!res.ok || !res.body) {
         const body = await res.json().catch(() => ({}));
@@ -122,21 +119,6 @@ export function IntakeChat({
   }
 
 
-  // Filing a message under someone else. Optimistic, because the alternative
-  // is the name flickering back for a moment and looking like it failed.
-  async function correct(id: string, name: string) {
-    const before = messages;
-    setMessages((m) => m.map((x) => (x.from === "person" && x.id === id ? { ...x, name } : x)));
-    const form = new FormData();
-    form.set("messageId", id);
-    form.set("speaker", name);
-    const result = await correctSpeaker({}, form);
-    if (result.error) {
-      setMessages(before);
-      setError(result.error);
-    }
-  }
-
   if (finished) return <Finished greeting={greeting} messages={messages} hasPlan={hasPlan} />;
   if (!started) return <BeforeYouBegin areas={areas} onBegin={() => setStarted(true)} />;
 
@@ -150,7 +132,7 @@ export function IntakeChat({
               <h2 className="text-lg">Thank you — that&apos;s been taken into account</h2>
               <p className="measure text-sm text-muted">
                 {revised > 0
-                  ? `The ${revised === 1 ? "sitting" : `${revised} sittings`} you haven't started yet have been re-worked around what you've just added. Anything already done stays exactly as it was.`
+                  ? `The ${revised === 1 ? "session" : `${revised} sessions`} you haven't started yet have been re-worked around what you've just added. Anything already done stays exactly as it was.`
                   : "Everything in your plan has already been started or finished, so nothing has been changed."}
               </p>
               <ButtonLink href="/plan">Back to your plan</ButtonLink>
@@ -159,7 +141,7 @@ export function IntakeChat({
             <>
               <h2 className="text-lg">That&apos;s everything for now</h2>
               <p className="measure text-sm text-muted">
-                Next comes the plan: a handful of short sittings, and when you&apos;d like to do them.
+                Next comes the plan: a handful of short sessions, to do whenever suits you.
               </p>
               <ButtonLink href="/plan/new">See your plan</ButtonLink>
             </>
@@ -176,14 +158,7 @@ export function IntakeChat({
         a real answer, and the detail comes later, a bit at a time.
       </Note>
       <ChatFrame>
-        <Transcript
-          greeting={greeting}
-          messages={messages}
-          live={live}
-          pending={status === "sending"}
-          speakers={speakers}
-          onCorrect={correct}
-        />
+        <Transcript greeting={greeting} messages={messages} live={live} pending={status === "sending"} />
         <Composer
           draft={draft}
           onDraft={setDraft}
@@ -192,9 +167,7 @@ export function IntakeChat({
           busy={status !== "idle"}
           error={error}
           footer={<span>Stopping here keeps everything said so far.</span>}
-        >
-          <SpeakerPicker speakers={speakers} speaker={speaker} onChange={setSpeaker} />
-        </Composer>
+        />
       </ChatFrame>
     </div>
   );
@@ -209,7 +182,7 @@ function BeforeYouBegin({ areas, onBegin }: { areas: Area[]; onBegin: () => void
     ],
     [
       "It works out a plan",
-      "A handful of short sittings, each covering one part of the record, in whatever order suits what you've said.",
+      "A handful of short sessions, each covering one part of the record, in whatever order suits what you've said.",
     ],
     [
       "Then you do them whenever you like",
@@ -237,7 +210,7 @@ function BeforeYouBegin({ areas, onBegin }: { areas: Area[]; onBegin: () => void
       </Card>
 
       <section className="flex flex-col gap-3">
-        <SectionHeading aside="in the sittings after this">What the record covers</SectionHeading>
+        <SectionHeading aside="in the sessions after this">What the record covers</SectionHeading>
         <ul className="grid gap-3 sm:grid-cols-2">
           {areas.map((area) => (
             <li key={area.title} className="rounded-md border border-line bg-surface p-4">
@@ -249,8 +222,8 @@ function BeforeYouBegin({ areas, onBegin }: { areas: Area[]; onBegin: () => void
       </section>
 
       <Note>
-        None of this is a legal document, and nothing here is shown to anyone else. You can stop at
-        any point — what&apos;s been said is kept.
+        None of this is a legal document. You can stop at any point — what&apos;s been said is
+        kept.
       </Note>
 
       <Button onClick={onBegin} className="self-center">
@@ -298,7 +271,7 @@ function Finished({
           <h2 className="text-lg">Thought of something since?</h2>
           <p className="measure text-sm text-muted">
             {hasPlan
-              ? "You can add to this. The sittings you haven't started yet get re-worked around whatever you add; anything already done stays as it is."
+              ? "You can add to this. The sessions you haven't started yet get re-worked around whatever you add; anything already done stays as it is."
               : "You can add to this before the plan is set."}
           </p>
         </div>

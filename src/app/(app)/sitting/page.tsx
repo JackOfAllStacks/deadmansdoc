@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { Page, PageHeader } from "@/components/ui";
 import { sessionTemplate } from "@/lib/content";
 import { formatMinutes } from "@/lib/plan/build-plan";
-import { getRecordForUser, speakersFor } from "@/lib/records";
+import { getRecordForUser } from "@/lib/records";
 import { requireSession } from "@/lib/session";
 import { MAX_MESSAGE_LENGTH } from "@/lib/sitting/agent";
 import { capturedIn, filledFields, knownEntities } from "@/lib/sitting/capture";
@@ -13,7 +13,7 @@ import { isBusy, openSitting, sittingMessages } from "@/lib/sitting/store";
 import { toChatHistory } from "@/lib/transcript";
 import { SittingChat } from "./sitting-chat";
 
-export const metadata = { title: "Your sitting · The Handover" };
+export const metadata = { title: "Your session · The Handover" };
 export const dynamic = "force-dynamic";
 
 export default async function SittingPage() {
@@ -51,13 +51,13 @@ export default async function SittingPage() {
           with it rather than holding the top of a small screen. */}
       <div className="max-lg:hidden">
         <PageHeader
-          eyebrow={`Sitting ${sitting.seq} · about ${formatMinutes(sitting.estimated_minutes)}`}
+          eyebrow={`Session ${sitting.seq} · about ${formatMinutes(sitting.estimated_minutes)}`}
           title={sitting.title}
           lead={summary}
         />
       </div>
       <SittingChat
-        eyebrow={`Sitting ${sitting.seq} · about ${formatMinutes(sitting.estimated_minutes)}`}
+        eyebrow={`Session ${sitting.seq} · about ${formatMinutes(sitting.estimated_minutes)}`}
         title={sitting.title}
         lead={summary}
         greeting={greetingFor(record, sitting, summary)}
@@ -67,7 +67,6 @@ export default async function SittingPage() {
         people={entities.filter((e) => e.entityType === "person").map((e) => e.label)}
         coverage={coverageOf(sitting.covers, filled)}
         topics={topicProgress(topics, filled)}
-        speakers={speakersFor(record)}
         maxLength={MAX_MESSAGE_LENGTH}
         busy={isBusy(sitting)}
       />

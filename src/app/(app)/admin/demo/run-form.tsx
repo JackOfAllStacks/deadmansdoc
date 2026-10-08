@@ -18,7 +18,7 @@ export function RunForm({ personas }: { personas: { key: string; name: string; s
       <Select label="Person" name="persona" defaultValue={personas[0].key} className="sm:max-w-sm">
         {personas.map((p) => (
           <option key={p.key} value={p.key}>
-            {p.name} — the opening conversation, then {p.sittings} {p.sittings === 1 ? "sitting" : "sittings"}
+            {p.name} — the opening conversation, then {p.sittings} {p.sittings === 1 ? "session" : "sessions"}
           </option>
         ))}
       </Select>

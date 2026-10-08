@@ -1,7 +1,5 @@
 import { db } from "@/lib/db";
 import { sessionTemplate } from "@/lib/content";
-import { addDays } from "@/lib/plan/build-plan";
-import { todayInMelbourne } from "@/lib/today";
 import { disclosureOf, type Persona, type PersonaSitting } from "@/lib/demo/personas";
 
 /*
@@ -49,7 +47,6 @@ export async function seedPersona(userId: string, persona: Persona): Promise<See
 
 async function write(userId: string, persona: Persona): Promise<SeedResult> {
   const sql = db();
-  const today = todayInMelbourne();
 
   await clearRecordsFor(userId);
 
@@ -72,11 +69,11 @@ async function write(userId: string, persona: Persona): Promise<SeedResult> {
     const template = sessionTemplate.sittings.find((s) => s.key === sitting.key);
     const [{ id }] = (await sql`
       insert into sittings
-        (record_id, seq, title, covers, estimated_minutes, scheduled_for, sitting_key, status,
+        (record_id, seq, title, covers, estimated_minutes, sitting_key, status,
          started_at, completed_at)
       values
         (${recordId}, ${seq}, ${template?.title ?? sitting.key}, ${template?.covers ?? []},
-         ${minutesFor(sitting)}, ${addDays(today, sitting.day)}::date, ${sitting.key}, ${sitting.status},
+         ${minutesFor(sitting)}, ${sitting.key}, ${sitting.status},
          ${sitting.status === "planned" ? null : "now()"}::timestamptz,
          ${sitting.status === "done" ? "now()" : null}::timestamptz)
       returning id`) as { id: string }[];
@@ -86,23 +83,14 @@ async function write(userId: string, persona: Persona): Promise<SeedResult> {
   // ── What was said ───────────────────────────────────────────────────
   // Every captured value hangs off a message, which is how capturedIn() and
   // the transcript find it. A persona without a transcript still needs one.
-  // A person's message is stored twice over: `content` is what they typed, and
-  // the block the model sees is prefixed with their name, because two people
-  // share one keyboard. Seeded messages have to carry that prefix too, or a
-  // seeded transcript shows no names where a real one does.
-  const helper = persona.present.find((name) => name !== persona.subject_name) ?? persona.subject_name;
-  const nameOf = (from: string) => (from === "subject" ? persona.subject_name : from === "helper" ? helper : null);
-
   const messageFor = new Map<string, string>();
   for (const line of persona.transcript ?? []) {
     const sittingId = line.sitting ? (bySittingKey.get(line.sitting) ?? null) : null;
     const text = line.text.trim();
-    const speaker = nameOf(line.from);
-    const block = speaker ? `${speaker}: ${text}` : text;
     const [{ id }] = (await sql`
       insert into messages (record_id, sitting_id, phase, role, content, blocks)
       values (${recordId}, ${sittingId}, ${sittingId ? "sitting" : "intake"}, ${line.from},
-              ${text}, ${JSON.stringify([{ type: "text", text: block }])}::jsonb)
+              ${text}, ${JSON.stringify([{ type: "text", text }])}::jsonb)
       returning id`) as { id: string }[];
     if (sittingId && line.from === "subject" && !messageFor.has(line.sitting!)) {
       messageFor.set(line.sitting!, id);
@@ -115,10 +103,8 @@ async function write(userId: string, persona: Persona): Promise<SeedResult> {
     if (messageFor.has(key)) continue;
     const [{ id }] = (await sql`
       insert into messages (record_id, sitting_id, phase, role, content, blocks)
-      values (${recordId}, ${sittingId}, 'sitting', 'subject', '(recorded during this sitting)',
-              ${JSON.stringify([
-                { type: "text", text: `${persona.subject_name}: (recorded during this sitting)` },
-              ])}::jsonb)
+      values (${recordId}, ${sittingId}, 'sitting', 'subject', '(recorded during this session)',
+              ${JSON.stringify([{ type: "text", text: "(recorded during this session)" }])}::jsonb)
       returning id`) as { id: string }[];
     messageFor.set(key, id);
   }
