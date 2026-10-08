@@ -372,9 +372,10 @@ export function SittingChat({
         )}
       </ChatFrame>
 
+      {showing === "document" && <div className="order-1 shrink-0 lg:hidden">{tabs}</div>}
+
       <DocumentPanel
         hidden={showing !== "document"}
-        tabs={showing === "document" ? tabs : null}
         outline={doc}
         notes={extraNotes}
         people={known}
@@ -470,7 +471,6 @@ function DocumentPanel({
   topics,
   locked,
   hidden,
-  tabs,
   save,
 }: {
   outline: DocumentSectionView[];
@@ -481,8 +481,6 @@ function DocumentPanel({
   locked: boolean;
   /** Only ever true on a phone, where the other tab is showing. */
   hidden: boolean;
-  /** The way back to the conversation. Only on a phone, and only when shown. */
-  tabs: ReactNode;
   save: SaveBlock;
 }) {
   const done = progress.answered + progress.gaps;
@@ -493,7 +491,6 @@ function DocumentPanel({
         hidden ? "hidden" : "flex",
       )}
     >
-      {tabs && <div className="sticky top-0 z-10 -mx-6 bg-surface px-6 pb-3 sm:-mx-7 sm:px-7">{tabs}</div>}
       <div className="flex flex-col gap-3 border-b border-line pb-4">
         <div className="flex flex-col gap-2">
           <h2 className="text-lg">The document, so far</h2>
