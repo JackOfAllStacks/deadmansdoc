@@ -302,12 +302,12 @@ export function SittingChat({
   const waiting = status === "sending" || status === "catching-up";
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(28rem,34rem)] lg:gap-8">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:flex-none lg:grid-cols-[minmax(0,1fr)_minmax(28rem,34rem)] lg:gap-8">
       {/* A phone hasn't room for the conversation and the document at once,
           and stacking them buries the box you type into. So on a phone they
           are two halves of one screen and you choose which you're looking at;
           above lg both are there and this disappears. */}
-      <div className="order-1 flex gap-1 rounded-md border border-line bg-surface p-1 lg:hidden">
+      <div className="order-1 flex shrink-0 gap-1 rounded-md border border-line bg-surface p-1 lg:hidden">
         <HalfTab current={showing} value="conversation" onPick={setShowing}>
           Conversation
         </HalfTab>

@@ -25,7 +25,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   if (journey.record) links.push({ href: "/start/intake", label: "Opening conversation" });
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <Nav links={links}>
         <div className="flex items-center gap-1">
           <AccountMenu name={user.name} email={user.email} admin={isAdmin(user)} />

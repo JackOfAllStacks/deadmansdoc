@@ -38,7 +38,13 @@ export default async function SittingPage() {
   // Wider than the rest of the app: the conversation and the document it is
   // writing sit side by side here, and both need room to be read.
   return (
-    <Page width="full">
+    // On a phone this page doesn't scroll: it is the height of what's left
+    // below the header, and the conversation inside it does the scrolling. The
+    // tabs and the box you type into stay put.
+    <Page
+      width="full"
+      className="max-sm:h-0 max-sm:flex-1 max-sm:gap-4 max-sm:overflow-hidden max-sm:py-5"
+    >
       <PageHeader
         eyebrow={`Sitting ${sitting.seq} · about ${formatMinutes(sitting.estimated_minutes)}`}
         title={sitting.title}
