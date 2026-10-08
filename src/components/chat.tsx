@@ -94,11 +94,14 @@ export function Transcript({
   pending,
   speakers,
   onCorrect,
+  leading,
 }: {
   greeting: string;
   messages: ChatMessage[];
   live?: string;
   pending?: boolean;
+  /** Anything that scrolls with the conversation, above the first message. */
+  leading?: ReactNode;
   speakers?: string[];
   onCorrect?: (id: string, speaker: string) => void;
 }) {
@@ -114,6 +117,7 @@ export function Transcript({
 
   return (
     <div ref={boxRef} className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 sm:pr-3">
+      {leading}
       <ol aria-live="polite" aria-label="Conversation" className="flex flex-col gap-4">
         <Bubble message={{ from: "agent", text: greeting }} />
         {messages.map((m, i) => (

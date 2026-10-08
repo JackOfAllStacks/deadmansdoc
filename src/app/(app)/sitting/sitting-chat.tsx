@@ -65,6 +65,9 @@ const shapeOf = (field: DocumentFieldView): BlockShape => ({
 });
 
 export function SittingChat({
+  eyebrow,
+  title,
+  lead,
   greeting,
   history,
   outline,
@@ -76,6 +79,9 @@ export function SittingChat({
   maxLength,
   busy,
 }: {
+  eyebrow: string;
+  title: string;
+  lead: string;
   greeting: string;
   history: ChatMessage[];
   outline: DocumentSectionView[];
@@ -301,29 +307,30 @@ export function SittingChat({
 
   const waiting = status === "sending" || status === "catching-up";
 
+  // A phone hasn't room for the conversation and the document at once, and
+  // stacking them buries the box you type into. So on a phone they are two
+  // halves of one screen; above lg both are there and this isn't rendered.
+  const tabs = (
+    <div className="flex gap-1 rounded-md border border-line bg-surface p-1">
+      <HalfTab current={showing} value="conversation" onPick={setShowing}>
+        Conversation
+      </HalfTab>
+      <HalfTab
+        current={showing}
+        value="document"
+        count={unseen}
+        onPick={(v) => {
+          setShowing(v);
+          setUnseen(0);
+        }}
+      >
+        The document
+      </HalfTab>
+    </div>
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:flex-none lg:grid-cols-[minmax(0,1fr)_minmax(28rem,34rem)] lg:gap-8">
-      {/* A phone hasn't room for the conversation and the document at once,
-          and stacking them buries the box you type into. So on a phone they
-          are two halves of one screen and you choose which you're looking at;
-          above lg both are there and this disappears. */}
-      <div className="order-1 flex shrink-0 gap-1 rounded-md border border-line bg-surface p-1 lg:hidden">
-        <HalfTab current={showing} value="conversation" onPick={setShowing}>
-          Conversation
-        </HalfTab>
-        <HalfTab
-          current={showing}
-          value="document"
-          count={unseen}
-          onPick={(v) => {
-            setShowing(v);
-            setUnseen(0);
-          }}
-        >
-          The document
-        </HalfTab>
-      </div>
-
       <ChatFrame
         className={cx("order-2 lg:order-1 lg:flex", showing === "conversation" ? "flex" : "hidden")}
       >
@@ -334,6 +341,7 @@ export function SittingChat({
           pending={waiting}
           speakers={speakers}
           onCorrect={correct}
+          leading={<PhoneHead eyebrow={eyebrow} title={title} lead={lead} tabs={tabs} />}
         />
 
         {status === "finished" ? (
@@ -368,6 +376,41 @@ export function SittingChat({
         save={saveBlock}
       />
     </div>
+  );
+}
+
+/**
+ * What sits above the conversation on a phone, inside its scroll.
+ *
+ * The title and what the sitting is about scroll away with it -- they say
+ * what this is, which you need once rather than for the whole sitting, and a
+ * small screen can't spare the room. The tabs can't go with them: they are
+ * how you reach the document, so they stop at the top and stay there.
+ */
+function PhoneHead({
+  eyebrow,
+  title,
+  lead,
+  tabs,
+}: {
+  eyebrow: string;
+  title: string;
+  lead: string;
+  tabs: ReactNode;
+}) {
+  // Two siblings rather than one wrapper: a sticky element can only stick
+  // inside its own parent, and a parent that ends just below it has nothing
+  // to stick within. These are children of the scroll itself, so the tabs
+  // have the whole conversation to stay at the top of.
+  return (
+    <>
+      <div className="flex flex-col gap-1 px-0.5 pb-3 lg:hidden">
+        <p className="text-sm font-medium text-faint">{eyebrow}</p>
+        <h1 className="text-2xl">{title}</h1>
+        {lead && <p className="text-sm leading-relaxed text-muted">{lead}</p>}
+      </div>
+      <div className="sticky top-0 z-10 -mx-1 bg-paper px-1 pb-3 lg:hidden">{tabs}</div>
+    </>
   );
 }
 

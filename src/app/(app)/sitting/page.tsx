@@ -45,12 +45,19 @@ export default async function SittingPage() {
       width="full"
       className="max-sm:h-0 max-sm:flex-1 max-sm:gap-4 max-sm:overflow-hidden max-sm:py-5"
     >
-      <PageHeader
+      {/* Below lg this is inside the conversation instead, so it scrolls away
+          with it rather than holding the top of a small screen. */}
+      <div className="max-lg:hidden">
+        <PageHeader
+          eyebrow={`Sitting ${sitting.seq} · about ${formatMinutes(sitting.estimated_minutes)}`}
+          title={sitting.title}
+          lead={summary}
+        />
+      </div>
+      <SittingChat
         eyebrow={`Sitting ${sitting.seq} · about ${formatMinutes(sitting.estimated_minutes)}`}
         title={sitting.title}
         lead={summary}
-      />
-      <SittingChat
         greeting={greetingFor(record, sitting, summary)}
         history={history}
         outline={documentOutline(sitting.covers, captured)}
