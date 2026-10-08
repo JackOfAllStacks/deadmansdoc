@@ -487,7 +487,7 @@ function DocumentPanel({
   return (
     <aside
       className={cx(
-        "order-3 min-h-0 flex-1 flex-col gap-5 overflow-y-auto rounded-lg border border-line bg-surface px-6 py-6 sm:max-h-[calc(100dvh-18rem)] sm:min-h-[26rem] sm:flex-none sm:px-7 lg:order-2 lg:flex",
+        "order-3 flex-col gap-5 rounded-lg border border-line bg-surface px-6 py-6 max-sm:overflow-visible sm:max-h-[calc(100dvh-18rem)] sm:min-h-[26rem] sm:overflow-y-auto sm:px-7 lg:order-2 lg:flex",
         hidden ? "hidden" : "flex",
       )}
     >

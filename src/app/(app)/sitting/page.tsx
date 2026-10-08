@@ -38,12 +38,14 @@ export default async function SittingPage() {
   // Wider than the rest of the app: the conversation and the document it is
   // writing sit side by side here, and both need room to be read.
   return (
-    // On a phone this page doesn't scroll: it is the height of what's left
-    // below the header, and the conversation inside it does the scrolling. The
-    // tabs and the box you type into stay put.
+    // On a phone this is the height of what's left below the header. Showing
+    // the conversation, nothing overflows it -- the conversation scrolls
+    // inside itself and the box you type into stays put. Showing the
+    // document, the document is as tall as it is and this scrolls, taking the
+    // tabs with it, which is what reading rather than talking wants.
     <Page
       width="full"
-      className="max-sm:h-0 max-sm:flex-1 max-sm:gap-4 max-sm:overflow-hidden max-sm:py-5"
+      className="max-sm:h-0 max-sm:flex-1 max-sm:gap-4 max-sm:overflow-y-auto max-sm:py-5"
     >
       {/* Below lg this is inside the conversation instead, so it scrolls away
           with it rather than holding the top of a small screen. */}
