@@ -64,13 +64,14 @@ const onPlan = () => /plan$/i.test(text(document.querySelector("main h1") ?? doc
 
 const answerBox = () => document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Your answer"]');
 
-/** Idle means the composer is there and its button says Send, not Waiting…. */
+/** Idle means the composer is there and isn't waiting on a reply. */
 function composerIdle(): boolean {
   const box = answerBox();
-  if (!box) return false;
-  const send = box.form ? button(/^(Send|Waiting…)$/, box.form) : null;
-  return send !== null && text(send) === "Send";
+  return box?.form?.dataset.busy === "false";
 }
+
+/** There is no send button: Enter sends, and so does submitting the form. */
+const sendIt = (box: HTMLTextAreaElement) => box.form?.requestSubmit();
 
 /**
  * React watches the native value setter, so assigning `.value` directly is
@@ -183,7 +184,7 @@ export function DemoPlayer({ run }: { run: DemoRun }) {
       const box = await until(answerBox);
       await type(box, says.replace(/\s+/g, " ").trim());
       await wait(400);
-      button("Send", box.form ?? document)?.click();
+      sendIt(box);
       // Out of idle first, so the next look round doesn't see the moment
       // before the click landed and type the following line over it.
       await until(() => !composerIdle(), 5_000).catch(() => {});
@@ -199,7 +200,7 @@ export function DemoPlayer({ run }: { run: DemoRun }) {
       if (box?.value.trim()) {
         setStatus({ text: "Sending that again" });
         await wait(PACE);
-        button("Send", box.form ?? document)?.click();
+        sendIt(box);
         await until(() => !composerIdle(), 5_000).catch(() => {});
         return true;
       }

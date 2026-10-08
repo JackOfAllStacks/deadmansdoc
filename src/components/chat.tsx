@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import type { ChatMessage } from "@/lib/transcript";
-import { Alert, Button, cx } from "@/components/ui";
+import { Alert, cx } from "@/components/ui";
 
 /*
  * The conversation itself, shared by the opening conversation and the sittings.
@@ -197,7 +197,10 @@ export function Composer({
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3">
+    // data-busy is the contract for anything driving the composer from
+    // outside -- the in-app demo player, the end-to-end scripts. It used to be
+    // whether the button said "Send" or "Waiting…", and there is no button now.
+    <form onSubmit={submit} data-busy={busy ? "true" : "false"} className="flex flex-col gap-3">
       {children}
       <textarea
         value={draft}
@@ -205,6 +208,7 @@ export function Composer({
         onKeyDown={onKeyDown}
         maxLength={maxLength}
         rows={3}
+        enterKeyHint="send"
         placeholder="Type your answer…"
         aria-label="Your answer"
         className="resize-y rounded-md border border-line-strong bg-surface px-3 py-2 text-base outline-none focus:border-accent"
@@ -212,12 +216,9 @@ export function Composer({
       {error && <Alert>{error}</Alert>}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm text-muted">{footer}</div>
-        <div className="flex items-center gap-3">
-          <span className="hidden text-sm text-faint sm:inline">Enter to send</span>
-          <Button type="submit" disabled={busy || !draft.trim()}>
-            {busy ? "Waiting…" : "Send"}
-          </Button>
-        </div>
+        <span aria-live="polite" className="text-sm text-faint">
+          {busy ? "Waiting…" : "Enter to send"}
+        </span>
       </div>
     </form>
   );

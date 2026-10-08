@@ -66,28 +66,25 @@ async function say(speaker, text, doneText) {
     .filter({ hasText: new RegExp(`^${speaker}$`) })
     .click();
   await page.getByLabel("Your answer").fill(text);
-  // The button only enables once React has the typed value. Clicking before
-  // that lands on unhydrated HTML and does nothing at all.
-  const sendButton = () =>
-    [...document.querySelectorAll("button")].find((b) => /^(Send|Waiting…)$/.test(b.textContent ?? ""));
+  // Enter sends -- there is no button -- and it only works once React has the
+  // typed value. Pressing before that lands on unhydrated HTML and does nothing.
   await page.waitForFunction(() => {
-    const b = [...document.querySelectorAll("button")].find((x) => /^(Send|Waiting…)$/.test(x.textContent ?? ""));
-    return b instanceof HTMLButtonElement && !b.disabled && b.textContent === "Send";
+    const box = document.querySelector('textarea[aria-label="Your answer"]');
+    return box?.form?.dataset.busy === "false" && box.value.trim().length > 0;
   }, null, { timeout: 30_000 });
-  void sendButton;
   const started = Date.now();
-  await page.getByRole("button", { name: "Send" }).click();
+  await page.getByLabel("Your answer").press("Enter");
   // Confirm it actually started, rather than assuming.
   await page.waitForFunction(
-    () => [...document.querySelectorAll("button")].some((b) => b.textContent === "Waiting…"),
+    () => document.querySelector('textarea[aria-label="Your answer"]')?.form?.dataset.busy === "true",
     null,
     { timeout: 30_000 },
   );
   await page.waitForFunction(
     (text) => {
-      const btn = [...document.querySelectorAll("button")].find((b) => /^(Send|Waiting…)$/.test(b.textContent ?? ""));
+      const box = document.querySelector('textarea[aria-label="Your answer"]');
       const finished = [...document.querySelectorAll("a")].some((a) => a.textContent?.trim() === text);
-      return finished || (btn && btn.textContent === "Send");
+      return finished || box?.form?.dataset.busy === "false";
     },
     doneText,
     { timeout: 180_000 },

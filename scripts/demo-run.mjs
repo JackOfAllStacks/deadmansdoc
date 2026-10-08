@@ -134,11 +134,11 @@ async function speak({ who, says }, done) {
   await box.pressSequentially(says.replace(/\s+/g, " ").trim(), { delay: 7 });
   await wait(400);
   const started = Date.now();
-  await page.getByRole("button", { name: "Send" }).click();
+  await page.getByLabel("Your answer").press("Enter");
   await page.waitForFunction(
     () => {
-      const btn = [...document.querySelectorAll("button")].find((b) => /^(Send|Waiting…)$/.test(b.textContent ?? ""));
-      return !btn || btn.textContent === "Send";
+      const box = document.querySelector('textarea[aria-label="Your answer"]');
+      return !box || box.form?.dataset.busy === "false";
     },
     null,
     { timeout: 180_000 },
