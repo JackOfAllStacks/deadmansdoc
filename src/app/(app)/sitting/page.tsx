@@ -38,13 +38,38 @@ export default async function SittingPage() {
   // Wider than the rest of the app: the conversation and the document it is
   // writing sit side by side here, and both need room to be read.
   return (
-    <Page width="full">
-      <PageHeader
+    // The height of what's left below the header, at every width -- no page
+    // on the screen is taller than the screen.
+    //
+    // From lg the two panes share it and each scrolls inside itself, so the
+    // composer is always on screen without scrolling the page to it. Below
+    // lg they are tabs: the conversation behaves the same way, and the
+    // document, which is read rather than talked to, is as tall as it is and
+    // scrolls this instead, taking the tabs with it.
+    <Page
+      width="full"
+      pad="tight"
+      className="h-0 flex-1 overflow-y-auto lg:overflow-hidden"
+    >
+      {/* Below lg this is inside the conversation instead, so it scrolls away
+          with it rather than holding the top of a small screen. The compact
+          header runs the summary along the title's line, so saying what the
+          session covers costs no height here. */}
+      {/* A rule under it so the heading reads as the page's rather than as
+          the conversation's: without it the title sits in the same open space
+          as the first message, which is the one thing on the page it isn't. */}
+      <div className="border-b border-line pb-4 max-lg:hidden">
+        <PageHeader
+          size="compact"
+          eyebrow={`Session ${sitting.seq} · about ${formatMinutes(sitting.estimated_minutes)}`}
+          title={sitting.title}
+          lead={summary}
+        />
+      </div>
+      <SittingChat
         eyebrow={`Session ${sitting.seq} · about ${formatMinutes(sitting.estimated_minutes)}`}
         title={sitting.title}
         lead={summary}
-      />
-      <SittingChat
         greeting={greetingFor(record, sitting, summary)}
         history={history}
         outline={documentOutline(sitting.covers, captured)}

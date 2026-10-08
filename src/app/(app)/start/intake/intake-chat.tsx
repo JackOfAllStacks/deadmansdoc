@@ -226,7 +226,7 @@ function BeforeYouBegin({ areas, onBegin }: { areas: Area[]; onBegin: () => void
         kept.
       </Note>
 
-      <Button onClick={onBegin} className="self-start">
+      <Button onClick={onBegin} className="self-center">
         Start the conversation
       </Button>
     </div>

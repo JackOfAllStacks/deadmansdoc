@@ -44,7 +44,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: resolveTheme }} />
       </head>
-      <body className="flex min-h-full flex-col">{children}</body>
+      {/* h-full rather than min-h-full: a page that wants to hold itself to
+          the height of the screen -- the sitting, where the conversation does
+          the scrolling -- can only do that if what it sits in has a height to
+          take a share of. Pages longer than the screen still scroll, the
+          document does the scrolling rather than the body. */}
+      <body className="flex h-full flex-col">{children}</body>
     </html>
   );
 }

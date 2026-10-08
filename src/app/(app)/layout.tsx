@@ -11,7 +11,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { user } = await requireSession();
   const [journey, demoRun] = await Promise.all([journeyFor(user.id), demoRunFor(user.id)]);
 
-  const links: NavLink[] = [{ href: "/home", label: "Home" }];
+  // No Home: the wordmark goes there, from every page, already.
+  const links: NavLink[] = [];
   if (journey.sittings.length) {
     links.push({ href: "/plan", label: "Your plan" });
     // The point of the whole thing, so it sits in the header from the moment
@@ -26,7 +27,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   if (journey.record) links.push({ href: "/start/intake", label: "Opening conversation" });
 
   return (
-    <div className="relative isolate flex flex-1 flex-col overflow-x-clip">
+    <div className="relative isolate flex min-h-0 flex-1 flex-col overflow-x-clip">
       <Backdrop variant="page" className="print:hidden" />
       <Nav links={links}>
         <div className="flex items-center gap-1">
