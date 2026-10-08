@@ -1,7 +1,9 @@
 import { Card, Note, Page, PageHeader, SectionHeading } from "@/components/ui";
 import { listAccounts } from "@/lib/admin";
 import { personas } from "@/lib/demo/personas";
+import { scriptedSittings } from "@/lib/demo/run";
 import { requireAdmin } from "@/lib/session";
+import { RunForm } from "./run-form";
 import { SeedForm } from "./seed-form";
 
 export const metadata = { title: "Demo records · The Handover" };
@@ -17,6 +19,9 @@ export const dynamic = "force-dynamic";
 export default async function DemoPage() {
   await requireAdmin();
   const accounts = await listAccounts();
+  const scripted = personas.flatMap((p) =>
+    p.script?.intake?.length ? [{ key: p.key, name: p.name, sittings: scriptedSittings(p).length }] : [],
+  );
 
   return (
     <Page>
@@ -54,6 +59,23 @@ export default async function DemoPage() {
       <section className="flex flex-col gap-4">
         <SectionHeading>Seed one</SectionHeading>
         <SeedForm personas={personas.map((p) => ({ key: p.key, name: p.name }))} accounts={accounts} />
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <SectionHeading aside="costs roughly US$0.50">Watch one being made</SectionHeading>
+        <p className="measure text-sm text-muted">
+          Seeding shows the result; this shows the experience. A persona&apos;s own words are typed
+          into the real pages at a pace you can follow — consent, the opening conversation, the
+          plan, then every sitting in the plan&apos;s order with the document filling in beside
+          it, and the Guide at the end. Start it and watch: it needs nothing from you. The model is
+          real, so it costs credit and takes ten minutes or so.
+        </p>
+        <Note>
+          It runs in a new account made for it, so this browser is{" "}
+          <strong className="font-semibold">signed out of yours</strong> while it plays. Sign back
+          in afterwards; the record stays readable from the admin pages.
+        </Note>
+        <RunForm personas={scripted} />
       </section>
     </Page>
   );

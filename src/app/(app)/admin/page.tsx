@@ -85,7 +85,7 @@ export default async function AdminPage() {
           <Link href="/admin/demo" className="underline underline-offset-4">
             Seed one
           </Link>
-          .
+          , or watch one being made.
         </p>
       </section>
 

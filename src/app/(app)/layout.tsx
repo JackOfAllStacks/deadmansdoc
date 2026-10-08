@@ -1,12 +1,14 @@
+import { demoRunFor } from "@/lib/demo/run";
 import { journeyFor } from "@/lib/journey";
 import { isAdmin, requireSession } from "@/lib/session";
 import { AccountMenu } from "./account-menu";
+import { DemoPlayer } from "./demo-player";
 import { Nav, type NavLink } from "./nav";
 import { ThemeToggle } from "./theme-toggle";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { user } = await requireSession();
-  const journey = await journeyFor(user.id);
+  const [journey, demoRun] = await Promise.all([journeyFor(user.id), demoRunFor(user.id)]);
 
   const links: NavLink[] = [{ href: "/home", label: "Home" }];
   if (journey.sittings.length) {
@@ -31,6 +33,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         </div>
       </Nav>
       {children}
+      {demoRun && <DemoPlayer run={demoRun} />}
     </div>
   );
 }

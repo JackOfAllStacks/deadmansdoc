@@ -245,3 +245,123 @@ script:
       - who: Jack
         says: >-
           Yes, let's stop there for today.
+    first-days:
+      - who: Jack
+        says: >-
+          Dad's not religious, so there's nothing that has to happen within a set number of
+          days. The RSL would do a short service and cremation's fine. Nobody needs to rush
+          that.
+      - who: Jack
+        says: >-
+          In order, I'd say: I get the call, I ring Michael and Aunty Robyn, then Peter, then
+          the funeral people. The bank comes after Peter's had a look, not before.
+      - who: John
+        says: >-
+          The unit that's on the market — don't let the agent push anything through while all
+          this is going on. Jack, you tell them to hold off until Peter says otherwise.
+      - who: John
+        says: >-
+          And don't close the company account. A couple of builders still owe me invoices and
+          they pay into it. If it gets frozen those payments just bounce.
+      - who: Jack
+        says: >-
+          The roof claim has been dragging on since March. Somebody has to keep chasing the
+          insurer or it'll go nowhere. I don't know if there's a deadline on it. The paperwork's
+          in the ute, in the glovebox I think.
+      - who: John
+        says: >-
+          The ute's on a loan. Keep paying it for a while, don't hand it back the first week —
+          Jack will need it to get between the units.
+      - who: Jack
+        says: >-
+          The first month is mostly Peter sorting the company and the trust, and Gail starting
+          on the will. By six months the units either sell or get properly managed, but that's
+          a later decision.
+      - who: Jack
+        says: >-
+          I think that covers the first few weeks.
+      - who: Jack
+        says: >-
+          Yes, let's stop there for today.
+    money-out:
+      - who: John
+        says: >-
+          The everyday account with NAB is the one everything comes out of — rates, power, the
+          phone, insurance. The savings account sits next to it. Only my name's on both.
+      - who: John
+        says: >-
+          Two term deposits, NAB as well. One rolls over around March, I think. The other one
+          I'd have to look up.
+      - who: Jack
+        says: >-
+          The shares are through CommSec. Dad said around ninety thousand last time he looked,
+          and he doesn't want them sold in a hurry.
+      - who: John
+        says: >-
+          The company account's with Westpac, with an overdraft on it. That's Peter's area, he
+          does the BAS. Ring him before anyone touches it.
+      - who: Jack
+        says: >-
+          The paperwork's in the filing cabinet in the garage. Top drawer's the trust, bottom
+          drawer's the company. Most statements come by email now though.
+      - who: John
+        says: >-
+          The power, the phone and the insurance on the house and the ute all come out
+          automatically. The council rates I pay by hand every quarter, so those would just
+          stop.
+      - who: Jack
+        says: >-
+          The house insurance can't lapse — if the place is empty and it stops, that's a
+          disaster. Same with the landlord insurance on the units. The trust account pays the
+          strata on those, that's separate.
+      - who: John
+        says: >-
+          There's a storage unit I pay for once a year, just tools from the business. Nobody
+          knows about that one. I couldn't tell you when it's due.
+      - who: Jack
+        says: >-
+          I think that's the money going out covered.
+      - who: Jack
+        says: >-
+          Yes, let's stop there for today.
+    money-in-owed:
+      - who: John
+        says: >-
+          What's owed: the loan on the ute, maybe twelve thousand left. The overdraft on the
+          company, usually under twenty. No mortgage, and the one credit card I pay off every
+          month.
+      - who: Jack
+        says: >-
+          Tax — Peter would know. I honestly don't know if there's anything outstanding for
+          this year.
+      - who: John
+        says: >-
+          I never went guarantor for anyone. The overdraft might have my name on it personally
+          though, I'd have to ask Peter.
+      - who: Jack
+        says: >-
+          Then there's Trent and the forty grand. Nothing's written down. He paid five thousand
+          back last Christmas, so it's thirty-five owing.
+      - who: John
+        says: >-
+          I wouldn't want Trent chased hard over it. Just written down, so it's not forgotten
+          and nobody can say it never happened.
+      - who: John
+        says: >-
+          Coming in: rent from both units, about eight hundred a week between them, into the
+          trust account. And two final invoices from the builders, about fifteen thousand all
+          up.
+      - who: Jack
+        says: >-
+          If the roof claim pays out, that's money coming in too. And Dad's super — he's got a
+          bloke who looks after it, but I don't know which fund it's with.
+      - who: John
+        says: >-
+          The share dividends come in twice a year into the NAB account. Nobody would think to
+          chase those.
+      - who: Jack
+        says: >-
+          I think that's everything owed and coming in.
+      - who: Jack
+        says: >-
+          Yes, let's stop there for today.
