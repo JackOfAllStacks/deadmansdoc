@@ -42,8 +42,11 @@ export interface MilestoneState {
   /** The claim, with `{family}` already filled in. */
   says: string;
   met: boolean;
-  /** What it still wants, by field label. Empty once met. */
-  missing: { id: string; label: string }[];
+  /**
+   * What it still wants, by field label. Empty once met. `gap` is a field
+   * already asked about and recorded as unknown: covered, but not answered.
+   */
+  missing: { id: string; label: string; gap: boolean }[];
 }
 
 export interface RecordProgress {
@@ -88,7 +91,7 @@ export function progressFor(filled: FilledField[], whose: string): RecordProgres
   const milestones: MilestoneState[] = milestoneSet.milestones.map((m) => {
     const missing = m.needs
       .filter((id) => !answeredId(id))
-      .map((id) => ({ id, label: labels.get(id) ?? id }));
+      .map((id) => ({ id, label: labels.get(id) ?? id, gap: gapId(id) }));
     return { id: m.id, says: saying(m.says, whose), met: missing.length === 0, missing };
   });
 
