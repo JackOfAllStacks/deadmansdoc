@@ -40,12 +40,18 @@ export function Bubble({ message, pending = false }: { message: ChatMessage; pen
  * On a phone it takes whatever height is left rather than a measured one: the
  * page above it is a flex column down from the viewport, so the conversation
  * is the only thing that scrolls and the tabs and the box don't move.
+ *
+ * From sm up the height is measured instead, because the page above it isn't a
+ * flex column down from the viewport there. `--chat-inset` is how much of the
+ * screen that chrome takes, and a page with a smaller header sets it lower to
+ * hand the difference to the conversation -- see the sitting page. The default
+ * suits a full page header with a lead paragraph above the frame.
  */
 export function ChatFrame({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div
       className={cx(
-        "flex min-h-0 flex-1 flex-col gap-3 sm:h-[calc(100dvh-18rem)] sm:min-h-[26rem] sm:flex-none sm:gap-4",
+        "flex min-h-0 flex-1 flex-col gap-3 sm:h-[calc(100dvh-var(--chat-inset,18rem))] sm:min-h-[26rem] sm:flex-none sm:gap-4",
         className,
       )}
     >
