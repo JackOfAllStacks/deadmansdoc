@@ -1,20 +1,12 @@
 import type { Signals, SittingKey } from "@/lib/intake/signals";
 import { isCountRule, type Rule, type SessionTemplate, type SittingTemplate } from "@/lib/plan/template";
 
-export const RHYTHMS = {
-  weekly: { label: "Once a week", gaps: [7] },
-  fortnightly: { label: "Once a fortnight", gaps: [14] },
-  "twice-weekly": { label: "Twice a week", gaps: [3, 4] },
-} as const;
-export type Rhythm = keyof typeof RHYTHMS;
-
 export interface PlannedSitting {
   key: SittingKey;
   title: string;
   summary: string;
   covers: string[];
   minutes: number;
-  date: string;
 }
 
 export function sittingMinutes(sitting: SittingTemplate, signals: Signals): number {
@@ -47,27 +39,16 @@ export function orderSittings(template: SessionTemplate, signals: Signals): Sitt
   return [...new Set([...first, ...byDefault])];
 }
 
-// Dates are handled as plain yyyy-mm-dd in UTC so no timezone can shift a day.
-export function addDays(date: string, days: number): string {
-  const [y, m, d] = date.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
-}
-
-export function isIsoDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  return addDays(value, 0) === value;
-}
-
-export function buildPlan(
-  signals: Signals,
-  template: SessionTemplate,
-  { startDate, rhythm }: { startDate: string; rhythm: Rhythm },
-): PlannedSitting[] {
-  if (!isIsoDate(startDate)) throw new Error(`Invalid start date: ${startDate}`);
+/**
+ * The sittings, in order, with how long each should take. There are no dates:
+ * people fit these around their own lives -- one a week, or all of them in a
+ * day on a visit -- and a suggested schedule only read as being told when.
+ */
+export function buildPlan(signals: Signals, template: SessionTemplate): PlannedSitting[] {
   const step = template.round_to_minutes;
   const max = template.max_minutes_per_sitting;
 
-  const pieces: Omit<PlannedSitting, "date">[] = [];
+  const pieces: PlannedSitting[] = [];
   for (const sitting of orderSittings(template, signals)) {
     const total = roundTo(sittingMinutes(sitting, signals), step);
     const parts = Math.ceil(total / max);
@@ -85,12 +66,7 @@ export function buildPlan(
     }
   }
 
-  const gaps = RHYTHMS[rhythm].gaps;
-  let date = startDate;
-  return pieces.map((piece, i) => {
-    if (i > 0) date = addDays(date, gaps[(i - 1) % gaps.length]);
-    return { ...piece, date };
-  });
+  return pieces;
 }
 
 export interface ExistingSitting {
@@ -98,7 +74,6 @@ export interface ExistingSitting {
   seq: number;
   sitting_key: string;
   status: "planned" | "in_progress" | "done" | "skipped";
-  scheduled_for: string;
 }
 
 export interface Revision {
@@ -106,7 +81,6 @@ export interface Revision {
   title: string;
   minutes: number;
   seq: number;
-  date: string;
 }
 
 /**
@@ -119,10 +93,8 @@ export interface Revision {
  * rebuilt — re-estimated from the new answers and put back in whatever order
  * the new answers imply.
  *
- * They also keep their own dates and positions rather than being re-dated from
- * scratch: the slots the untouched sittings already occupy are handed out
- * again in the new order. Someone who has arranged their week around these
- * shouldn't have it rearranged because they remembered something.
+ * The places the untouched sittings already occupy are handed out again in
+ * the new order, so started sittings keep theirs.
  */
 export function reviseRemaining(
   existing: ExistingSitting[],
@@ -138,7 +110,6 @@ export function reviseRemaining(
 
   const byKey = new Map(movable.map((s) => [s.sitting_key, s]));
   const slots = movable.map((s) => s.seq).sort((a, b) => a - b);
-  const dates = movable.map((s) => s.scheduled_for).sort();
   const step = template.round_to_minutes;
 
   return orderSittings(template, signals)
@@ -148,7 +119,6 @@ export function reviseRemaining(
       title: t.title,
       minutes: roundTo(sittingMinutes(t, signals), step),
       seq: slots[i],
-      date: dates[i],
     }));
 }
 
@@ -160,17 +130,12 @@ export interface ReorderRow extends ExistingSitting {
 /**
  * Moving a sitting up or down the plan by hand.
  *
- * The slots stay put and the sittings move between them: a plan's dates are
- * something people arrange their month around, so dragging the money sitting
- * to the front gives it the date that was already first, rather than dragging
- * its own date along with it and leaving a hole.
+ * The slots stay put and the sittings move between them, so the started
+ * sittings around them keep their places.
  *
  * Only sittings nobody has started can move, for the same reason they are the
  * only ones reviseRemaining will re-cut: what was said in a started sitting is
  * already in the record, and its place in the order is a matter of fact.
- *
- * Seqs and dates are each sorted before they are handed out, so dates always
- * run forwards down the plan even if one was moved out of order by hand.
  */
 export function reorderSlots(existing: ReorderRow[], order: string[]): Revision[] {
   const movable = existing.filter((s) => s.status === "planned");
@@ -183,7 +148,6 @@ export function reorderSlots(existing: ReorderRow[], order: string[]): Revision[
   if (!order.every((id) => byId.has(id))) return [];
 
   const seqs = movable.map((s) => s.seq).sort((a, b) => a - b);
-  const dates = movable.map((s) => s.scheduled_for).sort();
 
   return order.map((id, i) => {
     const sitting = byId.get(id)!;
@@ -192,7 +156,6 @@ export function reorderSlots(existing: ReorderRow[], order: string[]): Revision[
       title: sitting.title,
       minutes: sitting.estimated_minutes,
       seq: seqs[i],
-      date: dates[i],
     };
   });
 }

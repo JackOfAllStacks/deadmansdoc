@@ -315,7 +315,7 @@ export function DemoPlayer({ run }: { run: DemoRun }) {
           return { go: null, title: "" };
         });
         if (!next.go) {
-          setStatus({ text: "That's every sitting" });
+          setStatus({ text: "That's every session" });
           await wait(PACE);
           await toGuide();
           return "again";
@@ -330,7 +330,7 @@ export function DemoPlayer({ run }: { run: DemoRun }) {
       if (path === "/sitting") {
         const back = link("Back to your plan");
         if (back) {
-          setStatus({ text: "That sitting is done" });
+          setStatus({ text: "That session is done" });
           await wait(PACE * 2);
           back.click();
           await until(() => window.location.pathname !== "/sitting");
@@ -355,7 +355,7 @@ export function DemoPlayer({ run }: { run: DemoRun }) {
         if (!sitting || !(await nextLine(`demo:${run.id}:sitting:${sitting.key}`, sitting.lines, sitting.title))) {
           // Out of words with the sitting still open. Leave it as a person
           // would, and don't come back to it.
-          setStatus({ text: "That's the script for this sitting" });
+          setStatus({ text: "That's the script for this session" });
           writeList(`demo:${run.id}:left`, [...readList(`demo:${run.id}:left`), heading]);
           await wait(PACE);
           link("Stop for now")?.click();

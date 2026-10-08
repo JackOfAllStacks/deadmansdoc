@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   if (!record) return fail(404, "Start a record first.");
 
   const sitting = await openSitting(record.id);
-  if (!sitting) return fail(409, "No sitting is open. Start one from your plan.");
+  if (!sitting) return fail(409, "No session is open. Start one from your plan.");
 
   const parsedBody = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsedBody.success) return fail(400, "That edit didn't match what was expected.");

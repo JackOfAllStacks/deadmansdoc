@@ -89,7 +89,7 @@ export default async function LooseEndsPage() {
       </div>
 
       <Note>
-        Writing an answer in here is the same as correcting the document during a sitting — it goes
+        Writing an answer in here is the same as correcting the document during a session — it goes
         through the same checks, and it shows up in the Guide straight away. Nothing has to be
         answered: a question with the right person&apos;s name on it is already worth more to a
         family than a blank.

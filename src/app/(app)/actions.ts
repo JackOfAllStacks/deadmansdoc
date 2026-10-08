@@ -6,26 +6,23 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { fieldsById, sessionTemplate } from "@/lib/content";
 import { DEMO_RUN_COOKIE } from "@/lib/demo/run";
-import { addDays, buildPlan, isIsoDate, reorderSlots, RHYTHMS, type Rhythm } from "@/lib/plan/build-plan";
+import { buildPlan, reorderSlots } from "@/lib/plan/build-plan";
 import {
   applyRevision,
   createRecord,
   getRecordForUser,
   listSittings,
   reopenIntake,
-  rescheduleSitting,
   savePlan,
 } from "@/lib/records";
 import { requireSession } from "@/lib/session";
 import { applyFieldEdit } from "@/lib/sitting/apply-edit";
 import { knownEntities, routeGap } from "@/lib/sitting/capture";
 import { openSitting, startSitting } from "@/lib/sitting/store";
-import { todayInMelbourne } from "@/lib/today";
 
 export type FormState = { error?: string; ok?: boolean };
 
 const MAX_PRESENT = 6;
-const MAX_DAYS_AHEAD = 365;
 
 const startSchema = z.object({
   relationship: z.enum(["self", "parent", "other"], { error: "Choose who this record is for." }),
@@ -58,31 +55,17 @@ export async function startRecord(_prev: FormState, form: FormData): Promise<For
   redirect("/start/intake");
 }
 
-function checkDate(date: string): string | null {
-  const today = todayInMelbourne();
-  if (!isIsoDate(date)) return "Choose a date.";
-  if (date < today) return "Choose a date from today onwards.";
-  if (date > addDays(today, MAX_DAYS_AHEAD)) return "Choose a date within the next year.";
-  return null;
-}
-
-export async function confirmPlan(_prev: FormState, form: FormData): Promise<FormState> {
+export async function confirmPlan(): Promise<FormState> {
   const { user } = await requireSession();
   const record = await getRecordForUser(user.id);
   if (!record?.intake_completed_at) redirect("/home");
 
-  const startDate = String(form.get("startDate") ?? "");
-  const rhythm = String(form.get("rhythm") ?? "");
-  const dateProblem = checkDate(startDate);
-  if (dateProblem) return { error: dateProblem };
-  if (!(rhythm in RHYTHMS)) return { error: "Choose how often you'd like to meet." };
-
-  const plan = buildPlan(record.intake, sessionTemplate, { startDate, rhythm: rhythm as Rhythm });
+  const plan = buildPlan(record.intake, sessionTemplate);
   await savePlan(record.id, plan);
   redirect("/plan");
 }
 
-// Dates on the plan are a suggestion, not a gate: any planned sitting can be
+// The plan's order is a suggestion, not a gate: any planned sitting can be
 // started whenever suits. Only one runs at a time, which startSitting enforces.
 export async function beginSitting(_prev: FormState, form: FormData): Promise<FormState> {
   const { user } = await requireSession();
@@ -98,27 +81,10 @@ export async function beginSitting(_prev: FormState, form: FormData): Promise<Fo
     return {
       error: open
         ? `“${open.title}” is still open. Carry on with that one first.`
-        : "That sitting can't be started now.",
+        : "That session can't be started now.",
     };
   }
   redirect("/sitting");
-}
-
-export async function moveSitting(_prev: FormState, form: FormData): Promise<FormState> {
-  const { user } = await requireSession();
-  const record = await getRecordForUser(user.id);
-  if (!record) redirect("/home");
-
-  const sittingId = z.uuid().safeParse(form.get("sittingId"));
-  const date = String(form.get("date") ?? "");
-  if (!sittingId.success) return { error: "Something went wrong. Please reload the page." };
-  const dateProblem = checkDate(date);
-  if (dateProblem) return { error: dateProblem };
-
-  const moved = await rescheduleSitting(record.id, sittingId.data, date);
-  if (!moved) return { error: "That sitting can't be moved now." };
-  revalidatePath("/plan");
-  return { ok: true };
 }
 
 /**
@@ -131,7 +97,7 @@ export async function reopenConversation(): Promise<FormState> {
   if (!record) redirect("/home");
 
   if (!(await reopenIntake(record.id))) {
-    return { error: "Finish the sitting that's open first, then come back to this." };
+    return { error: "Finish the session that's open first, then come back to this." };
   }
   revalidatePath("/start/intake");
   return { ok: true };
@@ -139,8 +105,7 @@ export async function reopenConversation(): Promise<FormState> {
 
 /**
  * Reordering the plan by hand. The sittings move between the slots they
- * already occupy, so the dates someone has arranged their month around stay
- * where they are; see reorderSlots.
+ * already occupy; see reorderSlots.
  */
 export async function reorderPlan(_prev: FormState, form: FormData): Promise<FormState> {
   const { user } = await requireSession();
@@ -190,7 +155,7 @@ export async function answerLooseEnd(_prev: FormState, form: FormData): Promise<
   // than a box can honestly take, and the sitting that covers it asks the
   // questions that go with it.
   if (field.type === "entities") {
-    return { error: "This one is a list of entries, so it belongs in the sitting that covers it." };
+    return { error: "This one is a list of entries, so it belongs in the session that covers it." };
   }
   // An empty box would parse as "clear this field", which would delete the
   // gap rather than answer it -- and a gap is content, not a blank.

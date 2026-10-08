@@ -126,32 +126,17 @@ if (finished) {
   await page.waitForURL(/\/plan\/new$/, { waitUntil: "commit" });
   await page.locator("section ol > li").first().waitFor();
   const cards = await page.locator("section ol > li").allInnerTexts();
-  check("plan preview lists the sittings", cards.length >= 4, `${cards.length} sittings`);
+  check("plan preview lists the sessions", cards.length >= 4, `${cards.length} sessions`);
   console.log("\nPLAN PREVIEW:\n" + cards.map((c) => "  - " + c.replace(/\n/g, " | ")).join("\n"));
-  await page.getByLabel("How often").selectOption("fortnightly");
-  const start = await page.getByLabel("First sitting").inputValue();
+  check("plan preview shows no dates", !cards.some((c) => /\bday \d/.test(c)));
   await shot(page, "4-plan-new");
   await page.getByRole("button", { name: "Use this plan" }).click();
   await page.waitForURL(/\/plan$/, { timeout: 30_000, waitUntil: "commit" });
   await page.locator("main ol > li").first().waitFor();
   const saved = await page.locator("main ol > li").allInnerTexts();
   check("plan is saved", saved.length === cards.length, `${saved.length} rows`);
-  console.log("\nSAVED PLAN (start " + start + ", fortnightly):\n" + saved.map((c) => "  - " + c.replace(/\n/g, " | ")).join("\n"));
+  console.log("\nSAVED PLAN:\n" + saved.map((c) => "  - " + c.replace(/\n/g, " | ")).join("\n"));
 
-  // Move the first sitting a week later.
-  const first = page.locator("main ol > li").first();
-  const dateText = () => first.locator("span.text-sm").filter({ hasText: /day \d/ }).first().innerText();
-  const before = await dateText();
-  await first.getByRole("button", { name: "Change date" }).click();
-  const current = await first.getByLabel("New date").inputValue();
-  const [y, m, d] = current.split("-").map(Number);
-  const later = new Date(Date.UTC(y, m - 1, d + 7)).toISOString().slice(0, 10);
-  await first.getByLabel("New date").fill(later);
-  await first.getByRole("button", { name: "Save" }).click();
-  await first.getByLabel("New date").waitFor({ state: "detached", timeout: 15_000 });
-  await page.waitForFunction((b) => ![...document.querySelectorAll("main ol > li span")].some((el) => el.textContent === b), before, { timeout: 15_000 }).catch(() => {});
-  const after = await dateText();
-  check("a sitting can be rescheduled", after !== before, `${before} → ${after}`);
   await shot(page, "5-plan");
 
   // Where each page goes once there is a plan. /home is a dashboard rather

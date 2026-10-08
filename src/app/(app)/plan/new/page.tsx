@@ -3,8 +3,6 @@ import { Page, PageHeader } from "@/components/ui";
 import { sessionTemplate } from "@/lib/content";
 import { getRecordForUser, listSittings } from "@/lib/records";
 import { requireSession } from "@/lib/session";
-import { addDays } from "@/lib/plan/build-plan";
-import { todayInMelbourne } from "@/lib/today";
 import { PlanBuilder } from "./plan-builder";
 
 export const metadata = { title: "Your plan · The Handover" };
@@ -15,7 +13,6 @@ export default async function NewPlanPage() {
   if (!record?.intake_completed_at) redirect("/home");
   if ((await listSittings(record.id)).length) redirect("/plan");
 
-  const today = todayInMelbourne();
   const whose = record.subject_relationship === "self" ? "your" : `${record.subject_name}'s`;
 
   return (
@@ -23,15 +20,9 @@ export default async function NewPlanPage() {
       <PageHeader
         eyebrow="From the opening conversation"
         title={`A plan for ${whose} handover`}
-        lead="Here's how the rest could be broken up. Each sitting is short and covers one part of the record. Choose when to start and how often; any of them can be moved later."
+        lead="Here's how the rest breaks up. Each session is short and covers one part of the record. Do them whenever suits — one a week, or all of them in a day."
       />
-      <PlanBuilder
-        signals={record.intake}
-        template={sessionTemplate}
-        today={today}
-        latest={addDays(today, 365)}
-        defaultStart={addDays(today, 1)}
-      />
+      <PlanBuilder signals={record.intake} template={sessionTemplate} />
     </Page>
   );
 }

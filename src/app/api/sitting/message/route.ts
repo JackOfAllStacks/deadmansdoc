@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   if (!record) return fail(404, "Start a record first.");
 
   const sitting = await openSitting(record.id);
-  if (!sitting) return fail(409, "No sitting is open. Start one from your plan.");
+  if (!sitting) return fail(409, "No session is open. Start one from your plan.");
 
   const body = bodySchema.safeParse(await request.json().catch(() => null));
   if (!body.success) return fail(400, `Messages need to be between 1 and ${MAX_MESSAGE_LENGTH} characters.`);

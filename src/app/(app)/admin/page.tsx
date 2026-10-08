@@ -32,7 +32,7 @@ export default async function AdminPage() {
     ["Accounts", summary.accounts],
     ["Records", summary.records],
     ["Opening conversations done", summary.intakes_done],
-    ["Sittings done", summary.sittings_done],
+    ["Sessions done", summary.sittings_done],
   ] as const;
 
   return (
@@ -66,7 +66,7 @@ export default async function AdminPage() {
                   </span>
                   <span className="text-sm text-muted">
                     {r.intake_done ? "opening conversation done" : "opening conversation unfinished"} ·{" "}
-                    {r.sittings_done} of {r.sittings} sittings · {r.values} things recorded
+                    {r.sittings_done} of {r.sittings} sessions · {r.values} things recorded
                   </span>
                 </Link>
               </li>

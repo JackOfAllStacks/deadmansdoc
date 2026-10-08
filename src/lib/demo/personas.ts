@@ -51,8 +51,6 @@ export interface PersonaNote {
 export interface PersonaSitting {
   key: string;
   status: "planned" | "in_progress" | "done";
-  /** Days from today: negative for one already behind them. */
-  day: number;
   minutes?: number;
 }
 
