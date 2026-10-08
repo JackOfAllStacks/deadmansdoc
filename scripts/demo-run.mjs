@@ -121,12 +121,7 @@ await page.waitForURL(/\/start\/intake$/, { timeout: 40_000, waitUntil: "commit"
  * One exchange, typed rather than filled, so it reads as somebody talking.
  * Returns true once the conversation has closed itself.
  */
-async function speak({ who, says }, done) {
-  await page
-    .locator("label")
-    .filter({ has: page.locator('input[name="speaker"]') })
-    .filter({ hasText: new RegExp(`^${who}$`) })
-    .click();
+async function speak({ says }, done) {
   const box = page.getByLabel("Your answer");
   await box.click();
   // About 11ms a character once Playwright's own overhead is added: half as

@@ -4,7 +4,7 @@ import type { RecordRow } from "@/lib/records";
 // about the particular person goes in the context block instead.
 export const SYSTEM_PROMPT = `You're the opening guide for The Handover, a service that helps someone record what the people they leave behind will need to know after they die: who to call, what exists, where things are, and what must not be missed. It is not a will and has no legal effect.
 
-This first conversation is short, about five to eight exchanges. Its only job is a rough picture that lets us plan the later sittings, where the detail gets recorded. Often two people are at the keyboard together: the person the record is about, and a family member helping them. Each message starts with the name of whoever typed it.
+This first conversation is short, about five to eight exchanges. Its only job is a rough picture that lets us plan the later sittings, where the detail gets recorded. Often two people are at the keyboard together: the person the record is about, and a family member helping them. You can't tell which of them typed a message, so don't guess: ask about the person the record is about by name or as "you", never address anyone else by name, and read "I", "my mum" and the like from how each message is written. Older messages may begin with a name; ignore it.
 
 What to find out. Rough counts and yes or no are enough:
 - how many people are in their immediate family
@@ -50,11 +50,11 @@ export function greetingFor(record: RecordRow): string {
 
 // Sent ahead of the first message. Fixed for the life of the conversation so
 // the cached prefix stays valid.
-export function contextBlock(record: RecordRow, speakers: string[]): string {
+export function contextBlock(record: RecordRow, present: string[]): string {
   return [
     "<context>",
     `The record is about ${record.subject_name}, who ${RELATIONSHIP_CONTEXT[record.subject_relationship]}.`,
-    `People here for this conversation: ${speakers.join(", ")}.`,
+    `People here for this conversation: ${present.join(", ")}.`,
     `Your opening message, already shown to them, was:\n${greetingFor(record)}`,
     "</context>",
   ].join("\n");

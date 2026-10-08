@@ -57,14 +57,6 @@ await page.getByLabel("Your answer").waitFor();
 
 // ── The opening conversation ──────────────────────────────────────────
 async function say(speaker, text, doneText) {
-  // The segmented control's radio is sr-only and its label sits over it, so a
-  // real person clicks the label. Checking the input directly is what a person
-  // can't do, and Playwright rightly refuses it.
-  await page
-    .locator("label")
-    .filter({ has: page.locator('input[name="speaker"]') })
-    .filter({ hasText: new RegExp(`^${speaker}$`) })
-    .click();
   await page.getByLabel("Your answer").fill(text);
   // The button only enables once React has the typed value. Clicking before
   // that lands on unhydrated HTML and does nothing at all.

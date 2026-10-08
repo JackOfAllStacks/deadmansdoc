@@ -86,23 +86,14 @@ async function write(userId: string, persona: Persona): Promise<SeedResult> {
   // ── What was said ───────────────────────────────────────────────────
   // Every captured value hangs off a message, which is how capturedIn() and
   // the transcript find it. A persona without a transcript still needs one.
-  // A person's message is stored twice over: `content` is what they typed, and
-  // the block the model sees is prefixed with their name, because two people
-  // share one keyboard. Seeded messages have to carry that prefix too, or a
-  // seeded transcript shows no names where a real one does.
-  const helper = persona.present.find((name) => name !== persona.subject_name) ?? persona.subject_name;
-  const nameOf = (from: string) => (from === "subject" ? persona.subject_name : from === "helper" ? helper : null);
-
   const messageFor = new Map<string, string>();
   for (const line of persona.transcript ?? []) {
     const sittingId = line.sitting ? (bySittingKey.get(line.sitting) ?? null) : null;
     const text = line.text.trim();
-    const speaker = nameOf(line.from);
-    const block = speaker ? `${speaker}: ${text}` : text;
     const [{ id }] = (await sql`
       insert into messages (record_id, sitting_id, phase, role, content, blocks)
       values (${recordId}, ${sittingId}, ${sittingId ? "sitting" : "intake"}, ${line.from},
-              ${text}, ${JSON.stringify([{ type: "text", text: block }])}::jsonb)
+              ${text}, ${JSON.stringify([{ type: "text", text }])}::jsonb)
       returning id`) as { id: string }[];
     if (sittingId && line.from === "subject" && !messageFor.has(line.sitting!)) {
       messageFor.set(line.sitting!, id);
@@ -116,9 +107,7 @@ async function write(userId: string, persona: Persona): Promise<SeedResult> {
     const [{ id }] = (await sql`
       insert into messages (record_id, sitting_id, phase, role, content, blocks)
       values (${recordId}, ${sittingId}, 'sitting', 'subject', '(recorded during this sitting)',
-              ${JSON.stringify([
-                { type: "text", text: `${persona.subject_name}: (recorded during this sitting)` },
-              ])}::jsonb)
+              ${JSON.stringify([{ type: "text", text: "(recorded during this sitting)" }])}::jsonb)
       returning id`) as { id: string }[];
     messageFor.set(key, id);
   }

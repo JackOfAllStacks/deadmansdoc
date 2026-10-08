@@ -344,7 +344,6 @@ function newlyCovered(touched: Set<string>, before: FilledField[]): { questionId
 export async function runSittingTurn(
   record: RecordRow,
   sitting: SittingDetail,
-  speaker: string,
   text: string,
   send: (event: SittingEvent) => void,
 ): Promise<void> {
@@ -357,11 +356,9 @@ export async function runSittingTurn(
     }
   };
 
-  const userMessage: MessageRow = {
-    role: speaker === record.subject_name ? "subject" : "helper",
-    content: text,
-    blocks: [{ type: "text", text: `${speaker}: ${text}` }],
-  };
+  // Whoever is at the keyboard answers on the subject's behalf, so there is no
+  // name to attach. "helper" only appears on messages from before that.
+  const userMessage: MessageRow = { role: "subject", content: text, blocks: [{ type: "text", text }] };
 
   const [history, filledBefore, known] = await Promise.all([
     sittingMessages(sitting.id).then((h) => [...h, userMessage]),

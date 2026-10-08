@@ -12,11 +12,9 @@ import {
   createRecord,
   getRecordForUser,
   listSittings,
-  reassignSpeaker,
   reopenIntake,
   rescheduleSitting,
   savePlan,
-  speakersFor,
 } from "@/lib/records";
 import { requireSession } from "@/lib/session";
 import { applyFieldEdit } from "@/lib/sitting/apply-edit";
@@ -136,27 +134,6 @@ export async function reopenConversation(): Promise<FormState> {
     return { error: "Finish the sitting that's open first, then come back to this." };
   }
   revalidatePath("/start/intake");
-  return { ok: true };
-}
-
-/**
- * Files a message under a different person. Correcting it afterwards is the
- * point: the speaker control can be left on the wrong name for a whole turn
- * without anybody noticing, and a record that says the wrong person said
- * something is worse than one that has to be put right.
- */
-export async function correctSpeaker(_prev: FormState, form: FormData): Promise<FormState> {
-  const { user } = await requireSession();
-  const record = await getRecordForUser(user.id);
-  if (!record) redirect("/home");
-
-  const messageId = z.uuid().safeParse(form.get("messageId"));
-  const speaker = String(form.get("speaker") ?? "");
-  if (!messageId.success) return { error: "Something went wrong. Please reload the page." };
-  if (!speakersFor(record).includes(speaker)) return { error: "That isn't one of the people here." };
-
-  const moved = await reassignSpeaker(record.id, messageId.data, speaker, speaker === record.subject_name);
-  if (!moved) return { error: "That message can't be moved." };
   return { ok: true };
 }
 

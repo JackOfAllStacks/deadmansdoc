@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { correctSpeaker, reopenConversation } from "@/app/(app)/actions";
-import { ChatFrame, Composer, SpeakerPicker, Transcript } from "@/components/chat";
+import { reopenConversation } from "@/app/(app)/actions";
+import { ChatFrame, Composer, Transcript } from "@/components/chat";
 import { Alert, Button, ButtonLink, Card, Note, SectionHeading } from "@/components/ui";
 import type { IntakeEvent } from "@/lib/intake/agent";
 import type { ChatMessage } from "@/lib/transcript";
@@ -18,7 +18,6 @@ export interface Area {
 export function IntakeChat({
   greeting,
   history,
-  speakers,
   maxLength,
   areas,
   finished,
@@ -26,7 +25,6 @@ export function IntakeChat({
 }: {
   greeting: string;
   history: ChatMessage[];
-  speakers: string[];
   maxLength: number;
   areas: Area[];
   finished: boolean;
@@ -35,7 +33,6 @@ export function IntakeChat({
   const [messages, setMessages] = useState<ChatMessage[]>(history);
   const [live, setLive] = useState("");
   const [draft, setDraft] = useState("");
-  const [speaker, setSpeaker] = useState(speakers[0]);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [revised, setRevised] = useState(0);
@@ -50,7 +47,7 @@ export function IntakeChat({
     setError(null);
     setStatus("sending");
     setDraft("");
-    const mine: ChatMessage = { from: "person", name: speaker, text };
+    const mine: ChatMessage = { from: "person", text };
     setMessages((m) => [...m, mine]);
 
     const restore = (message: string) => {
@@ -65,7 +62,7 @@ export function IntakeChat({
       const res = await fetch("/api/intake/message", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text, speaker }),
+        body: JSON.stringify({ text }),
       });
       if (!res.ok || !res.body) {
         const body = await res.json().catch(() => ({}));
@@ -122,21 +119,6 @@ export function IntakeChat({
   }
 
 
-  // Filing a message under someone else. Optimistic, because the alternative
-  // is the name flickering back for a moment and looking like it failed.
-  async function correct(id: string, name: string) {
-    const before = messages;
-    setMessages((m) => m.map((x) => (x.from === "person" && x.id === id ? { ...x, name } : x)));
-    const form = new FormData();
-    form.set("messageId", id);
-    form.set("speaker", name);
-    const result = await correctSpeaker({}, form);
-    if (result.error) {
-      setMessages(before);
-      setError(result.error);
-    }
-  }
-
   if (finished) return <Finished greeting={greeting} messages={messages} hasPlan={hasPlan} />;
   if (!started) return <BeforeYouBegin areas={areas} onBegin={() => setStarted(true)} />;
 
@@ -176,14 +158,7 @@ export function IntakeChat({
         a real answer, and the detail comes later, a bit at a time.
       </Note>
       <ChatFrame>
-        <Transcript
-          greeting={greeting}
-          messages={messages}
-          live={live}
-          pending={status === "sending"}
-          speakers={speakers}
-          onCorrect={correct}
-        />
+        <Transcript greeting={greeting} messages={messages} live={live} pending={status === "sending"} />
         <Composer
           draft={draft}
           onDraft={setDraft}
@@ -192,9 +167,7 @@ export function IntakeChat({
           busy={status !== "idle"}
           error={error}
           footer={<span>Stopping here keeps everything said so far.</span>}
-        >
-          <SpeakerPicker speakers={speakers} speaker={speaker} onChange={setSpeaker} />
-        </Composer>
+        />
       </ChatFrame>
     </div>
   );

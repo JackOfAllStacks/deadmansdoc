@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { Page, PageHeader } from "@/components/ui";
 import { sessionTemplate } from "@/lib/content";
 import { formatMinutes } from "@/lib/plan/build-plan";
-import { getRecordForUser, speakersFor } from "@/lib/records";
+import { getRecordForUser } from "@/lib/records";
 import { requireSession } from "@/lib/session";
 import { MAX_MESSAGE_LENGTH } from "@/lib/sitting/agent";
 import { capturedIn, filledFields, knownEntities } from "@/lib/sitting/capture";
@@ -52,7 +52,6 @@ export default async function SittingPage() {
         people={entities.filter((e) => e.entityType === "person").map((e) => e.label)}
         coverage={coverageOf(sitting.covers, filled)}
         topics={topicProgress(topics, filled)}
-        speakers={speakersFor(record)}
         maxLength={MAX_MESSAGE_LENGTH}
         busy={isBusy(sitting)}
       />
