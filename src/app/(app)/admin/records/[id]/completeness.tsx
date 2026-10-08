@@ -44,7 +44,7 @@ export function Completeness({
                 standing === "recorded"
                   ? "bg-recorded"
                   : standing === "not-known"
-                    ? "bg-unknown"
+                    ? "bg-unknown-mark"
                     : standing === "does-not-apply"
                       ? "bg-outstanding"
                       : "bg-transparent"

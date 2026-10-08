@@ -228,7 +228,7 @@ export function Progress({
         style={{ width: `${first}%` }}
       />
       {second > 0 && (
-        <div className="h-full bg-unknown transition-[width] duration-500" style={{ width: `${second}%` }} />
+        <div className="h-full bg-unknown-mark transition-[width] duration-500" style={{ width: `${second}%` }} />
       )}
     </div>
   );
