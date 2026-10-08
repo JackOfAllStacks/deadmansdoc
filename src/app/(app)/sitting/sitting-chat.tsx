@@ -341,7 +341,14 @@ export function SittingChat({
           pending={waiting}
           speakers={speakers}
           onCorrect={correct}
-          leading={<PhoneHead eyebrow={eyebrow} title={title} lead={lead} tabs={tabs} />}
+          leading={
+            <PhoneHead
+              eyebrow={eyebrow}
+              title={title}
+              lead={lead}
+              tabs={showing === "conversation" ? tabs : null}
+            />
+          }
         />
 
         {status === "finished" ? (
@@ -367,6 +374,7 @@ export function SittingChat({
 
       <DocumentPanel
         hidden={showing !== "document"}
+        tabs={showing === "document" ? tabs : null}
         outline={doc}
         notes={extraNotes}
         people={known}
@@ -462,6 +470,7 @@ function DocumentPanel({
   topics,
   locked,
   hidden,
+  tabs,
   save,
 }: {
   outline: DocumentSectionView[];
@@ -472,16 +481,19 @@ function DocumentPanel({
   locked: boolean;
   /** Only ever true on a phone, where the other tab is showing. */
   hidden: boolean;
+  /** The way back to the conversation. Only on a phone, and only when shown. */
+  tabs: ReactNode;
   save: SaveBlock;
 }) {
   const done = progress.answered + progress.gaps;
   return (
     <aside
       className={cx(
-        "order-3 flex-col gap-5 overflow-y-auto rounded-lg border border-line bg-surface px-6 py-6 sm:max-h-[calc(100dvh-18rem)] sm:min-h-[26rem] sm:px-7 lg:order-2 lg:flex",
+        "order-3 min-h-0 flex-1 flex-col gap-5 overflow-y-auto rounded-lg border border-line bg-surface px-6 py-6 sm:max-h-[calc(100dvh-18rem)] sm:min-h-[26rem] sm:flex-none sm:px-7 lg:order-2 lg:flex",
         hidden ? "hidden" : "flex",
       )}
     >
+      {tabs && <div className="sticky top-0 z-10 -mx-6 bg-surface px-6 pb-3 sm:-mx-7 sm:px-7">{tabs}</div>}
       <div className="flex flex-col gap-3 border-b border-line pb-4">
         <div className="flex flex-col gap-2">
           <h2 className="text-lg">The document, so far</h2>
