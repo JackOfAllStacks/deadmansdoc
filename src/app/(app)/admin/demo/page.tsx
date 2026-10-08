@@ -1,10 +1,13 @@
 import { Card, Note, Page, PageHeader, SectionHeading } from "@/components/ui";
 import { listAccounts } from "@/lib/admin";
+import { db } from "@/lib/db";
 import { personas } from "@/lib/demo/personas";
+import { SHOWCASE } from "@/lib/demo/showcase";
 import { scriptedSittings } from "@/lib/demo/run";
 import { requireAdmin } from "@/lib/session";
 import { RunForm } from "./run-form";
 import { SeedForm } from "./seed-form";
+import { ShowcaseForm } from "./showcase-form";
 
 export const metadata = { title: "Demo records · The Handover" };
 export const dynamic = "force-dynamic";
@@ -19,6 +22,10 @@ export const dynamic = "force-dynamic";
 export default async function DemoPage() {
   await requireAdmin();
   const accounts = await listAccounts();
+  const emails: string[] = SHOWCASE.map((a) => a.email);
+  const made = new Set(
+    ((await db()`select email from "user" where email = any(${emails})`) as { email: string }[]).map((r) => r.email),
+  );
   const scripted = personas.flatMap((p) =>
     p.script?.intake?.length ? [{ key: p.key, name: p.name, sittings: scriptedSittings(p).length }] : [],
   );
@@ -36,6 +43,17 @@ export default async function DemoPage() {
         <strong className="font-semibold">replaces</strong> whatever record that account already
         had, so point it at an account kept for demos rather than your own.
       </Note>
+
+      <section className="flex flex-col gap-4">
+        <SectionHeading aside="to hand out">Accounts for showing people</SectionHeading>
+        <p className="measure text-sm text-muted">
+          Three accounts at three points — not started, half way, finished — for someone to sign in
+          to and click round. Setting them up again puts all three back how they started, so do it
+          after each person has had a go. They share one record each, so two people in the same
+          account at once will see each other&apos;s changes.
+        </p>
+        <ShowcaseForm accounts={SHOWCASE.map((a) => ({ email: a.email, label: a.label, exists: made.has(a.email) }))} />
+      </section>
 
       <section className="flex flex-col gap-4">
         <SectionHeading>Who you can seed</SectionHeading>

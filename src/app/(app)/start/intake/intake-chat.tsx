@@ -222,8 +222,8 @@ function BeforeYouBegin({ areas, onBegin }: { areas: Area[]; onBegin: () => void
       </section>
 
       <Note>
-        None of this is a legal document, and nothing here is shown to anyone else. You can stop at
-        any point — what&apos;s been said is kept.
+        None of this is a legal document. You can stop at any point — what&apos;s been said is
+        kept.
       </Note>
 
       <Button onClick={onBegin} className="self-start">

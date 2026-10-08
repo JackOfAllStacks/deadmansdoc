@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { TestNotice } from "@/components/test-notice";
 import { Card, Page, PageHeader } from "@/components/ui";
 import { artifact } from "@/lib/content";
 import { getRecordForUser } from "@/lib/records";
@@ -36,6 +37,8 @@ export default async function StartPage() {
           that.
         </p>
       </Card>
+
+      <TestNotice />
 
       <StartForm accountName={user.name} />
     </Page>
