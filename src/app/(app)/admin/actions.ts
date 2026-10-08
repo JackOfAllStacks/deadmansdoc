@@ -96,13 +96,23 @@ export async function startDemoRun(_prev: FormState, form: FormData): Promise<Fo
   // can be read afterwards from the admin pages.
   const password = randomBytes(24).toString("base64url");
 
+  // On Netlify the auth origin is worked out from the request's host, so a
+  // direct call has to carry it -- without it sign-up refuses to run. The
+  // admin's cookie is left off, so this can only ever make a new session.
+  const incoming = await headers();
+  const forSignUp = new Headers({ [SIGNUP_CODE_HEADER]: code });
+  for (const name of ["host", "x-forwarded-host", "x-forwarded-proto", "origin", "user-agent"]) {
+    const value = incoming.get(name);
+    if (value) forSignUp.set(name, value);
+  }
+
   let userId: string;
   try {
-    // Out first, then in. Both write the session cookie, and the last write wins.
-    await auth.api.signOut({ headers: await headers() });
+    // No separate sign-out: the new session's cookie replaces the admin's, so
+    // if anything here fails the admin is still signed in and sees why.
     const result = await auth.api.signUpEmail({
       body: { name: helperOf(persona), email, password },
-      headers: new Headers({ [SIGNUP_CODE_HEADER]: code }),
+      headers: forSignUp,
     });
     userId = result.user.id;
   } catch (err) {
