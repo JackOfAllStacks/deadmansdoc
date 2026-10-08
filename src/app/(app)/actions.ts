@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { fieldsById, sessionTemplate } from "@/lib/content";
+import { DEMO_RUN_COOKIE } from "@/lib/demo/run";
 import { addDays, buildPlan, isIsoDate, reorderSlots, RHYTHMS, type Rhythm } from "@/lib/plan/build-plan";
 import {
   applyRevision,
@@ -264,4 +266,10 @@ export async function routeLooseEnd(_prev: FormState, form: FormData): Promise<F
   revalidatePath("/loose-ends");
   revalidatePath("/guide");
   return { ok: true };
+}
+
+/** The end of a demo run, whether it finished or somebody stopped it. */
+export async function endDemoRun(): Promise<void> {
+  await requireSession();
+  (await cookies()).delete(DEMO_RUN_COOKIE);
 }
