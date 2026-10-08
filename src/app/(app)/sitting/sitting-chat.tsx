@@ -326,7 +326,7 @@ export function SittingChat({
           live={live}
           pending={waiting}
           leading={
-            <PhoneHead
+            <SittingHead
               eyebrow={eyebrow}
               title={title}
               lead={lead}
@@ -371,14 +371,19 @@ export function SittingChat({
 }
 
 /**
- * What sits above the conversation on a phone, inside its scroll.
+ * What sits above the conversation, inside its scroll, at every width.
  *
- * The title and what the sitting is about scroll away with it -- they say
- * what this is, which you need once rather than for the whole sitting, and a
- * small screen can't spare the room. The tabs can't go with them: they are
- * how you reach the document, so they stop at the top and stay there.
+ * The heading belongs to the conversation rather than to the page: it names
+ * the session and says what it covers, which you need once, not for the
+ * whole sitting, so it scrolls away with the first few messages. Keeping it
+ * out of the page also lets the document stand at its full height beside the
+ * conversation instead of starting below a band of title.
+ *
+ * The tabs can't go with it: they are how you reach the document, so they
+ * stop at the top and stay there. They only exist below lg, where the two
+ * halves take turns.
  */
-function PhoneHead({
+function SittingHead({
   eyebrow,
   title,
   lead,
@@ -395,13 +400,14 @@ function PhoneHead({
   // have the whole conversation to stay at the top of.
   return (
     <>
-      <div className="flex flex-col gap-1 px-0.5 pb-3 lg:hidden">
+      {/* A rule under it from lg, where no tabs follow to divide it from the
+          first message. The summary sits under the title rather than beside
+          it now that the heading scrolls: nothing is bought by saving the
+          height of a line that leaves the screen on the first answer. */}
+      <div className="mb-1 flex flex-col gap-1 px-0.5 pb-3 lg:mb-3 lg:border-b lg:border-line lg:pb-4">
         <p className="text-xs font-medium text-faint">{eyebrow}</p>
         <h1 className="text-2xl">{title}</h1>
-        {/* Under the title rather than beside it, as on a wide screen: a phone
-            has the height to spare and not the width, and this scrolls away
-            with the rest of the heading anyway. */}
-        <p className="text-sm leading-relaxed text-muted">{lead}</p>
+        <p className="measure text-sm leading-relaxed text-muted">{lead}</p>
       </div>
       <div className="sticky top-0 z-10 -mx-1 bg-paper px-1 pb-3 lg:hidden">{tabs}</div>
     </>

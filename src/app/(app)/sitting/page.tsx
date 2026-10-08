@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Page, PageHeader } from "@/components/ui";
+import { Page } from "@/components/ui";
 import { sessionTemplate } from "@/lib/content";
 import { formatMinutes } from "@/lib/plan/build-plan";
 import { getRecordForUser } from "@/lib/records";
@@ -38,8 +38,8 @@ export default async function SittingPage() {
   // Wider than the rest of the app: the conversation and the document it is
   // writing sit side by side here, and both need room to be read.
   return (
-    // The height of what's left below the header, at every width -- no page
-    // on the screen is taller than the screen.
+    // The height of what's left below the nav, at every width -- no page on
+    // the screen is taller than the screen.
     //
     // From lg the two panes share it and each scrolls inside itself, so the
     // composer is always on screen without scrolling the page to it. Below
@@ -51,21 +51,9 @@ export default async function SittingPage() {
       pad="tight"
       className="h-0 flex-1 overflow-y-auto lg:overflow-hidden"
     >
-      {/* Below lg this is inside the conversation instead, so it scrolls away
-          with it rather than holding the top of a small screen. The compact
-          header runs the summary along the title's line, so saying what the
-          session covers costs no height here. */}
-      {/* A rule under it so the heading reads as the page's rather than as
-          the conversation's: without it the title sits in the same open space
-          as the first message, which is the one thing on the page it isn't. */}
-      <div className="border-b border-line pb-4 max-lg:hidden">
-        <PageHeader
-          size="compact"
-          eyebrow={`Session ${sitting.seq} · about ${formatMinutes(sitting.estimated_minutes)}`}
-          title={sitting.title}
-          lead={summary}
-        />
-      </div>
+      {/* No page header: the heading belongs to the conversation and is
+          rendered inside it, so the document pane starts level with the top
+          of the screen rather than below a band of title. See SittingHead. */}
       <SittingChat
         eyebrow={`Session ${sitting.seq} · about ${formatMinutes(sitting.estimated_minutes)}`}
         title={sitting.title}
