@@ -312,8 +312,12 @@ export function SittingChat({
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:flex-none lg:grid-cols-[minmax(0,1fr)_minmax(28rem,34rem)] lg:gap-8">
+    // One grid row, explicitly minmax(0,1fr): it fills the page and both
+    // panes may shrink below their content, which is what lets each one
+    // scroll inside itself instead of pushing the page taller.
+    <div className="flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(28rem,34rem)] lg:grid-rows-[minmax(0,1fr)] lg:gap-8">
       <ChatFrame
+        fill
         className={cx("order-2 lg:order-1 lg:flex", showing === "conversation" ? "flex" : "hidden")}
       >
         <Transcript
@@ -392,9 +396,12 @@ function PhoneHead({
   return (
     <>
       <div className="flex flex-col gap-1 px-0.5 pb-3 lg:hidden">
-        <p className="text-sm font-medium text-faint">{eyebrow}</p>
+        <p className="text-xs font-medium text-faint">{eyebrow}</p>
         <h1 className="text-2xl">{title}</h1>
-        {lead && <p className="text-sm leading-relaxed text-muted">{lead}</p>}
+        {/* Under the title rather than beside it, as on a wide screen: a phone
+            has the height to spare and not the width, and this scrolls away
+            with the rest of the heading anyway. */}
+        <p className="text-sm leading-relaxed text-muted">{lead}</p>
       </div>
       <div className="sticky top-0 z-10 -mx-1 bg-paper px-1 pb-3 lg:hidden">{tabs}</div>
     </>
@@ -465,7 +472,10 @@ function DocumentPanel({
   return (
     <aside
       className={cx(
-        "order-3 flex-col gap-5 rounded-lg border border-line bg-surface px-6 py-6 max-sm:overflow-visible sm:max-h-[calc(100dvh-18rem)] sm:min-h-[26rem] sm:overflow-y-auto sm:px-7 lg:order-2 lg:flex",
+        // Below lg the document is a tab of its own and the page scrolls it, so
+        // it stands at its full height. From lg it shares the screen with the
+        // conversation and scrolls within its half.
+        "order-3 flex-col gap-5 rounded-lg border border-line bg-surface px-6 py-6 sm:px-7 lg:order-2 lg:flex lg:min-h-0 lg:overflow-y-auto",
         hidden ? "hidden" : "flex",
       )}
     >

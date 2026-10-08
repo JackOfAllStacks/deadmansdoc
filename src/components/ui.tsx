@@ -25,17 +25,29 @@ const WIDTHS = {
   full: "max-w-[92rem]",
 } as const;
 
+// A prop rather than something a caller overrides through className: cx only
+// joins, so a py-5 passed in would sit beside py-10 and whichever Tailwind
+// happened to emit last would win.
+const PADS = {
+  default: "gap-8 py-10",
+  // For a page held to the height of the screen, where every row of padding
+  // comes out of what can be read.
+  tight: "gap-5 py-5 sm:py-6",
+} as const;
+
 export function Page({
   width = "page",
+  pad = "default",
   children,
   className,
 }: {
   width?: keyof typeof WIDTHS;
+  pad?: keyof typeof PADS;
   children: ReactNode;
   className?: string;
 }) {
   return (
-    <main className={cx("mx-auto flex w-full flex-1 flex-col gap-8 px-5 py-10 sm:px-6", WIDTHS[width], className)}>
+    <main className={cx("mx-auto flex w-full flex-1 flex-col px-5 sm:px-6", PADS[pad], WIDTHS[width], className)}>
       {children}
     </main>
   );
@@ -51,22 +63,43 @@ export function PageHeader({
   title,
   lead,
   aside,
+  size = "default",
 }: {
   eyebrow?: ReactNode;
   title: string;
   lead?: ReactNode;
   aside?: ReactNode;
+  /**
+   * `compact` for a page held to the height of the screen, where the header
+   * competes with what you came to read — the sitting. The title drops a
+   * size, the rows tighten, and the lead sits beside the title rather than
+   * under it, so it costs no height of its own.
+   */
+  size?: "default" | "compact";
 }) {
+  const compact = size === "compact";
   return (
-    <header className="flex flex-col gap-3">
+    <header className={cx("flex flex-col", compact ? "gap-1" : "gap-3")}>
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
-        <div className="flex flex-col gap-1.5">
-          {eyebrow && <p className="text-sm font-medium text-faint">{eyebrow}</p>}
-          <h1 className="text-3xl sm:text-4xl">{title}</h1>
+        <div className={cx("flex flex-col", compact ? "gap-0.5" : "gap-1.5")}>
+          {/* Smaller when compact: where you are and how long it takes is a
+              label, not something to read, and it sits above the title. */}
+          {eyebrow && (
+            <p className={cx("font-medium text-faint", compact ? "text-xs" : "text-sm")}>{eyebrow}</p>
+          )}
+          {/* Compact runs the title and the lead along one line, baseline to
+              baseline, and wraps the lead under it only if the screen is too
+              narrow to hold both. `measure` is deliberately not used: it caps
+              the lead at a reading width, which beside a title would break it
+              into a tall column. */}
+          <div className={cx(compact && "flex flex-wrap items-baseline gap-x-3 gap-y-0.5")}>
+            <h1 className={compact ? "text-2xl" : "text-3xl sm:text-4xl"}>{title}</h1>
+            {compact && lead && <p className="text-sm text-muted">{lead}</p>}
+          </div>
         </div>
         {aside}
       </div>
-      {lead && <div className="measure leading-relaxed text-muted">{lead}</div>}
+      {!compact && lead && <div className="measure leading-relaxed text-muted">{lead}</div>}
     </header>
   );
 }
