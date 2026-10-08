@@ -44,7 +44,14 @@ export function SignUpForm() {
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <Field label="Your name" name="name" autoComplete="name" required />
-      <Field label="Email" name="email" type="email" autoComplete="email" required />
+      <Field
+        label="Email"
+        name="email"
+        type="email"
+        autoComplete="email"
+        hint="Nothing is sent to it. It's only what you sign in with."
+        required
+      />
       <Field
         label="Password"
         name="password"
