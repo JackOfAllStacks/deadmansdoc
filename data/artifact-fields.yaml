@@ -22,7 +22,7 @@ scope: [1, 2, 3, 5]
 sections:
   - id: s1
     number: 1
-    title: Start here
+    title: The first few hours
     intent: >
       The first hour. Written for someone who cannot read anything longer than
       a list. Everything here is repeated from elsewhere — this section exists
@@ -52,7 +52,7 @@ sections:
 
   - id: s2
     number: 2
-    title: What to do, in order
+    title: The days and months after
     intent: >
       Time-ordered, because the fear is doing the wrong thing in the wrong
       order. Anything time-constrained is lifted into Section 1 as well.
@@ -93,7 +93,7 @@ sections:
 
   - id: s3
     number: 3
-    title: The people
+    title: Who's who
     intent: >
       The entity list the rest of the document refers back to. Most other
       sections point at a person recorded here.

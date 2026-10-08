@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { artifact, sectionFields } from "@/lib/content";
+import { documentSections, sectionFields } from "@/lib/content";
 import { collectRecord, getTranscript, type ValueRow } from "@/lib/artifact/collect";
 import { standingsFromData, type Standing } from "@/lib/artifact/evaluate";
 import { hasSealedContent } from "@/lib/artifact/render";
@@ -38,7 +38,7 @@ export default async function AdminRecordPage({ params }: PageProps<"/admin/reco
   const entityLabel = new Map(data.entities.map((e) => [e.id, e.label]));
   const labelOf = (entityId: string) => entityLabel.get(entityId) ?? "(unknown entry)";
   const standings = standingsFromData(data);
-  const sections = artifact.sections.filter((s) => artifact.scope.includes(s.number));
+  const sections = documentSections;
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-10 px-6 py-10">
@@ -79,7 +79,7 @@ export default async function AdminRecordPage({ params }: PageProps<"/admin/reco
           return (
             <div key={section.id} className="flex flex-col gap-2">
               <h3 className="text-sm font-medium text-muted">
-                Section {section.number} — {section.title}
+                Section {section.place} — {section.title}
               </h3>
               <ul className="flex flex-col gap-1">
                 {fields.map((field) => {
