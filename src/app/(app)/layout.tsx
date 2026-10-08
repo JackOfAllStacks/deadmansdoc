@@ -1,5 +1,6 @@
 import { demoRunFor } from "@/lib/demo/run";
 import { journeyFor } from "@/lib/journey";
+import { Backdrop } from "@/components/backdrop";
 import { isAdmin, requireSession } from "@/lib/session";
 import { AccountMenu } from "./account-menu";
 import { DemoPlayer } from "./demo-player";
@@ -26,7 +27,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   if (journey.record) links.push({ href: "/start/intake", label: "Opening conversation" });
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative isolate flex min-h-0 flex-1 flex-col overflow-x-clip">
+      <Backdrop variant="page" className="print:hidden" />
       <Nav links={links}>
         <div className="flex items-center gap-1">
           <AccountMenu name={user.name} email={user.email} admin={isAdmin(user)} />
