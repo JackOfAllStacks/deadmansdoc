@@ -253,7 +253,7 @@ function BeforeYouBegin({ areas, onBegin }: { areas: Area[]; onBegin: () => void
         any point — what&apos;s been said is kept.
       </Note>
 
-      <Button onClick={onBegin} className="self-start">
+      <Button onClick={onBegin} className="self-center">
         Start the conversation
       </Button>
     </div>
