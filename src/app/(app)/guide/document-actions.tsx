@@ -11,8 +11,11 @@ import { Button } from "@/components/ui";
  * uses the page itself, so what comes out of the printer -- or out of "save as
  * PDF" -- is what is on the screen.
  */
+// The same thing Button's "secondary" tone draws. These are plain anchors
+// rather than buttons because they fetch a file, and a Link would try to
+// navigate to it.
 const LINK =
-  "inline-flex items-center justify-center gap-2 rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium transition-colors hover:bg-soft";
+  "inline-flex w-full items-center justify-center gap-2 rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium transition-colors hover:bg-soft sm:w-auto";
 
 export function DocumentActions({ markdown, downloadHref }: { markdown: string; downloadHref: string }) {
   const [copied, setCopied] = useState(false);
@@ -30,17 +33,19 @@ export function DocumentActions({ markdown, downloadHref }: { markdown: string; 
   const join = downloadHref.includes("?") ? "&" : "?";
 
   return (
-    <div className="flex flex-wrap gap-3 print:hidden">
+    // Two by two on a phone, where four of these across don't fit and the
+    // last one wrapped on its own. One row as soon as there's room for it.
+    <div className="grid w-full grid-cols-2 gap-2 print:hidden sm:flex sm:w-auto sm:flex-wrap sm:gap-3">
       <a href={`${downloadHref}${join}format=pdf`} className={LINK}>
         Download PDF
       </a>
       <a href={downloadHref} className={LINK}>
         Download Word
       </a>
-      <Button tone="secondary" size="sm" onClick={() => window.print()}>
+      <Button tone="secondary" size="sm" className="w-full sm:w-auto" onClick={() => window.print()}>
         Print
       </Button>
-      <Button tone="secondary" size="sm" onClick={copy}>
+      <Button tone="secondary" size="sm" className="w-full sm:w-auto" onClick={copy}>
         {copied ? "Copied" : "Copy text"}
       </Button>
     </div>
