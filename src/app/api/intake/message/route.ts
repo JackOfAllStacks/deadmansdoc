@@ -1,12 +1,11 @@
 import { z } from "zod";
 import { logFailure } from "@/lib/errors";
 import { MAX_MESSAGE_LENGTH, runIntakeTurn, type IntakeEvent } from "@/lib/intake/agent";
-import { acquireIntakeLock, getRecordForUser, releaseIntakeLock, speakersFor } from "@/lib/records";
+import { acquireIntakeLock, getRecordForUser, releaseIntakeLock } from "@/lib/records";
 import { getSession } from "@/lib/session";
 
 const bodySchema = z.object({
   text: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
-  speaker: z.string(),
 });
 
 const fail = (status: number, message: string) => Response.json({ error: message }, { status });
@@ -22,7 +21,6 @@ export async function POST(request: Request) {
 
   const body = bodySchema.safeParse(await request.json().catch(() => null));
   if (!body.success) return fail(400, `Messages need to be between 1 and ${MAX_MESSAGE_LENGTH} characters.`);
-  if (!speakersFor(record).includes(body.data.speaker)) return fail(400, "Choose who is typing.");
 
   if (!(await acquireIntakeLock(record.id))) {
     return fail(409, "Still working on the last reply. Give it a moment.");
@@ -43,7 +41,7 @@ export async function POST(request: Request) {
         }
       };
       try {
-        await runIntakeTurn(record, body.data.speaker, body.data.text, emit);
+        await runIntakeTurn(record, body.data.text, emit);
       } catch (err) {
         await logFailure({
           context: "intake:request",

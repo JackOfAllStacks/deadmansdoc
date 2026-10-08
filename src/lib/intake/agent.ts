@@ -128,7 +128,6 @@ function friendlyError(err: unknown): string {
 
 export async function runIntakeTurn(
   record: RecordRow,
-  speaker: string,
   text: string,
   send: (event: IntakeEvent) => void,
 ): Promise<void> {
@@ -142,11 +141,9 @@ export async function runIntakeTurn(
     }
   };
 
-  const userMessage: MessageRow = {
-    role: speaker === record.subject_name ? "subject" : "helper",
-    content: text,
-    blocks: [{ type: "text", text: `${speaker}: ${text}` }],
-  };
+  // Whoever is at the keyboard answers on the subject's behalf, so there is no
+  // name to attach. "helper" only appears on messages from before that.
+  const userMessage: MessageRow = { role: "subject", content: text, blocks: [{ type: "text", text }] };
   const history = [...(await intakeMessages(record.id)), userMessage];
   const userTurns = history.filter((m) => m.role === "subject" || m.role === "helper").length;
   const lastTurn = userTurns >= MAX_USER_TURNS;

@@ -136,9 +136,9 @@ const sitting: SittingDetail = {
   busy_until: null,
 };
 
-async function turn(text = "Priya is my daughter.", speaker = "Jack") {
+async function turn(text = "Priya is my daughter.") {
   const events: SittingEvent[] = [];
-  await runSittingTurn(record, sitting, speaker, text, (e) => events.push(e));
+  await runSittingTurn(record, sitting, text, (e) => events.push(e));
   return events;
 }
 
@@ -188,7 +188,7 @@ describe("what the model is sent", () => {
     state.replies = [{ text: "Thanks." }];
     const nearlyOver = { ...sitting, started_at: new Date(Date.now() - 18 * 60_000).toISOString() };
     const events: SittingEvent[] = [];
-    await runSittingTurn(record, nearlyOver, "Jack", "ok", (e) => events.push(e));
+    await runSittingTurn(record, nearlyOver, "ok", (e) => events.push(e));
     const contents = state.requests[0].messages.map((m) => String(m.content));
     expect(contents.some((c) => c.includes("nearly up"))).toBe(true);
   });
@@ -499,7 +499,7 @@ describe("when things go wrong", () => {
         ],
       },
     ];
-    await runSittingTurn(record, sitting, "Jack", "hello", () => {
+    await runSittingTurn(record, sitting, "hello", () => {
       throw new Error("client gone");
     });
     expect(state.fields).toHaveLength(1);

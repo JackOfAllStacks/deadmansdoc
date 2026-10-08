@@ -74,18 +74,9 @@ await page.getByRole("button", { name: "Start the conversation" }).click();
 await page.getByLabel("Your answer").waitFor();
 check("greeting names Margaret", (await page.locator("ol li").first().innerText()).includes("Margaret's"));
 
-/**
- * One exchange. The segmented speaker control's radio is sr-only and its label
- * sits over it, so a person clicks the label -- checking the input directly is
- * the thing a person can't do, and Playwright rightly refuses it.
- */
+/** One exchange. */
 let lastSeconds = "0";
 async function say(speaker, text) {
-  await page
-    .locator("label")
-    .filter({ has: page.locator('input[name="speaker"]') })
-    .filter({ hasText: new RegExp(`^${speaker}$`) })
-    .click();
   await page.getByLabel("Your answer").fill(text);
   const started = Date.now();
   await page.getByRole("button", { name: "Send" }).click();
@@ -269,10 +260,10 @@ for (const path of ["/plan", "/plan/new", "/start/intake"]) {
   await pageB.goto(`${BASE}${path}`);
   check(`other account at ${path} is sent to its own /start`, pageB.url().endsWith("/start"));
 }
-const res = await pageB.request.post(`${BASE}/api/intake/message`, { data: { text: "hello", speaker: "Margaret" } });
+const res = await pageB.request.post(`${BASE}/api/intake/message`, { data: { text: "hello" } });
 check("other account can't post to the conversation", res.status() === 404, `status ${res.status()}`);
 const anon = await browser.newContext();
-const resAnon = await anon.request.post(`${BASE}/api/intake/message`, { data: { text: "hello", speaker: "x" } });
+const resAnon = await anon.request.post(`${BASE}/api/intake/message`, { data: { text: "hello" } });
 check("signed-out post is refused", resAnon.status() === 401, `status ${resAnon.status()}`);
 
 await browser.close();

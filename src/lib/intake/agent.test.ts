@@ -99,9 +99,9 @@ const signals = (overrides: Record<string, unknown> = {}) => ({
 // The mocked SDK error classes take just a message.
 const mockError = (cls: unknown, message: string) => new (cls as new (m: string) => Error)(message);
 
-async function turn(text = "Hello", speaker = "Priya") {
+async function turn(text = "Hello") {
   const events: IntakeEvent[] = [];
-  await runIntakeTurn(record, speaker, text, (e) => events.push(e));
+  await runIntakeTurn(record, text, (e) => events.push(e));
   return events;
 }
 
@@ -123,15 +123,9 @@ describe("runIntakeTurn", () => {
     state.replies = [{ text: "Thank you. How many accounts?" }];
     const events = await turn("Two children");
     expect(events).toEqual([{ type: "text", text: "Thank you. How many accounts?" }, { type: "end" }]);
-    expect(state.saved.map((m) => m.role)).toEqual(["helper", "agent"]);
-    expect(state.saved[0].blocks).toEqual([{ type: "text", text: "Priya: Two children" }]);
+    expect(state.saved.map((m) => m.role)).toEqual(["subject", "agent"]);
+    expect(state.saved[0].blocks).toEqual([{ type: "text", text: "Two children" }]);
     expect(state.requests).toHaveLength(1);
-  });
-
-  it("labels the subject's own messages", async () => {
-    state.replies = [{ text: "Thanks." }];
-    await turn("I have two children", "Margaret");
-    expect(state.saved[0].role).toBe("subject");
   });
 
   it("puts the context block ahead of the first message only", async () => {
@@ -145,7 +139,7 @@ describe("runIntakeTurn", () => {
     expect(first.content[0].text).toMatch(/^<context>/);
     expect(first.content[1].text).toBe("Margaret: Hi");
     expect(second.content[0].text).toBe("Hello");
-    expect(third.content).toEqual([{ type: "text", text: "Priya: Hello" }]);
+    expect(third.content).toEqual([{ type: "text", text: "Hello" }]);
   });
 
   it("records signals and ends the turn in one call when the reply came first", async () => {
@@ -158,7 +152,7 @@ describe("runIntakeTurn", () => {
     const events = await turn();
     expect(state.requests).toHaveLength(1);
     expect(events.at(-1)).toEqual({ type: "end" });
-    expect(state.saved.map((m) => m.role)).toEqual(["helper", "agent", "tool"]);
+    expect(state.saved.map((m) => m.role)).toEqual(["subject", "agent", "tool"]);
     expect(state.signals.at(-1)).toEqual({ family_count: 2, adviser_count: 2, front_of_mind: ["money-out"] });
   });
 
@@ -321,17 +315,17 @@ describe("runIntakeTurn", () => {
       { throws: mockError(Anthropic.APIError, "boom") },
     ];
     const events = await turn();
-    expect(state.saved.map((m) => m.role)).toEqual(["helper", "agent", "tool"]);
+    expect(state.saved.map((m) => m.role)).toEqual(["subject", "agent", "tool"]);
     expect(events).not.toContainEqual({ type: "reset" });
     expect(events.at(-1)).toMatchObject({ type: "error", kept: true });
   });
 
   it("still saves the reply when the person's connection has gone", async () => {
     state.replies = [{ text: "Thank you." }];
-    await runIntakeTurn(record, "Priya", "Hello", () => {
+    await runIntakeTurn(record, "Hello", () => {
       throw new Error("stream closed");
     });
-    expect(state.saved.map((m) => m.role)).toEqual(["helper", "agent"]);
+    expect(state.saved.map((m) => m.role)).toEqual(["subject", "agent"]);
   });
 
   it("answers an unknown tool with an error", async () => {

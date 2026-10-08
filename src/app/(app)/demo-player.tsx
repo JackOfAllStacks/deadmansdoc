@@ -174,12 +174,8 @@ export function DemoPlayer({ run }: { run: DemoRun }) {
       await wait(300);
     };
 
-    /** One exchange: who is speaking, what they say, and Send. */
-    const speak = async ({ who, says }: ScriptLine) => {
-      const speaker = [...document.querySelectorAll('input[name="speaker"]')]
-        .map((input) => input.closest("label"))
-        .find((label) => label && text(label) === who);
-      speaker?.click();
+    /** One exchange: what they say, and Send. */
+    const speak = async ({ says }: ScriptLine) => {
       const box = await until(answerBox);
       await type(box, says.replace(/\s+/g, " ").trim());
       await wait(400);
