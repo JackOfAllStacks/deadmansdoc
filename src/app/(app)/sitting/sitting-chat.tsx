@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ChatFrame, Composer, Transcript } from "@/components/chat";
 import { TopicStrip } from "@/components/topics";
-import { Alert, ButtonLink, Card, Progress as ProgressBar } from "@/components/ui";
+import { Alert, ButtonLink, Card, cx, Progress as ProgressBar } from "@/components/ui";
 import { renderBlock, type BlockShape } from "@/lib/sitting/block";
 import type { SittingEvent } from "@/lib/sitting/agent";
 import type { SittingHarvest } from "@/lib/progress";
@@ -64,6 +64,9 @@ const shapeOf = (field: DocumentFieldView): BlockShape => ({
 });
 
 export function SittingChat({
+  eyebrow,
+  title,
+  lead,
   greeting,
   history,
   outline,
@@ -74,6 +77,9 @@ export function SittingChat({
   maxLength,
   busy,
 }: {
+  eyebrow: string;
+  title: string;
+  lead: string;
   greeting: string;
   history: ChatMessage[];
   outline: DocumentSectionView[];
@@ -96,6 +102,12 @@ export function SittingChat({
   const [summary, setSummary] = useState("");
   const [got, setGot] = useState<Got | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // A phone shows one of these at a time; a wide screen shows both and
+  // ignores it. `unseen` counts what was written down while the document was
+  // the half you couldn't see, which is the thing the side-by-side layout
+  // gives you for free and tabs take away.
+  const [showing, setShowing] = useState<"conversation" | "document">("conversation");
+  const [unseen, setUnseen] = useState(0);
   const router = useRouter();
 
   // An edit sends one field's body and gets the whole document back, read out
@@ -228,6 +240,7 @@ export function SittingChat({
             reply = "";
             setLive("");
           } else if (e.type === "saved") {
+            setUnseen((n) => n + 1);
             // The same entry gets added to more than once as details come out,
             // and each one is an update rather than another row.
             applyEntry({
@@ -276,17 +289,46 @@ export function SittingChat({
 
   const waiting = status === "sending" || status === "catching-up";
 
+  // A phone hasn't room for the conversation and the document at once, and
+  // stacking them buries the box you type into. So on a phone they are two
+  // halves of one screen; above lg both are there and this isn't rendered.
+  const tabs = (
+    <div className="flex gap-1 rounded-md border border-line bg-surface p-1">
+      <HalfTab current={showing} value="conversation" onPick={setShowing}>
+        Conversation
+      </HalfTab>
+      <HalfTab
+        current={showing}
+        value="document"
+        count={unseen}
+        onPick={(v) => {
+          setShowing(v);
+          setUnseen(0);
+        }}
+      >
+        The document
+      </HalfTab>
+    </div>
+  );
+
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(28rem,34rem)]">
-      {/* On a phone the document comes first: seeing something being written
-          is what makes the box worth typing into. The conversation scrolls
-          itself into view after every turn, so it costs nothing once under way. */}
-      <ChatFrame className="order-2 lg:order-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:flex-none lg:grid-cols-[minmax(0,1fr)_minmax(28rem,34rem)] lg:gap-8">
+      <ChatFrame
+        className={cx("order-2 lg:order-1 lg:flex", showing === "conversation" ? "flex" : "hidden")}
+      >
         <Transcript
           greeting={greeting}
           messages={messages}
           live={live}
           pending={waiting}
+          leading={
+            <PhoneHead
+              eyebrow={eyebrow}
+              title={title}
+              lead={lead}
+              tabs={showing === "conversation" ? tabs : null}
+            />
+          }
         />
 
         {status === "finished" ? (
@@ -308,7 +350,10 @@ export function SittingChat({
         )}
       </ChatFrame>
 
+      {showing === "document" && <div className="order-1 shrink-0 lg:hidden">{tabs}</div>}
+
       <DocumentPanel
+        hidden={showing !== "document"}
         outline={doc}
         notes={extraNotes}
         people={known}
@@ -318,6 +363,76 @@ export function SittingChat({
         save={saveBlock}
       />
     </div>
+  );
+}
+
+/**
+ * What sits above the conversation on a phone, inside its scroll.
+ *
+ * The title and what the sitting is about scroll away with it -- they say
+ * what this is, which you need once rather than for the whole sitting, and a
+ * small screen can't spare the room. The tabs can't go with them: they are
+ * how you reach the document, so they stop at the top and stay there.
+ */
+function PhoneHead({
+  eyebrow,
+  title,
+  lead,
+  tabs,
+}: {
+  eyebrow: string;
+  title: string;
+  lead: string;
+  tabs: ReactNode;
+}) {
+  // Two siblings rather than one wrapper: a sticky element can only stick
+  // inside its own parent, and a parent that ends just below it has nothing
+  // to stick within. These are children of the scroll itself, so the tabs
+  // have the whole conversation to stay at the top of.
+  return (
+    <>
+      <div className="flex flex-col gap-1 px-0.5 pb-3 lg:hidden">
+        <p className="text-sm font-medium text-faint">{eyebrow}</p>
+        <h1 className="text-2xl">{title}</h1>
+        {lead && <p className="text-sm leading-relaxed text-muted">{lead}</p>}
+      </div>
+      <div className="sticky top-0 z-10 -mx-1 bg-paper px-1 pb-3 lg:hidden">{tabs}</div>
+    </>
+  );
+}
+
+/** One half of the phone view, and whether anything happened in the other. */
+function HalfTab({
+  current,
+  value,
+  count,
+  onPick,
+  children,
+}: {
+  current: "conversation" | "document";
+  value: "conversation" | "document";
+  count?: number;
+  onPick: (value: "conversation" | "document") => void;
+  children: ReactNode;
+}) {
+  const on = current === value;
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(value)}
+      aria-pressed={on}
+      className={cx(
+        "flex flex-1 items-center justify-center gap-2 rounded-sm px-3 py-2 text-sm transition-colors",
+        on ? "bg-soft font-medium text-ink" : "text-muted hover:text-ink",
+      )}
+    >
+      {children}
+      {!on && count ? (
+        <span className="rounded-full bg-accent px-1.5 py-0.5 text-[0.6875rem] leading-none font-medium text-accent-ink tabular-nums">
+          {count}
+        </span>
+      ) : null}
+    </button>
   );
 }
 
@@ -333,6 +448,7 @@ function DocumentPanel({
   progress,
   topics,
   locked,
+  hidden,
   save,
 }: {
   outline: DocumentSectionView[];
@@ -341,11 +457,18 @@ function DocumentPanel({
   progress: Progress;
   topics: TopicProgress[];
   locked: boolean;
+  /** Only ever true on a phone, where the other tab is showing. */
+  hidden: boolean;
   save: SaveBlock;
 }) {
   const done = progress.answered + progress.gaps;
   return (
-    <aside className="order-1 flex flex-col gap-5 overflow-y-auto rounded-lg border border-line bg-surface px-6 py-6 sm:max-h-[calc(100dvh-18rem)] sm:min-h-[26rem] sm:px-7 lg:order-2">
+    <aside
+      className={cx(
+        "order-3 flex-col gap-5 rounded-lg border border-line bg-surface px-6 py-6 max-sm:overflow-visible sm:max-h-[calc(100dvh-18rem)] sm:min-h-[26rem] sm:overflow-y-auto sm:px-7 lg:order-2 lg:flex",
+        hidden ? "hidden" : "flex",
+      )}
+    >
       <div className="flex flex-col gap-3 border-b border-line pb-4">
         <div className="flex flex-col gap-2">
           <h2 className="text-lg">The document, so far</h2>

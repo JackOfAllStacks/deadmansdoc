@@ -79,7 +79,7 @@ let lastSeconds = "0";
 async function say(speaker, text) {
   await page.getByLabel("Your answer").fill(text);
   const started = Date.now();
-  await page.getByRole("button", { name: "Send" }).click();
+  await page.getByLabel("Your answer").press("Enter");
   await page.waitForFunction(
     () => {
       // The turn that ends the conversation takes the composer with it, and
@@ -87,8 +87,8 @@ async function say(speaker, text) {
       // "see your plan" the first time, "that's been taken into account" when
       // something was added later. So the test is simply whether the composer
       // is still there and done waiting.
-      const btn = [...document.querySelectorAll("button")].find((b) => /^(Send|Waiting…)$/.test(b.textContent ?? ""));
-      return !btn || btn.textContent === "Send";
+      const box = document.querySelector('textarea[aria-label="Your answer"]');
+      return !box || box.form?.dataset.busy === "false";
     },
     null,
     { timeout: 180_000 },

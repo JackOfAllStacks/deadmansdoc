@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import type { ChatMessage } from "@/lib/transcript";
-import { Alert, Button, cx } from "@/components/ui";
+import { Alert, cx } from "@/components/ui";
 
 /*
  * The conversation itself, shared by the opening conversation and the sittings.
@@ -17,7 +17,7 @@ export function Bubble({ message, pending = false }: { message: ChatMessage; pen
     <li className={cx("flex flex-col gap-1", isAgent ? "items-start" : "items-end")}>
       <div
         className={cx(
-          "max-w-[85%] rounded-lg px-4 py-3 leading-relaxed whitespace-pre-wrap",
+          "max-w-[85%] rounded-lg px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap",
           isAgent ? "border border-line bg-surface" : "bg-accent text-accent-ink",
         )}
       >
@@ -35,13 +35,20 @@ export function Bubble({ message, pending = false }: { message: ChatMessage; pen
 
 /**
  * Holds a conversation to the height of the screen, so the transcript scrolls
- * inside itself and the composer stays where you left it. Below `sm` it goes
- * back to ordinary page flow: a short scrolling box on a phone is worse than
- * scrolling the page, which is what phones are for.
+ * inside itself and the composer stays where you left it.
+ *
+ * On a phone it takes whatever height is left rather than a measured one: the
+ * page above it is a flex column down from the viewport, so the conversation
+ * is the only thing that scrolls and the tabs and the box don't move.
  */
 export function ChatFrame({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cx("flex flex-col gap-4 sm:h-[calc(100dvh-18rem)] sm:min-h-[26rem]", className)}>
+    <div
+      className={cx(
+        "flex min-h-0 flex-1 flex-col gap-3 sm:h-[calc(100dvh-18rem)] sm:min-h-[26rem] sm:flex-none sm:gap-4",
+        className,
+      )}
+    >
       {children}
     </div>
   );
@@ -52,11 +59,14 @@ export function Transcript({
   messages,
   live,
   pending,
+  leading,
 }: {
   greeting: string;
   messages: ChatMessage[];
   live?: string;
   pending?: boolean;
+  /** Anything that scrolls with the conversation, above the first message. */
+  leading?: ReactNode;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -70,6 +80,7 @@ export function Transcript({
 
   return (
     <div ref={boxRef} className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 sm:pr-3">
+      {leading}
       <ol aria-live="polite" aria-label="Conversation" className="flex flex-col gap-4">
         <Bubble message={{ from: "agent", text: greeting }} />
         {messages.map((m, i) => (
@@ -114,28 +125,42 @@ export function Composer({
     onSend();
   }
 
+  // One line until there's more than one line in it. An empty box three rows
+  // high is three rows of nothing, which on a phone is most of what you can
+  // see of the conversation.
+  const box = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [draft]);
+
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3">
+    // data-busy is the contract for anything driving the composer from
+    // outside -- the in-app demo player, the end-to-end scripts. It used to be
+    // whether the button said "Send" or "Waiting…", and there is no button now.
+    <form onSubmit={submit} data-busy={busy ? "true" : "false"} className="flex flex-col gap-3">
       {children}
       <textarea
+        ref={box}
         value={draft}
         onChange={(e) => onDraft(e.target.value)}
         onKeyDown={onKeyDown}
         maxLength={maxLength}
-        rows={3}
+        rows={1}
+        enterKeyHint="send"
         placeholder="Type your answer…"
         aria-label="Your answer"
-        className="resize-y rounded-md border border-line-strong bg-surface px-3 py-2 text-base outline-none focus:border-accent"
+        /* text-base, not smaller: under 16px iOS zooms the page on focus. */
+        className="max-h-36 resize-none overflow-y-auto rounded-md border border-line-strong bg-surface px-3 py-2 text-base outline-none focus:border-accent"
       />
       {error && <Alert>{error}</Alert>}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm text-muted">{footer}</div>
-        <div className="flex items-center gap-3">
-          <span className="hidden text-sm text-faint sm:inline">Enter to send</span>
-          <Button type="submit" disabled={busy || !draft.trim()}>
-            {busy ? "Waiting…" : "Send"}
-          </Button>
-        </div>
+        <span aria-live="polite" className="text-sm text-faint">
+          {busy ? "Waiting…" : "Enter to send"}
+        </span>
       </div>
     </form>
   );
