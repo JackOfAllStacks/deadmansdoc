@@ -234,9 +234,22 @@ export function contentProblems(
 }
 
 export const artifact = load<ArtifactDefinition>("artifact-fields.yaml");
+
+/**
+ * The sections this version prints, in order, each with its place in the
+ * document. `number` is the template's own numbering and is kept for the
+ * ids; `place` is what a reader is shown. Only some of the template's
+ * fourteen are built, so printing `number` would go 1, 2, 3, 5 -- and a
+ * family would go looking for the missing Section 4.
+ */
+export type DocumentSection = Section & { place: number };
 export const questionBank = load<QuestionBank>("question-bank.yaml");
 export const sessionTemplate = load<SessionTemplate>("session-template.yaml");
 export const milestoneSet = load<MilestoneSet>("milestones.yaml");
+
+export const documentSections: DocumentSection[] = artifact.sections
+  .filter((s) => artifact.scope.includes(s.number))
+  .map((s, i) => ({ ...s, place: i + 1 }));
 
 const problems = contentProblems(artifact, questionBank, sessionTemplate, milestoneSet);
 if (problems.length) {

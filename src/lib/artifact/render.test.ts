@@ -39,7 +39,7 @@ const data = (values: ValueRow[], entities: EntityRow[] = [], notes: RecordData[
 describe("the Guide", () => {
   it("prints a heading for every in-scope section, even an empty record", () => {
     const guide = renderGuide(data([]), meta);
-    for (const n of [1, 2, 3, 5]) expect(guide).toContain(`## Section ${n} —`);
+    for (const n of [1, 2, 3, 4]) expect(guide).toContain(`## Section ${n} —`);
     expect(guide).toContain("Nothing recorded yet for this part.");
   });
 
@@ -108,7 +108,10 @@ describe("the Guide", () => {
 
   it("still prints a section whose every item is sealed", () => {
     const guide = renderGuide(data([value({ field_id: "s5.cash", value: ["hidden"], disclosure: "sealed" })]), meta);
-    expect(guide).toContain("## Section 5 —");
+    // Numbered by place in the document, so Money is Section 4 although the
+    // template calls it 5: a printed gap would read as a missing section.
+    expect(guide).toContain("## Section 4 —");
+    expect(guide).not.toContain("## Section 5 —");
     expect(guide).toContain("Everything recorded for this section is in the sealed envelope.");
     expect(guide).not.toContain("hidden");
   });
@@ -199,7 +202,7 @@ describe("the Sealed Envelope", () => {
       data([value({ field_id: "s5.cash", value: ["x"], disclosure: "sealed" })]),
       meta,
     )!;
-    expect(envelope).toContain("## Section 5 —");
+    expect(envelope).toContain("## Section 4 —");
     expect(envelope).not.toContain("## Section 3 —");
   });
 });

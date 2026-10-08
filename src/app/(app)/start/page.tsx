@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { TestNotice } from "@/components/test-notice";
 import { Card, Page, PageHeader } from "@/components/ui";
-import { artifact } from "@/lib/content";
+import { documentSections } from "@/lib/content";
 import { getRecordForUser } from "@/lib/records";
 import { requireSession } from "@/lib/session";
 import { StartForm } from "./start-form";
@@ -12,7 +12,6 @@ export default async function StartPage() {
   const { user } = await requireSession();
   if (await getRecordForUser(user.id)) redirect("/home");
 
-  const inScope = artifact.sections.filter((s) => artifact.scope.includes(s.number));
 
   return (
     <Page width="prose">
@@ -25,9 +24,9 @@ export default async function StartPage() {
       <Card tone="quiet" className="flex flex-col gap-3">
         <h2 className="text-base">What it ends up covering</h2>
         <ul className="flex flex-col gap-1.5 text-sm">
-          {inScope.map((s) => (
+          {documentSections.map((s) => (
             <li key={s.id} className="flex gap-3">
-              <span className="w-4 shrink-0 text-right tabular-nums text-faint">{s.number}</span>
+              <span className="w-4 shrink-0 text-right tabular-nums text-faint">{s.place}</span>
               <span>{s.title}</span>
             </li>
           ))}

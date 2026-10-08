@@ -80,7 +80,7 @@ questions:
     source: bank
 
   # ─────────────────────────────────────────────────────────────
-  # Section 3 — The people
+  # Section 3 — Who's who
   # ─────────────────────────────────────────────────────────────
 
   - id: kp.first_calls
@@ -272,7 +272,7 @@ questions:
     notes: Offer sealed by default. Surfaces disputes before they become expensive.
 
   # ─────────────────────────────────────────────────────────────
-  # Section 2 — What to do, in order
+  # Section 2 — The days and months after
   # ─────────────────────────────────────────────────────────────
 
   - id: urg.immediate

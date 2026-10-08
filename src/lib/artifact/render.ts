@@ -1,4 +1,4 @@
-import { artifact, sectionFields, type Field, type Section } from "@/lib/content";
+import { documentSections, sectionFields, type DocumentSection, type Field } from "@/lib/content";
 import type { EntityRow, RecordData, ValueRow } from "@/lib/artifact/collect";
 import { toMarkdown, type Doc, type DocPart, type DocSection, type Entry } from "@/lib/artifact/doc";
 
@@ -128,9 +128,9 @@ function sealedEntries(prepared: Prepared, entities: Map<string, EntityRow>): En
     .map((entry) => ({ ...entry, asides: entry.asides.filter((a) => a.startsWith("What to do:")) }));
 }
 
-function guideSection(section: Section, data: RecordData, entities: Map<string, EntityRow>): DocSection {
+function guideSection(section: DocumentSection, data: RecordData, entities: Map<string, EntityRow>): DocSection {
   const prepared = prepare(data, sectionFields(section));
-  const heading = `Section ${section.number} — ${section.title}`;
+  const heading = `Section ${section.place} — ${section.title}`;
 
   const anythingOpen = prepared.some((p) =>
     p.rows.some((r) => (r.status === "answered" && r.disclosure !== "sealed") || r.status === "unknown"),
@@ -152,16 +152,16 @@ function guideSection(section: Section, data: RecordData, entities: Map<string, 
   return parts.length ? { heading, parts } : { heading, note: NOTHING_HERE, parts: [] };
 }
 
-function envelopeSection(section: Section, data: RecordData, entities: Map<string, EntityRow>): DocSection | null {
+function envelopeSection(section: DocumentSection, data: RecordData, entities: Map<string, EntityRow>): DocSection | null {
   const parts: DocPart[] = [];
   for (const item of prepare(data, sectionFields(section))) {
     const entries = sealedEntries(item, entities);
     if (entries.length) parts.push({ heading: item.field.label, entries });
   }
-  return parts.length ? { heading: `Section ${section.number} — ${section.title}`, parts } : null;
+  return parts.length ? { heading: `Section ${section.place} — ${section.title}`, parts } : null;
 }
 
-const inScope = () => artifact.sections.filter((s) => artifact.scope.includes(s.number));
+const inScope = () => documentSections;
 
 const DISCLAIMER =
   "This is a draft prepared from a recorded conversation. It has not been checked by anyone, " +

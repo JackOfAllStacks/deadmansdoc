@@ -73,7 +73,7 @@ const doneBody = await finished.locator("main").innerText();
 
 check("the record leads, before the conversations", doneBody.indexOf("What's in the record") < doneBody.indexOf("sittings"));
 check("the sitting bar says what it measures", /conversations done/.test(doneBody));
-check("the document's own sections are shown", /Start here/.test(doneBody) && /The people/.test(doneBody));
+check("the document's own sections are shown", /The first few hours/.test(doneBody) && /Who's who/.test(doneBody));
 check("a section with every field answered says so", /Answered/.test(doneBody));
 check("claims about the family appear", /would know/.test(doneBody));
 check("the claims name whose family it is", /Margaret's family would know/.test(doneBody), doneBody.match(/Margaret's family would know[^\n]{0,60}/)?.[0]);

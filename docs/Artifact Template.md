@@ -94,7 +94,7 @@ Sets the tone. The letter is the reason this reads as something left *for* someo
 
 ---
 
-## Section 1 — Start here _(v1)_
+## Section 1 — The first few hours _(v1)_
 
 The single most useful page. Written for someone in the first hour, who cannot read anything longer than a list.
 
@@ -108,7 +108,7 @@ The single most useful page. Written for someone in the first hour, who cannot r
 
 ---
 
-## Section 2 — What to do, in order _(v1)_
+## Section 2 — The days and months after _(v1)_
 
 Time-ordered, because the fear is doing the wrong thing in the wrong order.
 
@@ -127,7 +127,7 @@ Time-ordered, because the fear is doing the wrong thing in the wrong order.
 
 ---
 
-## Section 3 — The people _(v1)_
+## Section 3 — Who's who _(v1)_
 
 | Field | Level | Domain |
 |---|---|---|
