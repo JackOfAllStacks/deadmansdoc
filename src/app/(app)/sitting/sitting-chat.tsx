@@ -312,8 +312,12 @@ export function SittingChat({
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 sm:[--chat-inset:7.5rem] lg:grid lg:flex-none lg:grid-cols-[minmax(0,1fr)_minmax(28rem,34rem)] lg:gap-8 lg:[--chat-inset:13rem]">
+    // One grid row, explicitly minmax(0,1fr): it fills the page and both
+    // panes may shrink below their content, which is what lets each one
+    // scroll inside itself instead of pushing the page taller.
+    <div className="flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(28rem,34rem)] lg:grid-rows-[minmax(0,1fr)] lg:gap-8">
       <ChatFrame
+        fill
         className={cx("order-2 lg:order-1 lg:flex", showing === "conversation" ? "flex" : "hidden")}
       >
         <Transcript
@@ -468,7 +472,10 @@ function DocumentPanel({
   return (
     <aside
       className={cx(
-        "order-3 flex-col gap-5 rounded-lg border border-line bg-surface px-6 py-6 max-sm:overflow-visible sm:max-h-[calc(100dvh-var(--chat-inset,18rem))] sm:min-h-[26rem] sm:overflow-y-auto sm:px-7 lg:order-2 lg:flex",
+        // Below lg the document is a tab of its own and the page scrolls it, so
+        // it stands at its full height. From lg it shares the screen with the
+        // conversation and scrolls within its half.
+        "order-3 flex-col gap-5 rounded-lg border border-line bg-surface px-6 py-6 sm:px-7 lg:order-2 lg:flex lg:min-h-0 lg:overflow-y-auto",
         hidden ? "hidden" : "flex",
       )}
     >

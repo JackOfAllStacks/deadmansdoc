@@ -38,15 +38,18 @@ export default async function SittingPage() {
   // Wider than the rest of the app: the conversation and the document it is
   // writing sit side by side here, and both need room to be read.
   return (
-    // On a phone this is the height of what's left below the header. Showing
-    // the conversation, nothing overflows it -- the conversation scrolls
-    // inside itself and the box you type into stays put. Showing the
-    // document, the document is as tall as it is and this scrolls, taking the
-    // tabs with it, which is what reading rather than talking wants.
+    // The height of what's left below the header, at every width -- no page
+    // on the screen is taller than the screen.
+    //
+    // From lg the two panes share it and each scrolls inside itself, so the
+    // composer is always on screen without scrolling the page to it. Below
+    // lg they are tabs: the conversation behaves the same way, and the
+    // document, which is read rather than talked to, is as tall as it is and
+    // scrolls this instead, taking the tabs with it.
     <Page
       width="full"
       pad="tight"
-      className="max-sm:h-0 max-sm:flex-1 max-sm:overflow-y-auto"
+      className="h-0 flex-1 overflow-y-auto lg:overflow-hidden"
     >
       {/* Below lg this is inside the conversation instead, so it scrolls away
           with it rather than holding the top of a small screen. The compact

@@ -37,21 +37,31 @@ export function Bubble({ message, pending = false }: { message: ChatMessage; pen
  * Holds a conversation to the height of the screen, so the transcript scrolls
  * inside itself and the composer stays where you left it.
  *
- * On a phone it takes whatever height is left rather than a measured one: the
- * page above it is a flex column down from the viewport, so the conversation
- * is the only thing that scrolls and the tabs and the box don't move.
+ * `fill` takes whatever height is left, which needs every ancestor up to the
+ * viewport to be a flex column that can shrink -- the app shell is one, so a
+ * page only has to not break the chain. The conversation is then the one
+ * thing that scrolls and the composer never moves.
  *
- * From sm up the height is measured instead, because the page above it isn't a
- * flex column down from the viewport there. `--chat-inset` is how much of the
- * screen that chrome takes, and a page with a smaller header sets it lower to
- * hand the difference to the conversation -- see the sitting page. The default
- * suits a full page header with a lead paragraph above the frame.
+ * Without it the height is measured off the viewport instead, for a page
+ * whose chrome scrolls with the document rather than being pinned above it.
+ * The 18rem is what a full page header with a lead paragraph costs; being a
+ * guess, it leaves a gap below the frame on a tall screen and overflows the
+ * page on a short one, so prefer `fill` where the layout allows it.
  */
-export function ChatFrame({ children, className }: { children: ReactNode; className?: string }) {
+export function ChatFrame({
+  children,
+  className,
+  fill = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  fill?: boolean;
+}) {
   return (
     <div
       className={cx(
-        "flex min-h-0 flex-1 flex-col gap-3 sm:h-[calc(100dvh-var(--chat-inset,18rem))] sm:min-h-[26rem] sm:flex-none sm:gap-4",
+        "flex min-h-0 flex-1 flex-col gap-3 sm:gap-4",
+        !fill && "sm:h-[calc(100dvh-18rem)] sm:min-h-[26rem] sm:flex-none",
         className,
       )}
     >
