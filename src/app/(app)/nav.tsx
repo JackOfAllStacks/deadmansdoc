@@ -21,8 +21,13 @@ export interface NavLink {
  *
  * On a phone the links don't fit beside the wordmark, and sat on a second row
  * of their own that scrolled sideways — two rows of header above every page,
- * and links you had to know were there to go looking for. They are behind a
- * drawer instead, which gives the page back the best part of an inch.
+ * and links you had to know were there to go looking for. The hamburger drops
+ * the header open instead, stacking them where they already live, which gives
+ * the page back the best part of an inch when it is shut.
+ *
+ * Deliberately not a drawer off the side: navigation belongs to the header,
+ * and sliding it in from somewhere else makes it a different thing that
+ * happens to contain the same links.
  */
 export function Nav({ links, children }: { links: NavLink[]; children: React.ReactNode }) {
   const pathname = usePathname();
@@ -39,19 +44,27 @@ export function Nav({ links, children }: { links: NavLink[]; children: React.Rea
     setOpen(false);
   }
 
+  // The two ways people expect something opened from a header to shut, beyond
+  // the button itself. It stays in the flow of the page, so nothing is locked
+  // and there is nothing to put focus into.
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        opener.current?.focus();
+      }
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !panel.current?.contains(event.target) && !opener.current?.contains(event.target)) {
+        setOpen(false);
+      }
     };
     document.addEventListener("keydown", onKeyDown);
-    // The page behind a drawer shouldn't scroll under it.
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    panel.current?.focus();
+    document.addEventListener("pointerdown", onPointerDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previous;
+      document.removeEventListener("pointerdown", onPointerDown);
     };
   }, [open]);
 
@@ -63,23 +76,25 @@ export function Nav({ links, children }: { links: NavLink[]; children: React.Rea
   return (
     <header className="app-chrome sticky top-0 z-30 border-b border-line bg-surface">
       <div className="mx-auto flex w-full max-w-[92rem] items-center gap-x-4 px-5 py-3 sm:gap-x-6 sm:px-6">
-        <button
-          ref={opener}
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-expanded={open}
-          aria-controls="main-nav-drawer"
-          aria-label="Menu"
-          className="-ml-1.5 rounded-md p-1.5 text-muted transition-colors hover:bg-soft hover:text-ink sm:hidden"
-        >
-          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden>
-            <path d="M4 7h16M4 12h16M4 17h16" />
-          </svg>
-        </button>
-
         <Link href="/home" aria-label="The Handover — home">
           <Wordmark size="sm" />
         </Link>
+
+        {/* Where the links themselves sit above sm, because that is what it
+            is: the links, folded up. */}
+        <button
+          ref={opener}
+          type="button"
+          onClick={() => setOpen((was) => !was)}
+          aria-expanded={open}
+          aria-controls="main-nav"
+          aria-label="Pages"
+          className="rounded-md p-1.5 text-muted transition-colors hover:bg-soft hover:text-ink sm:hidden"
+        >
+          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden>
+            {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+          </svg>
+        </button>
 
         <nav aria-label="Main" className="hidden sm:block">
           <ul className="flex items-center gap-1">
@@ -106,60 +121,31 @@ export function Nav({ links, children }: { links: NavLink[]; children: React.Rea
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-40 sm:hidden">
-          {/* Anywhere off the drawer closes it, which is how a drawer behaves
-              and the only target big enough to hit without looking. Not a
-              control in its own right: it would be a second thing announcing
-              "close menu" to anyone listening, and Escape and the × already
-              do that without a pointer. */}
-          <div aria-hidden onClick={() => setOpen(false)} className="absolute inset-0 bg-ink/30" />
-          <div
-            ref={panel}
-            id="main-nav-drawer"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Main"
-            tabIndex={-1}
-            className="absolute inset-y-0 left-0 flex w-72 max-w-[85%] flex-col gap-1 border-r border-line bg-surface p-4 shadow-menu outline-none"
-          >
-            <div className="flex items-center justify-between pb-2">
-              <Wordmark size="sm" />
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  opener.current?.focus();
-                }}
-                aria-label="Close menu"
-                className="-mr-1.5 rounded-md p-1.5 text-muted transition-colors hover:bg-soft hover:text-ink"
-              >
-                <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden>
-                  <path d="M6 6l12 12M18 6L6 18" />
-                </svg>
-              </button>
-            </div>
-
-            <nav aria-label="Pages">
-              <ul className="flex flex-col gap-1">
-                {links.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      aria-current={current(link.href) ? "page" : undefined}
-                      className={cx(
-                        "block rounded-md px-3 py-2.5 transition-colors",
-                        current(link.href)
-                          ? "bg-soft font-medium text-ink"
-                          : "text-muted hover:bg-soft hover:text-ink",
-                      )}
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </div>
+        <div
+          ref={panel}
+          id="main-nav"
+          className="border-t border-line px-5 pt-2 pb-3 sm:hidden"
+        >
+          <nav aria-label="Pages">
+            <ul className="flex flex-col">
+              {links.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    aria-current={current(link.href) ? "page" : undefined}
+                    className={cx(
+                      "block rounded-md px-3 py-2.5 transition-colors",
+                      current(link.href)
+                        ? "bg-soft font-medium text-ink"
+                        : "text-muted hover:bg-soft hover:text-ink",
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </div>
       )}
     </header>
