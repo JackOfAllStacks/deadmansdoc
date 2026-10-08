@@ -663,7 +663,7 @@ function Finished({ summary, got }: { summary: string; got: Got | null }) {
   return (
     <Card tone="accent" className="flex flex-col items-start gap-4">
       <div className="flex flex-col gap-2">
-        <h2 className="text-lg">That&apos;s this sitting done</h2>
+        <h2 className="text-lg">That&apos;s this session done</h2>
         {summary && <p className="measure text-sm text-muted">{summary}</p>}
       </div>
 

@@ -49,7 +49,7 @@ export default async function MyEnvelopePage() {
           <h2 className="text-lg">There is no envelope</h2>
           <p className="measure text-sm text-muted">
             Nothing recorded so far has been kept back, so everything is in the Guide itself. If
-            something private comes up in a later sitting, an envelope will print then.
+            something private comes up in a later session, an envelope will print then.
           </p>
           <ButtonLink href="/guide" tone="secondary">
             Back to the Guide

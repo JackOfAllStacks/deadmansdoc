@@ -36,7 +36,7 @@ export default async function AccountPage() {
             <p className="measure text-sm text-muted">
               A record about {record.subject_name}, for {RELATIONSHIP_LABEL[record.subject_relationship]}.
               {sittings.length
-                ? ` ${done} of ${sittings.length} sittings done.`
+                ? ` ${done} of ${sittings.length} sessions done.`
                 : record.intake_completed_at
                   ? " The opening conversation is done; the plan comes next."
                   : " The opening conversation hasn't finished yet."}

@@ -13,7 +13,7 @@ import { isBusy, openSitting, sittingMessages } from "@/lib/sitting/store";
 import { toChatHistory } from "@/lib/transcript";
 import { SittingChat } from "./sitting-chat";
 
-export const metadata = { title: "Your sitting · The Handover" };
+export const metadata = { title: "Your session · The Handover" };
 export const dynamic = "force-dynamic";
 
 export default async function SittingPage() {
@@ -40,7 +40,7 @@ export default async function SittingPage() {
   return (
     <Page width="full">
       <PageHeader
-        eyebrow={`Sitting ${sitting.seq} · about ${formatMinutes(sitting.estimated_minutes)}`}
+        eyebrow={`Session ${sitting.seq} · about ${formatMinutes(sitting.estimated_minutes)}`}
         title={sitting.title}
         lead={summary}
       />

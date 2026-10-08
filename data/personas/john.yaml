@@ -31,10 +31,10 @@ intake:
   front_of_mind: [people]
 
 sittings:
-  - { key: people, status: done, day: -6 }
-  - { key: money-out, status: in_progress, day: 0 }
-  - { key: first-days, status: planned, day: 7 }
-  - { key: money-in-owed, status: planned, day: 14 }
+  - { key: people, status: done }
+  - { key: money-out, status: in_progress }
+  - { key: first-days, status: planned }
+  - { key: money-in-owed, status: planned }
 
 entities:
   - type: person

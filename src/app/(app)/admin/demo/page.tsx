@@ -47,7 +47,7 @@ export default async function DemoPage() {
                 <p className="text-sm text-muted">{persona.summary}</p>
                 <p className="mt-auto pt-2 text-xs text-faint">
                   {persona.sittings.filter((s) => s.status === "done").length} of{" "}
-                  {persona.sittings.length} sittings done · {(persona.record ?? []).length} things
+                  {persona.sittings.length} sessions done · {(persona.record ?? []).length} things
                   recorded
                 </p>
               </Card>
@@ -66,7 +66,7 @@ export default async function DemoPage() {
         <p className="measure text-sm text-muted">
           Seeding shows the result; this shows the experience. A persona&apos;s own words are typed
           into the real pages at a pace you can follow — consent, the opening conversation, the
-          plan, then every sitting in the plan&apos;s order with the document filling in beside
+          plan, then every session in the plan&apos;s order with the document filling in beside
           it, and the Guide at the end. Start it and watch: it needs nothing from you. The model is
           real, so it costs credit and takes ten minutes or so.
         </p>

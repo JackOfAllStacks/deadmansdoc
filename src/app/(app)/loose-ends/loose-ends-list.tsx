@@ -119,7 +119,7 @@ function LooseEndCard({
               .
             </>
           ) : (
-            <>It comes up in one of the sittings on your plan.</>
+            <>It comes up in one of the sessions on your plan.</>
           )}
         </p>
       ) : (

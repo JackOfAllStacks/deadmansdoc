@@ -29,9 +29,9 @@ export default async function IntakePage() {
   return (
     <Page width="prose">
       <PageHeader
-        eyebrow="Before the sittings"
+        eyebrow="Before the sessions"
         title="The opening conversation"
-        lead={`A few short questions about ${possessiveLower(record)} situation, so that the sittings after it are the right ones, in the right order, and the right length.`}
+        lead={`A few short questions about ${possessiveLower(record)} situation, so that the sessions after it are the right ones, in the right order, and the right length.`}
       />
       <IntakeChat
         greeting={greetingFor(record)}

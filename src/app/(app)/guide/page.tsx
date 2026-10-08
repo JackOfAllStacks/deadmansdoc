@@ -46,7 +46,7 @@ export default async function MyGuidePage() {
           lead={
             recorded > 0
               ? `Everything recorded so far, in the shape it would be handed over in. It is built from what was said — nothing here was written by a machine, and nothing appears that nobody mentioned.`
-              : `This is what the sittings are building. It fills in as you go.`
+              : `This is what the sessions are building. It fills in as you go.`
           }
         />
         {/* How much of it exists, said where the document itself is, so the
@@ -68,7 +68,7 @@ export default async function MyGuidePage() {
         <Card tone="quiet" className="flex flex-col items-start gap-3">
           <h2 className="text-lg">Nothing in it yet</h2>
           <p className="measure text-sm text-muted">
-            Once you have been through a sitting, what was said appears here. You can come back to
+            Once you have been through a session, what was said appears here. You can come back to
             this page at any point to see what {whose} handover looks like so far.
           </p>
           <ButtonLink href="/plan">Go to the plan</ButtonLink>

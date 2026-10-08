@@ -1,7 +1,5 @@
 import { db } from "@/lib/db";
 import { sessionTemplate } from "@/lib/content";
-import { addDays } from "@/lib/plan/build-plan";
-import { todayInMelbourne } from "@/lib/today";
 import { disclosureOf, type Persona, type PersonaSitting } from "@/lib/demo/personas";
 
 /*
@@ -49,7 +47,6 @@ export async function seedPersona(userId: string, persona: Persona): Promise<See
 
 async function write(userId: string, persona: Persona): Promise<SeedResult> {
   const sql = db();
-  const today = todayInMelbourne();
 
   await clearRecordsFor(userId);
 
@@ -72,11 +69,11 @@ async function write(userId: string, persona: Persona): Promise<SeedResult> {
     const template = sessionTemplate.sittings.find((s) => s.key === sitting.key);
     const [{ id }] = (await sql`
       insert into sittings
-        (record_id, seq, title, covers, estimated_minutes, scheduled_for, sitting_key, status,
+        (record_id, seq, title, covers, estimated_minutes, sitting_key, status,
          started_at, completed_at)
       values
         (${recordId}, ${seq}, ${template?.title ?? sitting.key}, ${template?.covers ?? []},
-         ${minutesFor(sitting)}, ${addDays(today, sitting.day)}::date, ${sitting.key}, ${sitting.status},
+         ${minutesFor(sitting)}, ${sitting.key}, ${sitting.status},
          ${sitting.status === "planned" ? null : "now()"}::timestamptz,
          ${sitting.status === "done" ? "now()" : null}::timestamptz)
       returning id`) as { id: string }[];
@@ -106,8 +103,8 @@ async function write(userId: string, persona: Persona): Promise<SeedResult> {
     if (messageFor.has(key)) continue;
     const [{ id }] = (await sql`
       insert into messages (record_id, sitting_id, phase, role, content, blocks)
-      values (${recordId}, ${sittingId}, 'sitting', 'subject', '(recorded during this sitting)',
-              ${JSON.stringify([{ type: "text", text: "(recorded during this sitting)" }])}::jsonb)
+      values (${recordId}, ${sittingId}, 'sitting', 'subject', '(recorded during this session)',
+              ${JSON.stringify([{ type: "text", text: "(recorded during this session)" }])}::jsonb)
       returning id`) as { id: string }[];
     messageFor.set(key, id);
   }

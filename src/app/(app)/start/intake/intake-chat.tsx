@@ -132,7 +132,7 @@ export function IntakeChat({
               <h2 className="text-lg">Thank you — that&apos;s been taken into account</h2>
               <p className="measure text-sm text-muted">
                 {revised > 0
-                  ? `The ${revised === 1 ? "sitting" : `${revised} sittings`} you haven't started yet have been re-worked around what you've just added. Anything already done stays exactly as it was.`
+                  ? `The ${revised === 1 ? "session" : `${revised} sessions`} you haven't started yet have been re-worked around what you've just added. Anything already done stays exactly as it was.`
                   : "Everything in your plan has already been started or finished, so nothing has been changed."}
               </p>
               <ButtonLink href="/plan">Back to your plan</ButtonLink>
@@ -141,7 +141,7 @@ export function IntakeChat({
             <>
               <h2 className="text-lg">That&apos;s everything for now</h2>
               <p className="measure text-sm text-muted">
-                Next comes the plan: a handful of short sittings, and when you&apos;d like to do them.
+                Next comes the plan: a handful of short sessions, to do whenever suits you.
               </p>
               <ButtonLink href="/plan/new">See your plan</ButtonLink>
             </>
@@ -182,7 +182,7 @@ function BeforeYouBegin({ areas, onBegin }: { areas: Area[]; onBegin: () => void
     ],
     [
       "It works out a plan",
-      "A handful of short sittings, each covering one part of the record, in whatever order suits what you've said.",
+      "A handful of short sessions, each covering one part of the record, in whatever order suits what you've said.",
     ],
     [
       "Then you do them whenever you like",
@@ -210,7 +210,7 @@ function BeforeYouBegin({ areas, onBegin }: { areas: Area[]; onBegin: () => void
       </Card>
 
       <section className="flex flex-col gap-3">
-        <SectionHeading aside="in the sittings after this">What the record covers</SectionHeading>
+        <SectionHeading aside="in the sessions after this">What the record covers</SectionHeading>
         <ul className="grid gap-3 sm:grid-cols-2">
           {areas.map((area) => (
             <li key={area.title} className="rounded-md border border-line bg-surface p-4">
@@ -271,7 +271,7 @@ function Finished({
           <h2 className="text-lg">Thought of something since?</h2>
           <p className="measure text-sm text-muted">
             {hasPlan
-              ? "You can add to this. The sittings you haven't started yet get re-worked around whatever you add; anything already done stays as it is."
+              ? "You can add to this. The sessions you haven't started yet get re-worked around whatever you add; anything already done stays as it is."
               : "You can add to this before the plan is set."}
           </p>
         </div>
