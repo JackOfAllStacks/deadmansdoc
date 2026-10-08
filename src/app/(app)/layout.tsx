@@ -10,7 +10,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { user } = await requireSession();
   const [journey, demoRun] = await Promise.all([journeyFor(user.id), demoRunFor(user.id)]);
 
-  const links: NavLink[] = [{ href: "/home", label: "Home" }];
+  // No Home: the wordmark goes there, from every page, already.
+  const links: NavLink[] = [];
   if (journey.sittings.length) {
     links.push({ href: "/plan", label: "Your plan" });
     // The point of the whole thing, so it sits in the header from the moment
