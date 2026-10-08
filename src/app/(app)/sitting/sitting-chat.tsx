@@ -312,7 +312,7 @@ export function SittingChat({
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 sm:[--chat-inset:7.5rem] lg:grid lg:flex-none lg:grid-cols-[minmax(0,1fr)_minmax(28rem,34rem)] lg:gap-8 lg:[--chat-inset:12rem]">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 sm:[--chat-inset:7.5rem] lg:grid lg:flex-none lg:grid-cols-[minmax(0,1fr)_minmax(28rem,34rem)] lg:gap-8 lg:[--chat-inset:13rem]">
       <ChatFrame
         className={cx("order-2 lg:order-1 lg:flex", showing === "conversation" ? "flex" : "hidden")}
       >
