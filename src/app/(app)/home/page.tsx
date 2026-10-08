@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { StartSitting } from "@/app/(app)/plan/start-sitting";
 import { TopicChips } from "@/components/topics";
@@ -323,9 +324,31 @@ async function WhereItStands({ recordId, whose }: { recordId: string; whose: str
                 {p.next.missing.length === 1 ? "One answer away" : `${p.next.missing.length} answers away`}
               </p>
               <p className="measure leading-relaxed">{p.next.says}</p>
-              <p className="measure text-sm text-muted">
-                Still to cover: {p.next.missing.map((f) => f.label.toLowerCase()).join("; ")}.
-              </p>
+              {/* A recorded gap has been asked about already, so "still to
+                  cover" would be wrong: it was covered, and nobody knew. */}
+              {p.next.missing.some((f) => !f.gap) && (
+                <p className="measure text-sm text-muted">
+                  Still to cover:{" "}
+                  {p.next.missing
+                    .filter((f) => !f.gap)
+                    .map((f) => f.label.toLowerCase())
+                    .join("; ")}
+                  .
+                </p>
+              )}
+              {p.next.missing.some((f) => f.gap) && (
+                <p className="measure text-sm text-muted">
+                  Noted as nobody knows yet:{" "}
+                  {p.next.missing
+                    .filter((f) => f.gap)
+                    .map((f) => f.label.toLowerCase())
+                    .join("; ")}
+                  .{" "}
+                  <Link href="/loose-ends" className="underline underline-offset-4 hover:text-ink">
+                    Answer it in what&apos;s left to find out
+                  </Link>
+                </p>
+              )}
             </Card>
           )}
         </section>
